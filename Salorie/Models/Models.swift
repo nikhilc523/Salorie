@@ -56,10 +56,14 @@ struct Food: Identifiable, Hashable {
     /// Per `servingDescription` (e.g. "1 cup (240g)").
     var servingDescription: String
     var calories: Int
-    var carbs: Double      // g
-    var protein: Double    // g
-    var fat: Double        // g
-    var fibre: Double      // g
+    var carbs: Double         // g
+    var protein: Double       // g
+    var fat: Double           // g
+    var fibre: Double         // g
+    var sugars: Double = 0        // g
+    var saturatedFat: Double = 0  // g
+    var sodium: Double = 0        // mg
+    var cholesterol: Double = 0   // mg
 
     var ingredients: [String] = []
     var isFavorite: Bool = false
@@ -106,6 +110,10 @@ struct MealEntry: Identifiable, Hashable {
     var protein: Double { food.protein * servings }
     var fibre: Double { food.fibre * servings }
     var fat: Double { food.fat * servings }
+    var sugars: Double { food.sugars * servings }
+    var saturatedFat: Double { food.saturatedFat * servings }
+    var sodium: Double { food.sodium * servings }
+    var cholesterol: Double { food.cholesterol * servings }
 }
 
 // MARK: - Macro targets & day summary
@@ -130,4 +138,8 @@ struct DayLog: Identifiable, Hashable {
     var protein: Double { entries.reduce(0) { $0 + $1.protein } }
     var fibre: Double { entries.reduce(0) { $0 + $1.fibre } }
     var fat: Double { entries.reduce(0) { $0 + $1.fat } }
+    var sugars: Double { entries.reduce(0) { $0 + $1.sugars } }
+    var saturatedFat: Double { entries.reduce(0) { $0 + $1.saturatedFat } }
+    var sodium: Double { entries.reduce(0) { $0 + $1.sodium } }
+    var cholesterol: Double { entries.reduce(0) { $0 + $1.cholesterol } }
 }

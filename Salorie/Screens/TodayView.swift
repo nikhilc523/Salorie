@@ -49,9 +49,8 @@ struct TodayView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        HapticManager.shared.trigger(.light)
-                        dayIndex = store.history.count - 1
-                        showDayDetail = true
+                        // Calendar button unwired — day detail now opens by tapping the rings.
+                        // TODO: assign new behavior (pending direction).
                     } label: { Image(systemName: "calendar") }
                 }
             }
@@ -99,12 +98,18 @@ struct TodayView: View {
                 HStack(spacing: 22) {
                     ActivityRings(
                         rings: macroRings,
-                        lineWidth: 15,
-                        spacing: 5,
+                        lineWidth: 12,
+                        spacing: 4,
                         centerText: "\(store.caloriesToday)",
                         centerSubtitle: "kcal"
                     )
-                    .frame(width: 152, height: 152)
+                    .frame(width: 120, height: 120)
+                    .contentShape(Circle())
+                    .onTapGesture {
+                        HapticManager.shared.trigger(.light)
+                        dayIndex = store.history.count - 1
+                        showDayDetail = true
+                    }
 
                     RingLegend(items: macroRings)
                 }

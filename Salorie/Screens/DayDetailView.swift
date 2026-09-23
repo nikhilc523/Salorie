@@ -18,8 +18,10 @@ struct DayDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     weekSelector
                     heroRing
-                    metric
                     chart
+                    proteinChart
+                    carbsChart
+                    nutritionDetails
                 }
                 .padding(.horizontal, Metrics.pagePadding)
                 .padding(.vertical, 8)
@@ -84,103 +86,236 @@ struct DayDetailView: View {
         .padding(.vertical, 4)
     }
 
-    // MARK: Big metric
+    // MARK: Through-the-day charts (unified Apple Activity detail style)
 
-    private var metric: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Calories")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text("\(day.calories)")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.textPrimary)
-                Text(" / \(store.targets.calories) kcal")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(Theme.textTertiary)
-            }
-            .monospacedDigit()
-            legend
-                .padding(.top, 12)
-        }
-    }
-
-    private var legend: some View {
-        RingLegend(items: [
-            Ring(progress: 0, color: .calories, label: "Calories", valueText: "\(day.calories) / \(store.targets.calories)"),
-            Ring(progress: 0, color: .protein, label: "Protein", valueText: "\(Int(day.protein.rounded())) / \(Int(store.targets.protein))g"),
-            Ring(progress: 0, color: .carb, label: "Carbs", valueText: "\(Int(day.carbs.rounded())) / \(Int(store.targets.carbs))g"),
-        ])
-    }
-
-    // MARK: Calories-through-the-day chart (dense cream bars, ref: Wear histogram)
-
-    private struct HourBar: Identifiable {
+    private struct MacroHourBar: Identifiable {
         let id = UUID()
-        let hour: Int      // 0…23
-        let calories: Int  // cumulative total up to end of this hour
+        let hour: Int
+        let value: Double  // this hour's amount (non-cumulative)
     }
 
-    /// One bar per hour across the day, each the running calorie total — fills the full width.
-    private var cumulative: [HourBar] {
-        var perHour = [Int](repeating: 0, count: 24)
+    /// One bar per hour, the amount logged in that hour (non-cumulative).
+    private func macroPerHour(_ valueFor: (MealEntry) -> Double) -> [MacroHourBar] {
+        var perHour = [Double](repeating: 0, count: 24)
         for e in day.entries {
             let h = min(23, max(0, Self.hour(from: e.time)))
-            perHour[h] += e.calories
+            perHour[h] += valueFor(e)
         }
-        var run = 0
-        var out: [HourBar] = []
-        for h in 0...23 {
-            run += perHour[h]
-            if h >= 6 { out.append(HourBar(hour: h, calories: run)) }
-        }
-        return out
+        return (6...23).map { MacroHourBar(hour: $0, value: perHour[$0]) }
     }
 
-    private var chart: some View {
-        CalmCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("CALORIES THROUGH THE DAY").overlineStyle()
+    /// Big colored value header — Apple Fitness "Move / Exercise / Stand" style.
+    private func activityHeader(_ title: String, value: Int, target: Int, unit: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                Text("\(value)")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .foregroundStyle(tint)
+                Text("/\(target)\(unit)")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(tint.opacity(0.55))
+            }
+            .monospacedDigit()
+        }
+    }
 
-                Chart(cumulative) { bar in
-                    BarMark(
-                        x: .value("Hour", bar.hour),
-                        y: .value("Calories", bar.calories),
-                        width: .fixed(11)
-                    )
-                    .foregroundStyle(RingColor.calories.tint) // oatmeal cream
-                    .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
-                }
-                .frame(height: 140)
-                .chartXScale(domain: 5.5...23.5)
-                .chartYScale(domain: 0...Double(store.targets.calories))
-                .chartYAxis {
-                    AxisMarks(values: [0, store.targets.calories]) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4]))
-                            .foregroundStyle(Theme.divider)
-                        if let v = value.as(Int.self), v > 0 {
-                            AxisValueLabel {
-                                Text("\(v)").font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
-                            }
-                        }
-                    }
-                }
-                .chartXAxis {
-                    AxisMarks(values: [6, 12, 18, 22]) { value in
-                        AxisValueLabel {
-                            if let h = value.as(Int.self) {
-                                Text(Self.hourLabel(h)).font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
-                            }
-                        }
-                    }
-                }
+    /// Small y-max cap shown top-left of each chart (ref: "60 MIN" / "11CAL").
+    private func capLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(Theme.textTertiary)
+            .monospacedDigit()
+    }
 
-                Text("TOTAL \(day.calories) KCAL")
-                    .font(.system(size: 12, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundStyle(RingColor.calories.tint)
+    /// Colored "TOTAL …" footer under each chart (ref: "TOTAL 20H 36M").
+    private func totalFooter(_ text: String, tint: Color) -> some View {
+        Text(text)
+            .font(.system(size: 12, weight: .semibold))
+            .tracking(0.5)
+            .foregroundStyle(tint)
+    }
+
+    /// Shared 4-mark time axis (6a · 12p · 6p · 10p).
+    private var timeAxisMarks: some AxisContent {
+        AxisMarks(values: [6, 12, 18, 22]) { value in
+            AxisValueLabel {
+                if let h = value.as(Int.self) {
+                    Text(Self.hourLabel(h)).font(.system(size: 12)).foregroundStyle(Theme.textTertiary)
+                }
             }
         }
+    }
+
+    // Calories — thick cumulative bars filling the day (ref: 11:37 screenshot).
+    private var chart: some View {
+        let per = macroPerHour { Double($0.calories) }
+        var run = 0.0
+        let bars = per.map { b -> MacroHourBar in run += b.value; return MacroHourBar(hour: b.hour, value: run) }
+        let total = run
+        let target = Double(store.targets.calories)
+        let tint = RingColor.calories.tint
+        return CalmCard {
+            VStack(alignment: .leading, spacing: 12) {
+                activityHeader("Calories", value: day.calories,
+                               target: store.targets.calories, unit: "", tint: tint)
+                capLabel("\(store.targets.calories)")
+                Chart(bars.filter { $0.value > 0 }) { bar in
+                    BarMark(
+                        x: .value("Hour", bar.hour),
+                        y: .value("Calories", bar.value),
+                        width: .fixed(12)
+                    )
+                    .foregroundStyle(tint)
+                    .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                }
+                .frame(height: 120)
+                .chartXScale(domain: 5.5...23.5)
+                .chartYScale(domain: 0...max(target, total))
+                .chartYAxis(.hidden)
+                .chartXAxis { timeAxisMarks }
+                totalFooter("TOTAL \(day.calories) KCAL", tint: tint)
+            }
+        }
+    }
+
+    // Protein — Apple "Stand / Wear" design: fat rounded capsules packed across the width.
+    private var proteinChart: some View {
+        let bars = macroPerHour { $0.protein }
+        let peak = max(bars.map(\.value).max() ?? 1, 1)
+        let floor = peak * 0.06                     // short stub for empty hours (ref: the one short bar)
+        let tint = RingColor.protein.tint
+        return CalmCard {
+            VStack(alignment: .leading, spacing: 12) {
+                activityHeader("Protein", value: Int(day.protein.rounded()),
+                               target: Int(store.targets.protein), unit: "G", tint: tint)
+                capLabel("\(Int(peak.rounded()))G")
+                Chart(bars) { bar in
+                    BarMark(
+                        x: .value("Hour", bar.hour),
+                        y: .value("Protein", max(bar.value, floor)),
+                        width: .fixed(13)
+                    )
+                    .foregroundStyle(tint.opacity(bar.value > 0 ? 1 : 0.28))
+                    .clipShape(Capsule())
+                }
+                .frame(height: 120)
+                .chartXScale(domain: 5.5...23.5)
+                .chartYScale(domain: 0...(peak * 1.08))
+                .chartYAxis(.hidden)
+                .chartXAxis { timeAxisMarks }
+                totalFooter("TOTAL \(Int(day.protein.rounded())) G", tint: tint)
+            }
+        }
+    }
+
+    // Carbs — Apple "Exercise" design: dotted baseline + thin tall spikes.
+    private var carbsChart: some View {
+        let bars = macroPerHour { $0.carbs }
+        let peak = max(bars.map(\.value).max() ?? 1, 1)
+        let tint = RingColor.carb.tint
+        return CalmCard {
+            VStack(alignment: .leading, spacing: 12) {
+                activityHeader("Carbs", value: Int(day.carbs.rounded()),
+                               target: Int(store.targets.carbs), unit: "G", tint: tint)
+                capLabel("\(Int(peak.rounded()))G")
+                Chart {
+                    RuleMark(y: .value("Base", 0))
+                        .foregroundStyle(tint.opacity(0.55))
+                        .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [1, 5]))
+                    ForEach(bars.filter { $0.value > 0 }) { bar in
+                        BarMark(
+                            x: .value("Hour", bar.hour),
+                            y: .value("Carbs", bar.value),
+                            width: .fixed(4)
+                        )
+                        .foregroundStyle(tint)
+                        .clipShape(Capsule())
+                    }
+                }
+                .frame(height: 120)
+                .chartXScale(domain: 5.5...23.5)
+                .chartYScale(domain: 0...(peak * 1.08))
+                .chartYAxis(.hidden)
+                .chartXAxis { timeAxisMarks }
+                totalFooter("TOTAL \(Int(day.carbs.rounded())) G", tint: tint)
+            }
+        }
+    }
+
+    // MARK: Nutrition details grid (ref: Apple Health "Steps / Distance" stat grid)
+
+    private struct NutrientStat: Identifiable {
+        let id = UUID()
+        let label: String
+        let value: String
+        let target: String?   // e.g. "of 30g", nil when we have no daily target
+    }
+
+    /// The full macro breakdown consumed across the day.
+    private var nutrientStats: [NutrientStat] {
+        func g(_ v: Double) -> String { "\(Int(v.rounded()))g" }
+        func mg(_ v: Double) -> String { "\(Int(v.rounded())) mg" }
+        return [
+            NutrientStat(label: "Total Fat", value: g(day.fat), target: "of \(Int(store.targets.fat.rounded()))g"),
+            NutrientStat(label: "Saturated Fat", value: g(day.saturatedFat), target: nil),
+            NutrientStat(label: "Sugars", value: g(day.sugars), target: nil),
+            NutrientStat(label: "Dietary Fibre", value: g(day.fibre), target: "of \(Int(store.targets.fibre.rounded()))g"),
+            NutrientStat(label: "Sodium", value: mg(day.sodium), target: "of 2,300 mg"),
+            NutrientStat(label: "Cholesterol", value: mg(day.cholesterol), target: nil),
+        ]
+    }
+
+    private var nutritionDetails: some View {
+        // Two-column grid, hairline divider between rows (Apple Health layout).
+        let rows = stride(from: 0, to: nutrientStats.count, by: 2).map { i in
+            Array(nutrientStats[i..<min(i + 2, nutrientStats.count)])
+        }
+        return CalmCard {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Nutrition Details")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(.bottom, 4)
+
+                ForEach(Array(rows.enumerated()), id: \.offset) { idx, row in
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(row) { stat in
+                            nutrientCell(stat)
+                        }
+                        if row.count == 1 { Color.clear.frame(maxWidth: .infinity) }
+                    }
+                    .padding(.vertical, 16)
+
+                    if idx < rows.count - 1 {
+                        Rectangle()
+                            .fill(Theme.divider)
+                            .frame(height: 1)
+                    }
+                }
+            }
+        }
+    }
+
+    private func nutrientCell(_ stat: NutrientStat) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(stat.label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+            Text(stat.value)
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.textPrimary)
+                .monospacedDigit()
+            if let target = stat.target {
+                Text(target)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textTertiary)
+                    .monospacedDigit()
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Helpers
