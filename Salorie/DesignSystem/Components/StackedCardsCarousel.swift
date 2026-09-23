@@ -134,7 +134,10 @@ struct BigStatCard: View {
     var colors: [Color]
     var animate: Bool
 
-    @State private var progress: Double = 0
+    // Displayed values roll via .numericText content transitions (no per-frame formatting).
+    @State private var shownValue: Double = 0
+    @State private var shownPercent: Int = 0
+    @State private var barProgress: Double = 0
 
     private var grad: LinearGradient {
         LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -147,21 +150,23 @@ struct BigStatCard: View {
                     .font(.system(size: 13, weight: .bold)).tracking(1.4)
                     .foregroundStyle(Theme.textSecondary)
                 Spacer()
-                Text("\(Int((Double(percent) * progress).rounded()))%")
+                Text("\(shownPercent)%")
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundStyle(grad).monospacedDigit()
+                    .contentTransition(.numericText())
             }
 
             Spacer(minLength: 0)
 
             // Huge hero number, centered in the portrait body
             VStack(alignment: .leading, spacing: -4) {
-                Text(format(value * progress))
+                Text(format(shownValue))
                     .font(.system(size: 74, weight: .heavy, design: .rounded))
                     .foregroundStyle(grad)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
+                    .contentTransition(.numericText())
                 Text(unit)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Theme.textTertiary)
@@ -173,7 +178,7 @@ struct BigStatCard: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill((colors.first ?? .white).opacity(0.16))
                     Capsule().fill(grad)
-                        .frame(width: max(6, geo.size.width * min(Double(percent) / 100, 1) * progress))
+                        .frame(width: max(6, geo.size.width * min(Double(percent) / 100, 1) * barProgress))
                 }
             }
             .frame(height: 8)
@@ -206,10 +211,16 @@ struct BigStatCard: View {
 
     private func runCount() {
         if animate {
-            progress = 0
-            withAnimation(.easeOut(duration: 0.9)) { progress = 1 }
+            shownValue = 0; shownPercent = 0; barProgress = 0
+            withAnimation(.snappy(duration: 0.55)) {
+                shownValue = value
+                shownPercent = percent
+                barProgress = 1
+            }
         } else {
-            progress = 1
+            shownValue = value
+            shownPercent = percent
+            barProgress = 1
         }
     }
 }
