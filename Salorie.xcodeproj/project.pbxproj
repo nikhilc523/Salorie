@@ -14,6 +14,7 @@
 		437D4278654764E40E07300A /* AddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047C6E4F516485EBBFC753F0 /* AddView.swift */; };
 		43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */; };
 		4B0453D86F29216379AE5F39 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B012781019B5FE6E6A6921A /* Theme.swift */; };
+		4C7707132DAAFC4DA4F90B1C /* StackedCardsCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */; };
 		5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */; };
 		828363F7F5850E9B66FFBF85 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E52CFD17BE0201C3052D7C9 /* HistoryView.swift */; };
 		8605A835CD704EC094E381C0 /* Rings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEF1A9763C1A527C2901A50 /* Rings.swift */; };
@@ -43,6 +44,7 @@
 		5B8EEBF451C46BCC97662740 /* Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cards.swift; sourceTree = "<group>"; };
 		636AFA992B9822700C009B9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		796CC2D90F52CABD600C2327 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedCardsCarousel.swift; sourceTree = "<group>"; };
 		8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyItemsView.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
 		9077EC65AFBC6E2B553A411F /* AskAIBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskAIBar.swift; sourceTree = "<group>"; };
@@ -67,6 +69,7 @@
 				A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */,
 				D63E0ED90EE41BBE3D238551 /* Pills.swift */,
 				8DEF1A9763C1A527C2901A50 /* Rings.swift */,
+				7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -224,6 +227,7 @@
 				427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */,
 				A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */,
 				9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */,
+				4C7707132DAAFC4DA4F90B1C /* StackedCardsCarousel.swift in Sources */,
 				4B0453D86F29216379AE5F39 /* Theme.swift in Sources */,
 				04444891B7E698C9C927DA16 /* TodayView.swift in Sources */,
 				BEA1438614E6CD724C560E7E /* Typography.swift in Sources */,

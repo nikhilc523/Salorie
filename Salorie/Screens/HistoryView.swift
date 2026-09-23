@@ -58,10 +58,8 @@ struct HistoryView: View {
                     NotionPageHeader(symbol: "chart.xyaxis.line", tint: .brown, title: "History",
                                      subtitle: "Trends across your logged days")
                     periodPicker
-                    hero
+                    statsCarousel
                     trendCard
-                    statsGrid
-                    macroCard
                     if period == .week {
                         weekRingStrip
                         dailyLogTable
@@ -108,37 +106,44 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: Hero — avg calories + adherence ring
+    // MARK: Stats carousel — big bold cards (Calories · macros · adherence)
 
-    private var hero: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("AVG DAILY CALORIES").overlineStyle()
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(avgCalories)")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.textPrimary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                    Text("kcal")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Theme.textTertiary)
-                }
-                Text("goal \(targets.calories) · \(periodLabel)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textTertiary)
-            }
-            Spacer(minLength: 8)
-            RingChart(progress: Double(adherence) / 100,
-                      centerText: "\(adherence)%", subtitle: "on goal",
-                      color: RingColor.protein.tint, lineWidth: 9)
-                .frame(width: 92, height: 92)
-                .id(period)   // re-animate the ring when the period changes
+    private struct StatCardData: Identifiable {
+        let id = UUID()
+        let tag: String; let value: String; let unit: String
+        let percent: Int; let caption: String; let colors: [Color]
+    }
+
+    private func pct(_ v: Double, _ t: Double) -> Int { t > 0 ? Int((v / t * 100).rounded()) : 0 }
+
+    private var statCards: [StatCardData] {
+        [
+            StatCardData(tag: "CALORIES", value: avgCalories.formatted(), unit: "kcal", percent: goalPct,
+                         caption: "avg per day · goal \(targets.calories) · \(periodLabel)",
+                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)]),
+            StatCardData(tag: "PROTEIN", value: "\(avgProtein)", unit: "g", percent: pct(avg(\.protein), targets.protein),
+                         caption: "avg per day · goal \(Int(targets.protein)) g",
+                         colors: [Color(hex: 0xE6D0A8), Color(hex: 0xD1A67A)]),
+            StatCardData(tag: "CARBS", value: "\(Int(avg(\.carbs).rounded()))", unit: "g", percent: pct(avg(\.carbs), targets.carbs),
+                         caption: "avg per day · goal \(Int(targets.carbs)) g",
+                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)]),
+            StatCardData(tag: "FAT", value: "\(Int(avg(\.fat).rounded()))", unit: "g", percent: pct(avg(\.fat), targets.fat),
+                         caption: "avg per day · goal \(Int(targets.fat)) g",
+                         colors: [Color(hex: 0xE3D9C6), Color(hex: 0xCBB892)]),
+            StatCardData(tag: "FIBRE", value: "\(Int(avg(\.fibre).rounded()))", unit: "g", percent: pct(avg(\.fibre), targets.fibre),
+                         caption: "avg per day · goal \(Int(targets.fibre)) g",
+                         colors: [Color(hex: 0xDDB98C), Color(hex: 0xC98A5E)]),
+            StatCardData(tag: "ON TARGET", value: "\(adherence)", unit: "%", percent: adherence,
+                         caption: "\(onTargetCount)/\(days.count) days within goal · streak \(bestStreak)",
+                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)]),
+        ]
+    }
+
+    private var statsCarousel: some View {
+        StackedCardsCarousel(items: statCards, cardHeight: 208) { card in
+            BigStatCard(tag: card.tag, value: card.value, unit: card.unit,
+                        percent: card.percent, caption: card.caption, colors: card.colors)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
     }
 
     // MARK: Trend chart
@@ -219,80 +224,6 @@ struct HistoryView: View {
                             Text(p.label).font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
                         }
                     }
-                }
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    // MARK: Kanban-style stat cards
-
-    private var statsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
-            statCard("On target", .brown, "\(onTargetCount)/\(days.count)", "days within goal")
-            statCard("Protein", .orange, "\(avgProtein)g", "avg · goal \(Int(targets.protein))g")
-            statCard("Streak", .blue, "\(bestStreak) days", "best on-target run")
-            statCard("Vs goal", .purple, "\(goalPct)%", "avg intake of goal")
-        }
-    }
-
-    private func statCard(_ tag: String, _ tagColor: TagColor, _ value: String, _ caption: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            TagPill(text: tag, color: tagColor)
-            Text(value)
-                .font(.system(size: 24, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.textPrimary)
-                .monospacedDigit()
-            Text(caption)
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textTertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    // MARK: Macro averages (share of goal)
-
-    private var macroShares: [MacroShare] {
-        [
-            MacroShare(label: "Carbs",   grams: avg(\.carbs),   target: targets.carbs,   colors: RingColor.carb.stops),
-            MacroShare(label: "Protein", grams: avg(\.protein), target: targets.protein, colors: RingColor.protein.stops),
-            MacroShare(label: "Fat",     grams: avg(\.fat),     target: targets.fat,     colors: Theme.macroFatStops),
-            MacroShare(label: "Fibre",   grams: avg(\.fibre),   target: targets.fibre,   colors: RingColor.fibre.stops),
-        ]
-    }
-
-    private var macroCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("AVG MACROS · SHARE OF GOAL").overlineStyle()
-            ForEach(macroShares) { s in
-                VStack(spacing: 7) {
-                    HStack(spacing: 8) {
-                        Circle().fill(LinearGradient(colors: s.colors, startPoint: .leading, endPoint: .trailing))
-                            .frame(width: 7, height: 7)
-                        Text(s.label).font(.system(size: 14, weight: .medium)).foregroundStyle(Theme.textSecondary)
-                        Spacer(minLength: 8)
-                        Text("\(Int(s.grams.rounded())) g")
-                            .font(.system(size: 14, weight: .semibold)).monospacedDigit().foregroundStyle(Theme.textPrimary)
-                        Text(s.percentText)
-                            .font(.system(size: 12, weight: .medium)).monospacedDigit()
-                            .foregroundStyle(Theme.textTertiary).frame(width: 40, alignment: .trailing)
-                    }
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill((s.colors.first ?? .white).opacity(0.14))
-                            Capsule().fill(LinearGradient(colors: s.colors, startPoint: .leading, endPoint: .trailing))
-                                .frame(width: max(4, geo.size.width * s.pct))
-                        }
-                    }
-                    .frame(height: 6)
                 }
             }
         }
