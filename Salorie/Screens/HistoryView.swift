@@ -140,7 +140,7 @@ struct HistoryView: View {
     }
 
     private var statsCarousel: some View {
-        StackedCardsCarousel(items: statCards, cardHeight: 208) { card, isFront in
+        StackedCardsCarousel(items: statCards, cardWidth: 260, cardHeight: 370) { card, isFront in
             BigStatCard(tag: card.tag, value: card.numericValue, format: card.fmt, unit: card.unit,
                         percent: card.percent, caption: card.caption, colors: card.colors, animate: isFront)
                 .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
