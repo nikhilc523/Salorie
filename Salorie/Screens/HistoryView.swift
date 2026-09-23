@@ -20,6 +20,7 @@ struct HistoryView: View {
     }()
     @State private var showDayDetail = false
     @State private var dayIndex = 0
+    @State private var selectedStat: StatCardData?
 
     // MARK: Period slice
 
@@ -73,6 +74,9 @@ struct HistoryView: View {
                 if ProcessInfo.processInfo.environment["SALORIE_SCROLL"] == "bottom" {
                     proxy.scrollTo("bottom", anchor: .bottom)
                 }
+                if ProcessInfo.processInfo.environment["SALORIE_STAT"] == "1" {
+                    selectedStat = statCards[min(1, statCards.count - 1)]
+                }
             }
             }
             .background(Theme.bg)
@@ -80,6 +84,7 @@ struct HistoryView: View {
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
+            .sheet(item: $selectedStat) { StatDetailView(card: $0, targets: targets) }
         }
     }
 
@@ -108,41 +113,38 @@ struct HistoryView: View {
 
     // MARK: Stats carousel — big bold cards (Calories · macros · adherence)
 
-    private struct StatCardData: Identifiable {
-        let id = UUID()
-        let tag: String; let value: String; let unit: String
-        let percent: Int; let caption: String; let colors: [Color]
-    }
-
     private func pct(_ v: Double, _ t: Double) -> Int { t > 0 ? Int((v / t * 100).rounded()) : 0 }
 
     private var statCards: [StatCardData] {
-        [
-            StatCardData(tag: "CALORIES", value: avgCalories.formatted(), unit: "kcal", percent: goalPct,
-                         caption: "avg per day · goal \(targets.calories) · \(periodLabel)",
-                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)]),
-            StatCardData(tag: "PROTEIN", value: "\(avgProtein)", unit: "g", percent: pct(avg(\.protein), targets.protein),
-                         caption: "avg per day · goal \(Int(targets.protein)) g",
-                         colors: [Color(hex: 0xE6D0A8), Color(hex: 0xD1A67A)]),
-            StatCardData(tag: "CARBS", value: "\(Int(avg(\.carbs).rounded()))", unit: "g", percent: pct(avg(\.carbs), targets.carbs),
-                         caption: "avg per day · goal \(Int(targets.carbs)) g",
-                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)]),
-            StatCardData(tag: "FAT", value: "\(Int(avg(\.fat).rounded()))", unit: "g", percent: pct(avg(\.fat), targets.fat),
-                         caption: "avg per day · goal \(Int(targets.fat)) g",
-                         colors: [Color(hex: 0xE3D9C6), Color(hex: 0xCBB892)]),
-            StatCardData(tag: "FIBRE", value: "\(Int(avg(\.fibre).rounded()))", unit: "g", percent: pct(avg(\.fibre), targets.fibre),
-                         caption: "avg per day · goal \(Int(targets.fibre)) g",
-                         colors: [Color(hex: 0xDDB98C), Color(hex: 0xC98A5E)]),
-            StatCardData(tag: "ON TARGET", value: "\(adherence)", unit: "%", percent: adherence,
-                         caption: "\(onTargetCount)/\(days.count) days within goal · streak \(bestStreak)",
-                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)]),
+        let calSeries = days.map { Double($0.calories) }
+        return [
+            StatCardData(tag: "CALORIES", numericValue: Double(avgCalories), grouped: true, unit: "kcal", percent: goalPct,
+                         caption: "avg/day · goal \(targets.calories) · \(periodLabel)",
+                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)], goal: Double(targets.calories), series: calSeries),
+            StatCardData(tag: "PROTEIN", numericValue: Double(avgProtein), grouped: false, unit: "g", percent: pct(avg(\.protein), targets.protein),
+                         caption: "avg/day · goal \(Int(targets.protein)) g",
+                         colors: [Color(hex: 0xE6D0A8), Color(hex: 0xD1A67A)], goal: targets.protein, series: days.map(\.protein)),
+            StatCardData(tag: "CARBS", numericValue: avg(\.carbs).rounded(), grouped: false, unit: "g", percent: pct(avg(\.carbs), targets.carbs),
+                         caption: "avg/day · goal \(Int(targets.carbs)) g",
+                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)], goal: targets.carbs, series: days.map(\.carbs)),
+            StatCardData(tag: "FAT", numericValue: avg(\.fat).rounded(), grouped: false, unit: "g", percent: pct(avg(\.fat), targets.fat),
+                         caption: "avg/day · goal \(Int(targets.fat)) g",
+                         colors: [Color(hex: 0xE3D9C6), Color(hex: 0xCBB892)], goal: targets.fat, series: days.map(\.fat)),
+            StatCardData(tag: "FIBRE", numericValue: avg(\.fibre).rounded(), grouped: false, unit: "g", percent: pct(avg(\.fibre), targets.fibre),
+                         caption: "avg/day · goal \(Int(targets.fibre)) g",
+                         colors: [Color(hex: 0xDDB98C), Color(hex: 0xC98A5E)], goal: targets.fibre, series: days.map(\.fibre)),
+            StatCardData(tag: "ON TARGET", numericValue: Double(adherence), grouped: false, unit: "%", percent: adherence,
+                         caption: "\(onTargetCount)/\(days.count) days · streak \(bestStreak)",
+                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)], goal: Double(targets.calories), series: calSeries),
         ]
     }
 
     private var statsCarousel: some View {
-        StackedCardsCarousel(items: statCards, cardHeight: 208) { card in
-            BigStatCard(tag: card.tag, value: card.value, unit: card.unit,
-                        percent: card.percent, caption: card.caption, colors: card.colors)
+        StackedCardsCarousel(items: statCards, cardHeight: 208) { card, isFront in
+            BigStatCard(tag: card.tag, value: card.numericValue, format: card.fmt, unit: card.unit,
+                        percent: card.percent, caption: card.caption, colors: card.colors, animate: isFront)
+                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .onTapGesture { if isFront { HapticManager.shared.trigger(.light); selectedStat = card } }
         }
     }
 
@@ -297,6 +299,120 @@ struct HistoryView: View {
                 thickDividers: true
             )
         }
+    }
+}
+
+// MARK: - Stat card model + detail
+
+private struct StatCardData: Identifiable {
+    let id = UUID()
+    let tag: String
+    let numericValue: Double
+    let grouped: Bool          // thousands separator (calories)
+    let unit: String
+    let percent: Int
+    let caption: String
+    let colors: [Color]
+    let goal: Double
+    let series: [Double]       // per-day values across the period
+
+    var display: String { fmt(numericValue) }
+    func fmt(_ v: Double) -> String { grouped ? Int(v).formatted() : "\(Int(v.rounded()))" }
+}
+
+/// Tap a stat card → expand into its own per-day trend + low/avg/high.
+private struct StatDetailView: View {
+    let card: StatCardData
+    let targets: MacroTargets
+    @Environment(\.dismiss) private var dismiss
+
+    private var grad: LinearGradient {
+        LinearGradient(colors: card.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+    private var maxY: Double { max(card.goal, card.series.max() ?? 0) * 1.12 }
+    private var barWidth: CGFloat { card.series.count > 40 ? 5 : (card.series.count > 12 ? 8 : 20) }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(card.tag)
+                            .font(.system(size: 13, weight: .bold)).tracking(1.2).foregroundStyle(Theme.textSecondary)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(card.display)
+                                .font(.system(size: 64, weight: .heavy, design: .rounded))
+                                .foregroundStyle(grad).monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
+                            Text(card.unit).font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.textTertiary)
+                        }
+                        Text(card.caption).font(.system(size: 13)).foregroundStyle(Theme.textTertiary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("PER-DAY TREND").overlineStyle()
+                        Chart {
+                            ForEach(Array(card.series.enumerated()), id: \.offset) { i, v in
+                                BarMark(x: .value("i", i), y: .value("v", v), width: .fixed(barWidth))
+                                    .foregroundStyle(grad)
+                                    .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                            }
+                            RuleMark(y: .value("goal", card.goal))
+                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 4]))
+                                .foregroundStyle(Theme.textTertiary.opacity(0.6))
+                                .annotation(position: .top, alignment: .leading) {
+                                    Text("goal \(Int(card.goal))").font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
+                                }
+                        }
+                        .frame(height: 170)
+                        .chartYScale(domain: 0 ... maxY)
+                        .chartXAxis(.hidden)
+                        .chartYAxis {
+                            AxisMarks(values: [0, card.goal]) { value in
+                                AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4])).foregroundStyle(Theme.divider)
+                                if let d = value.as(Double.self), d > 0 {
+                                    AxisValueLabel { Text("\(Int(d))").font(.system(size: 11)).foregroundStyle(Theme.textTertiary) }
+                                }
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
+
+                    HStack(spacing: 12) {
+                        miniStat("LOW", card.series.min() ?? 0)
+                        miniStat("AVG", card.numericValue)
+                        miniStat("HIGH", card.series.max() ?? 0)
+                    }
+                }
+                .padding(Metrics.pagePadding)
+                .padding(.bottom, 30)
+            }
+            .background(Theme.bg)
+            .scrollContentBackground(.hidden)
+            .navigationTitle(card.tag.capitalized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { HapticManager.shared.trigger(.light); dismiss() } label: { Image(systemName: "xmark") }
+                }
+            }
+        }
+        .presentationDragIndicator(.visible)
+    }
+
+    private func miniStat(_ label: String, _ v: Double) -> some View {
+        VStack(spacing: 4) {
+            Text(label).font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(Theme.textTertiary)
+            Text(card.fmt(v))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.textPrimary).monospacedDigit()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
     }
 }
 
