@@ -116,6 +116,37 @@ enum SampleData {
         return days
     }
 
+    // MARK: Extended daily log (for History trends — Week / Month / Year)
+
+    /// A longer, deterministic run of logged days ending at `referenceDate`, so the
+    /// History screen has real data to aggregate across periods. No randomness — values
+    /// come from a smooth wave + weekday effect so previews/screenshots are stable.
+    static func extendedHistory(days: Int = 120) -> [DayLog] {
+        let cal = Calendar.current
+        let base = cal.startOfDay(for: referenceDate)
+        let letters = ["S", "M", "T", "W", "T", "F", "S"]
+        let baseSum = Double(foods[0].calories + foods[2].calories + foods[7].calories + foods[5].calories)
+        var out: [DayLog] = []
+        for back in stride(from: days - 1, through: 0, by: -1) {
+            let date = cal.date(byAdding: .day, value: -back, to: base) ?? base
+            let weekday = cal.component(.weekday, from: date)        // 1 = Sun … 7 = Sat
+            let idx = days - 1 - back
+            let wave = 210.0 * sin(Double(idx) / 4.3)                // slow rise/fall
+            let weekend = (weekday == 1 || weekday == 7) ? 190.0 : -35.0
+            let drift = Double((idx * 7) % 90) - 45.0                // pseudo day-to-day jitter
+            let dayCalories = max(1500.0, 2080.0 + wave + weekend + drift * 0.5)
+            let scale = dayCalories / baseSum
+            let entries = [
+                MealEntry(food: foods[0], slot: .breakfast, servings: scale, time: "8:00 AM"),
+                MealEntry(food: foods[2], slot: .lunch, servings: scale, time: "1:00 PM"),
+                MealEntry(food: foods[7], slot: .lunch, servings: scale, time: "1:05 PM"),
+                MealEntry(food: foods[5], slot: .snacks, servings: scale, time: "4:00 PM"),
+            ]
+            out.append(DayLog(date: date, weekdayLetter: letters[(weekday - 1) % 7], entries: entries))
+        }
+        return out
+    }
+
     /// Fixed "today" so previews and screenshots are deterministic (matches ref screens).
     static let referenceDate: Date = {
         var c = DateComponents()

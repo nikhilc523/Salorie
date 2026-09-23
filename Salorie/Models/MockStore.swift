@@ -8,7 +8,8 @@ import Observation
 final class MockStore {
     var foods: [Food]
     var todayEntries: [MealEntry]
-    var history: [DayLog]
+    var history: [DayLog]          // curated last 7 days (Today / DayDetail week strips)
+    var dailyLog: [DayLog]         // long run for History trends (Week / Month / Year)
     var targets: MacroTargets
 
     /// Fixed display date to match reference screens deterministically.
@@ -18,6 +19,7 @@ final class MockStore {
         self.foods = SampleData.foods
         self.todayEntries = SampleData.todayEntries()
         self.history = SampleData.history()
+        self.dailyLog = SampleData.extendedHistory()
         self.targets = SampleData.targets
     }
 

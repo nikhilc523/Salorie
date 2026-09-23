@@ -189,18 +189,22 @@ struct MiniDayRing: View {
     let rings: [Ring]      // outer first
     var size: CGFloat = 34
     var lineWidth: CGFloat = 4
+    var gap: CGFloat = 2
 
     var body: some View {
         ZStack {
             ForEach(Array(rings.enumerated()), id: \.element.id) { index, ring in
-                Circle()
-                    .stroke(ring.color.base.opacity(0.16), lineWidth: lineWidth)
-                    .padding(CGFloat(index) * (lineWidth + 1.5))
-                Circle()
-                    .trim(from: 0, to: min(ring.progress, 1))
-                    .stroke(ring.color.gradient, style: .init(lineWidth: lineWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .padding(CGFloat(index) * (lineWidth + 1.5))
+                // Explicit per-ring diameter → guaranteed concentric (no stroke overflow drift).
+                let diameter = size - CGFloat(index) * 2 * (lineWidth + gap)
+                ZStack {
+                    Circle()
+                        .stroke(ring.color.base.opacity(0.16), lineWidth: lineWidth)
+                    Circle()
+                        .trim(from: 0, to: min(ring.progress, 1))
+                        .stroke(ring.color.gradient, style: .init(lineWidth: lineWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+                .frame(width: max(lineWidth, diameter), height: max(lineWidth, diameter))
             }
         }
         .frame(width: size, height: size)

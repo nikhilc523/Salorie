@@ -298,7 +298,7 @@ struct NotionTable: View {
         case .macro(let ring, let value):
             HStack(spacing: 6) {
                 Circle().fill(ring.gradient).frame(width: 8, height: 8)
-                Text(value).font(.cellValue).monospacedDigit().foregroundStyle(Theme.textPrimary)
+                Text(value).font(.cellValue).monospacedDigit().foregroundStyle(Theme.textPrimary).lineLimit(1)
             }
         case .button(let title, let color, let action):
             Button {
