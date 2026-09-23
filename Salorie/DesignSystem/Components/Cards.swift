@@ -2,27 +2,16 @@ import SwiftUI
 
 // MARK: - CalmCard
 
-/// The premium raised card used across the dashboard (UI/Required aesthetic):
-/// large radius, subtle stroke, generous padding.
+/// Dashboard section wrapper. Card chrome removed — content floats on pure black
+/// (just the rings/charts/text). Padding kept minimal for section rhythm.
 struct CalmCard<Content: View>: View {
-    var padding: CGFloat = 18
+    var padding: CGFloat = 2
     @ViewBuilder var content: Content
 
     var body: some View {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: Metrics.calmCardRadius, style: .continuous))
-            .overlay( // iOS-26 glossy top sheen
-                RoundedRectangle(cornerRadius: Metrics.calmCardRadius, style: .continuous)
-                    .fill(LinearGradient(colors: [Color.white.opacity(0.05), .clear],
-                                         startPoint: .top, endPoint: .center))
-                    .allowsHitTesting(false)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.calmCardRadius, style: .continuous)
-                    .stroke(Theme.cardStroke, lineWidth: 1)
-            )
     }
 }
 
@@ -71,13 +60,8 @@ struct MacroProgressCard: View {
             }
             .frame(height: 5)
         }
-        .padding(14)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.metricCardRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Metrics.metricCardRadius, style: .continuous)
-                .stroke(Theme.cardStroke, lineWidth: 1)
-        )
     }
 }
 
