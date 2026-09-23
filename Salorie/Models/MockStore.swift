@@ -69,6 +69,28 @@ final class MockStore {
 
     var favorites: [Food] { foods.filter(\.isFavorite) }
 
+    // MARK: Recent & frequent (for quick re-log — derived from what you've logged)
+
+    /// Every entry logged today + across history, newest first.
+    private var loggedEntries: [MealEntry] {
+        todayEntries.reversed() + history.reversed().flatMap { $0.entries.reversed() }
+    }
+
+    /// Foods you log most often — the fastest re-log candidates.
+    var frequentFoods: [Food] {
+        var counts: [Food: Int] = [:]
+        for entry in loggedEntries { counts[entry.food, default: 0] += 1 }
+        return counts
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key.name < $1.key.name }
+            .map(\.key)
+    }
+
+    /// Foods you logged recently, newest first, de-duplicated.
+    var recentFoods: [Food] {
+        var seen = Set<Food>()
+        return loggedEntries.compactMap { seen.insert($0.food).inserted ? $0.food : nil }
+    }
+
     // MARK: Mutation (UI-phase only)
 
     func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String = "Now") {

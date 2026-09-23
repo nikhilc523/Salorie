@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -24,7 +24,6 @@
 		B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 538D84F27FD95FE00E9125A1 /* MockStore.swift */; };
 		B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0F1310D8556FE2BBFE59AD /* Haptics.swift */; };
 		BEA1438614E6CD724C560E7E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */; };
-		CF0CB6FB01A3DF560ACF5CAC /* FoodDatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */; };
 		D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63FB642B0D3D9F924FEA51F /* Models.swift */; };
 		D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE5EC538F57268098B92887 /* RootView.swift */; };
 		D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099C6743813AEF400BB92808 /* FoodDetailView.swift */; };
@@ -43,7 +42,6 @@
 		538D84F27FD95FE00E9125A1 /* MockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockStore.swift; sourceTree = "<group>"; };
 		5B8EEBF451C46BCC97662740 /* Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cards.swift; sourceTree = "<group>"; };
 		636AFA992B9822700C009B9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDatabaseView.swift; sourceTree = "<group>"; };
 		796CC2D90F52CABD600C2327 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyItemsView.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
@@ -52,7 +50,7 @@
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
 		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
 		F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
 		F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
@@ -105,7 +103,6 @@
 			children = (
 				047C6E4F516485EBBFC753F0 /* AddView.swift */,
 				F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */,
-				6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */,
 				099C6743813AEF400BB92808 /* FoodDetailView.swift */,
 				3E52CFD17BE0201C3052D7C9 /* HistoryView.swift */,
 				8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */,
@@ -169,6 +166,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9996AB496B3996F707E07B40 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -183,6 +181,7 @@
 			);
 			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -211,7 +210,6 @@
 				0409369AE34F734E7C927DBD /* AskAIBar.swift in Sources */,
 				A6BF42728F8065981F40476B /* Cards.swift in Sources */,
 				F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */,
-				CF0CB6FB01A3DF560ACF5CAC /* FoodDatabaseView.swift in Sources */,
 				D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */,
 				B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */,
 				828363F7F5850E9B66FFBF85 /* HistoryView.swift in Sources */,
@@ -241,7 +239,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -396,7 +393,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
