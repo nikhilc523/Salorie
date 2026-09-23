@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// Notion-page-style detail for a single food. Presented as a glass sheet.
+/// Detail sheet for a single food. Cardless — everything floats on pure black.
+/// Instead of a goal ring (which doesn't fit one food), macros are shown as their
+/// share of your daily goal: grams + a clean bar + percent.
 struct FoodDetailView: View {
     @Environment(MockStore.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -9,26 +11,31 @@ struct FoodDetailView: View {
     @State private var servings: Double = 1
     @State private var slot: MealSlot = .breakfast
 
-    private var macroRings: [Ring] {
+    private var calories: Int { Int((Double(food.calories) * servings).rounded()) }
+    private var caloriePct: Int {
+        guard store.targets.calories > 0 else { return 0 }
+        return Int((Double(calories) / Double(store.targets.calories) * 100).rounded())
+    }
+
+    /// Each macro in this serving, as a share of the daily target.
+    private var shares: [MacroShare] {
         [
-            Ring(progress: (food.carbs * servings) / store.targets.carbs, color: .carb,
-                 label: "Carb", valueText: "\(Int(food.carbs * servings))g"),
-            Ring(progress: (food.protein * servings) / store.targets.protein, color: .protein,
-                 label: "Protein", valueText: "\(Int(food.protein * servings))g"),
-            Ring(progress: (food.fibre * servings) / store.targets.fibre, color: .fibre,
-                 label: "Fibre", valueText: "\(Int(food.fibre * servings))g"),
+            MacroShare(label: "Carbs",   grams: food.carbs * servings,   target: store.targets.carbs,   colors: RingColor.carb.stops),
+            MacroShare(label: "Protein", grams: food.protein * servings, target: store.targets.protein, colors: RingColor.protein.stops),
+            MacroShare(label: "Fat",     grams: food.fat * servings,     target: store.targets.fat,     colors: Theme.macroFatStops),
+            MacroShare(label: "Fibre",   grams: food.fibre * servings,   target: store.targets.fibre,   colors: RingColor.fibre.stops),
         ]
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 24) {
                     header
-                    ringsRow
+                    macroBreakdown
                     servingStepper
                     slotPicker
-                    properties
+                    details
                     if !food.ingredients.isEmpty { ingredients }
                 }
                 .padding(Metrics.pagePadding)
@@ -44,10 +51,10 @@ struct FoodDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         HapticManager.shared.trigger(.selection)
-                        store.toggleFavorite(food)
+                        withAnimation(.snappy) { store.toggleFavorite(food) }
                     } label: {
                         Image(systemName: food.isFavorite ? "star.fill" : "star")
-                            .foregroundStyle(food.isFavorite ? TagColor.yellow.fg : Theme.textSecondary)
+                            .foregroundStyle(food.isFavorite ? RingColor.protein.tint : Theme.textSecondary)
                     }
                 }
             }
@@ -56,7 +63,7 @@ struct FoodDetailView: View {
         .presentationDragIndicator(.visible)
     }
 
-    // MARK: Sections
+    // MARK: Header
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -79,52 +86,68 @@ struct FoodDetailView: View {
         }
     }
 
-    private var ringsRow: some View {
-        CalmCard {
-            HStack(spacing: 22) {
-                ActivityRings(
-                    rings: macroRings,
-                    centerText: "\(Int((Double(food.calories) * servings).rounded()))",
-                    centerSubtitle: "kcal"
-                )
-                .frame(width: 130, height: 130)
-                RingLegend(items: macroRings)
+    // MARK: Macro breakdown (share of daily goal)
+
+    private var macroBreakdown: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(calories)")
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                Text("kcal")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.textTertiary)
+                Spacer()
+                Text("\(caloriePct)% of daily goal")
+                    .font(.system(size: 12, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
+            }
+
+            VStack(spacing: 8) {
+                Text("SHARE OF DAILY GOAL").overlineStyle()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(spacing: 14) {
+                    ForEach(shares) { macroShareRow($0) }
+                }
             }
         }
     }
 
-    private var properties: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("NUTRITION").overlineStyle().padding(.bottom, 4)
-            PropertyRow(icon: "scalemass", label: "Serving") {
-                Text(food.servingDescription)
+    private func macroShareRow(_ s: MacroShare) -> some View {
+        VStack(spacing: 7) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(LinearGradient(colors: s.colors, startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 7, height: 7)
+                Text(s.label)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: 8)
+                Text("\(Int(s.grams.rounded())) g")
+                    .font(.system(size: 14, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary)
+                Text(s.percentText)
+                    .font(.system(size: 12, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
+                    .frame(width: 40, alignment: .trailing)
             }
-            Divider().overlay(Theme.divider)
-            PropertyRow(icon: "flame", label: "Calories") {
-                Text("\(Int((Double(food.calories) * servings).rounded())) kcal")
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill((s.colors.first ?? .white).opacity(0.14))
+                    Capsule()
+                        .fill(LinearGradient(colors: s.colors, startPoint: .leading, endPoint: .trailing))
+                        .frame(width: max(4, geo.size.width * s.pct))
+                }
             }
-            Divider().overlay(Theme.divider)
-            PropertyRow(icon: "drop.fill", label: "Fat") {
-                Text("\(Int(food.fat * servings)) g")
-            }
-            Divider().overlay(Theme.divider)
-            PropertyRow(icon: "tag", label: "Source") {
-                SourceBadge(source: food.source)
-            }
+            .frame(height: 6)
         }
-        .padding(16)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
     }
 
-    private var ingredients: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("INGREDIENTS").overlineStyle()
-            Text(food.ingredients.joined(separator: ", "))
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-    }
+    // MARK: Serving stepper
 
     private var servingStepper: some View {
         HStack {
@@ -157,24 +180,31 @@ struct FoodDetailView: View {
         .buttonBorderShape(.circle)
     }
 
+    // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
+
     private var slotPicker: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("MEAL").overlineStyle()
+            Text("ADD TO MEAL").overlineStyle()
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(MealSlot.allCases) { s in
+                        let isOn = slot == s
                         Button {
                             HapticManager.shared.trigger(.selection)
-                            slot = s
+                            withAnimation(.snappy) { slot = s }
                         } label: {
                             Label(s.rawValue, systemImage: s.symbol)
                                 .font(.system(size: 14, weight: .medium))
                                 .lineLimit(1)
                                 .fixedSize()
-                                .foregroundStyle(slot == s ? Color(hex: 0x1A1A1A) : Theme.textPrimary)
+                                .foregroundStyle(isOn ? Color(hex: 0x000000) : Theme.textSecondary)
                                 .padding(.horizontal, 14).padding(.vertical, 9)
-                                .glassEffect(.regular.tint(slot == s ? s.tagColor.solid : .clear).interactive(),
-                                             in: Capsule())
+                                .background(
+                                    Capsule().fill(isOn ? Theme.textPrimary : Theme.surface)
+                                )
+                                .overlay(
+                                    Capsule().stroke(Theme.cardStroke, lineWidth: isOn ? 0 : 1)
+                                )
                         }
                         .buttonStyle(.plain)
                     }
@@ -183,6 +213,33 @@ struct FoodDetailView: View {
             }
         }
     }
+
+    // MARK: Details (cardless)
+
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("DETAILS").overlineStyle().padding(.bottom, 4)
+            PropertyRow(icon: "scalemass", label: "Serving") {
+                Text(food.servingDescription)
+            }
+            Divider().overlay(Theme.divider)
+            PropertyRow(icon: "tag", label: "Source") {
+                SourceBadge(source: food.source)
+            }
+        }
+    }
+
+    private var ingredients: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("INGREDIENTS").overlineStyle()
+            Text(food.ingredients.joined(separator: ", "))
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // MARK: Add bar
 
     private var addBar: some View {
         Button {
@@ -200,6 +257,20 @@ struct FoodDetailView: View {
         .padding(.horizontal, Metrics.pagePadding)
         .padding(.vertical, 10)
     }
+}
+
+// MARK: - MacroShare
+
+/// One macro's contribution from this serving toward the daily target.
+struct MacroShare: Identifiable {
+    let label: String
+    let grams: Double
+    let target: Double
+    let colors: [Color]
+
+    var id: String { label }
+    var pct: Double { target > 0 ? min(grams / target, 1) : 0 }
+    var percentText: String { target > 0 ? "\(Int((grams / target * 100).rounded()))%" : "—" }
 }
 
 #Preview {
