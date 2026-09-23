@@ -32,7 +32,6 @@ struct TodayView: View {
                     macroStrip
                     calorieChartCard
                     weekRingsCard
-                    quickActions
                     mealsSection.id("meals")
                 }
                 .padding(.horizontal, Metrics.pagePadding)
@@ -95,7 +94,7 @@ struct TodayView: View {
                 HStack {
                     Text("TODAY'S MACROS").overlineStyle()
                     Spacer()
-                    StatPill(text: "\(caloriesLeft) kcal left", color: .green)
+                    StatPill(text: "\(caloriesLeft) kcal left", color: .brown)
                 }
                 HStack(spacing: 22) {
                     ActivityRings(
@@ -153,7 +152,7 @@ struct TodayView: View {
                 HStack {
                     Text("INTAKE BY HOUR").overlineStyle()
                     Spacer()
-                    StatPill(text: "\(Int((store.caloriesProgress * 100).rounded()))% of goal", color: .green)
+                    StatPill(text: "\(Int((store.caloriesProgress * 100).rounded()))% of goal", color: .brown)
                 }
                 Text("\(store.todayEntries.count) meals · peak \(peakBin) kcal")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -238,17 +237,6 @@ struct TodayView: View {
             Ring(progress: day.protein / store.targets.protein, color: .protein, label: "Protein", valueText: ""),
             Ring(progress: day.carbs / store.targets.carbs, color: .carb, label: "Carbs", valueText: ""),
         ]
-    }
-
-    // MARK: Quick actions
-
-    private var quickActions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("QUICK ACTIONS").overlineStyle()
-            ForEach(MealSlot.allCases) { slot in
-                QuickActionButton(title: "Add to \(slot.rawValue)", systemImage: "plus") {}
-            }
-        }
     }
 
     // MARK: Meals
