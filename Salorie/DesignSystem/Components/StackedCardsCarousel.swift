@@ -161,11 +161,10 @@ struct BigStatCard: View {
             // Huge hero number, centered in the portrait body
             VStack(alignment: .leading, spacing: -4) {
                 Text(format(shownValue))
-                    .font(.system(size: 74, weight: .heavy, design: .rounded))
+                    .font(.system(size: 64, weight: .heavy, design: .rounded))
                     .foregroundStyle(grad)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
                     .contentTransition(.numericText())
                 Text(unit)
                     .font(.system(size: 22, weight: .bold))
@@ -204,7 +203,8 @@ struct BigStatCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
         .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-        .shadow(color: .black.opacity(0.45), radius: 16, y: 10)
+        .compositingGroup()
+        .shadow(color: .black.opacity(0.4), radius: 7, y: 5)
         .onAppear { runCount() }
         .onChange(of: animate) { _, _ in runCount() }
     }
