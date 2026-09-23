@@ -13,10 +13,71 @@ struct CalmCard<Content: View>: View {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Theme.cardRaised, in: RoundedRectangle(cornerRadius: Metrics.calmCardRadius, style: .continuous))
+            .overlay( // iOS-26 glossy top sheen
+                RoundedRectangle(cornerRadius: Metrics.calmCardRadius, style: .continuous)
+                    .fill(LinearGradient(colors: [Color.white.opacity(0.05), .clear],
+                                         startPoint: .top, endPoint: .center))
+                    .allowsHitTesting(false)
+            )
             .overlay(
                 RoundedRectangle(cornerRadius: Metrics.calmCardRadius, style: .continuous)
                     .stroke(Theme.cardStroke, lineWidth: 1)
             )
+    }
+}
+
+// MARK: - MacroProgressCard
+
+/// Compact macro glance: colored dot + label, big grams number, target, and a thin
+/// gradient progress bar. Used for the Protein / Carbs / Fat strip on Today.
+struct MacroProgressCard: View {
+    var label: String
+    var consumed: Double
+    var target: Double
+    var unit: String = "g"
+    var colors: [Color]
+
+    private var pct: Double { target > 0 ? min(consumed / target, 1) : 0 }
+    private var gradient: LinearGradient {
+        LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 6) {
+                Circle().fill(gradient).frame(width: 7, height: 7)
+                Text(label.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(Int(consumed.rounded()))")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                Text(unit)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            Text("of \(Int(target.rounded()))\(unit)")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textTertiary)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill((colors.first ?? .white).opacity(0.16))
+                    Capsule().fill(gradient).frame(width: max(4, geo.size.width * pct))
+                }
+            }
+            .frame(height: 5)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.metricCardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.metricCardRadius, style: .continuous)
+                .stroke(Theme.cardStroke, lineWidth: 1)
+        )
     }
 }
 

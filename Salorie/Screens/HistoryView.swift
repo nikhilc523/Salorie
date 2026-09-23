@@ -4,6 +4,8 @@ import SwiftUI
 struct HistoryView: View {
     @Environment(MockStore.self) private var store
     @State private var selectedFood: Food?
+    @State private var showDayDetail = false
+    @State private var dayIndex = 0
 
     private var perfectDays: Int {
         store.history.filter { Double($0.calories) <= Double(store.targets.calories) * 1.05 }.count
@@ -32,6 +34,7 @@ struct HistoryView: View {
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+            .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
         }
     }
 
@@ -55,18 +58,25 @@ struct HistoryView: View {
                     StatPill(text: "\(weekProgress)%", color: .green)
                 }
                 HStack(spacing: 0) {
-                    ForEach(store.history) { day in
-                        VStack(spacing: 10) {
-                            MiniDayRing(rings: rings(for: day), size: 40, lineWidth: 4.5)
-                            Text(day.weekdayLetter)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(Theme.textTertiary)
-                            Text("\(day.calories)")
-                                .font(.system(size: 10, weight: .medium))
-                                .monospacedDigit()
-                                .foregroundStyle(Theme.textSecondary)
+                    ForEach(Array(store.history.enumerated()), id: \.element.id) { i, day in
+                        Button {
+                            HapticManager.shared.trigger(.selection)
+                            dayIndex = i
+                            showDayDetail = true
+                        } label: {
+                            VStack(spacing: 10) {
+                                MiniDayRing(rings: rings(for: day), size: 40, lineWidth: 4.5)
+                                Text(day.weekdayLetter)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(Theme.textTertiary)
+                                Text("\(day.calories)")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .monospacedDigit()
+                                    .foregroundStyle(Theme.textSecondary)
+                            }
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.plain)
                     }
                 }
             }

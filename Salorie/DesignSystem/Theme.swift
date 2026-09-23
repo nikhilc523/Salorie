@@ -4,25 +4,28 @@ import SwiftUI
 /// All values pulled from the reference screenshots in `/UI`.
 enum Theme {
 
-    // MARK: Surfaces
-    static let bg            = Color(hex: 0x191919) // page background
-    static let surface       = Color(hex: 0x202020) // cards, board columns, metric cards
-    static let surfaceRaised = Color(hex: 0x252525) // selected/hover row, popovers
-    static let divider       = Color(hex: 0x2E2E2E) // table lines, column separators (~white @ 9%)
+    // MARK: Surfaces — pure black + neutral elevated panels (sampled from SiriAI/ references)
+    static let bg            = Color(hex: 0x000000) // page background — pure black (non-negotiable)
+    static let surface       = Color(hex: 0x1E1E1E) // cards, board columns, metric cards
+    static let surfaceRaised = Color(hex: 0x262626) // selected/hover row, popovers
+    static let divider       = Color(hex: 0x2C2C2C) // table lines, column separators
 
-    // MARK: Text
-    static let textPrimary   = Color(hex: 0xEAEAEA) // names, big numbers, titles
+    // MARK: Text — neutral off-white
+    static let textPrimary   = Color(hex: 0xEDEDED) // names, big numbers, titles
     static let textSecondary = Color(hex: 0x9B9B9B) // column headers, property labels
-    static let textTertiary  = Color(hex: 0x6E6E6E) // placeholders, "+ New page", empty
+    static let textTertiary  = Color(hex: 0x6A6A6A) // placeholders, "+ New page", empty
 
     // MARK: Accent
-    static let accent        = Color(hex: 0x2383E2) // New / + button, active tab
+    static let accent        = Color(hex: 0x2383E2) // New / + button, active tab (Notion blue)
     static let accentPressed = Color(hex: 0x1B6FC4)
 
-    // MARK: Calm dashboard (UI/Required aesthetic)
-    /// Slightly warmer raised card used on the dashboard for a premium, calm feel.
-    static let cardRaised    = Color(hex: 0x232323)
-    static let cardStroke    = Color.white.opacity(0.06)
+    // MARK: Calm dashboard
+    /// Raised card, subtly elevated above pure black (SiriAI panel tone).
+    static let cardRaised    = Color(hex: 0x161616)
+    static let cardStroke    = Color.white.opacity(0.055)
+
+    /// Oatmeal tone (invismile --oatmeal) for the Fat macro — no rogue values in views.
+    static let macroFatStops: [Color] = [Color(hex: 0xE3D9C6), Color(hex: 0xE3D9C6)]
 }
 
 // MARK: - Tag pill palette (Notion's 9 muted dark colors)
@@ -64,30 +67,40 @@ enum TagColor: String, CaseIterable, Hashable {
     var solid: Color { fg.opacity(0.9) }
 }
 
-// MARK: - Ring colors (Apple-Fitness-vivid, one place to reassign macros)
+// MARK: - Ring colors
+// EXACT ring colors from the invismile-website source (styles.css CSS variables), which drive
+// the reference rings in UI/Required. Three distinct solid strokes, outer→inner:
+//   --oatmeal #E3D9C6 (Wear)  --caramel #D1A67A (Streak)  --terracotta #B3664C (Life)
+// Mapped Calories = oatmeal, Protein = caramel, Carbs = terracotta.
 
 enum RingColor: String, CaseIterable, Hashable {
-    case carb, protein, fibre
+    case calories, protein, carb, fibre
 
     var gradient: LinearGradient {
         LinearGradient(colors: stops, startPoint: .top, endPoint: .bottom)
     }
 
+    /// Solid exact hex (website uses flat strokes). Duplicated so gradient == solid color.
     var stops: [Color] {
         switch self {
-        case .carb:    return [Color(hex: 0xF0463A), Color(hex: 0xFF7A6B)]
-        case .protein: return [Color(hex: 0xA6E22E), Color(hex: 0x7BD84A)]
-        case .fibre:   return [Color(hex: 0x3AD1F0), Color(hex: 0x5AC8E0)]
+        case .calories: return [Color(hex: 0xE3D9C6), Color(hex: 0xE3D9C6)] // oatmeal
+        case .protein:  return [Color(hex: 0xD1A67A), Color(hex: 0xD1A67A)] // caramel
+        case .carb:     return [Color(hex: 0xB3664C), Color(hex: 0xB3664C)] // terracotta
+        case .fibre:    return [Color(hex: 0xD1A67A), Color(hex: 0xD1A67A)] // caramel
         }
     }
 
     var base: Color { stops.first ?? .white }
 
+    /// Solid tone used for legend dots / progress bars — matches the ring, no clash.
+    var tint: Color { stops.last ?? base }
+
     var label: String {
         switch self {
-        case .carb: return "Carb"
-        case .protein: return "Protein"
-        case .fibre: return "Fibre"
+        case .calories: return "Calories"
+        case .protein:  return "Protein"
+        case .carb:     return "Carbs"
+        case .fibre:    return "Fibre"
         }
     }
 }

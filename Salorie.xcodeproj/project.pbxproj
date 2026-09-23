@@ -3,10 +3,11 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0409369AE34F734E7C927DBD /* AskAIBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9077EC65AFBC6E2B553A411F /* AskAIBar.swift */; };
 		04444891B7E698C9C927DA16 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975EE432B600E36E3C95416F /* TodayView.swift */; };
 		2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */; };
 		427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */; };
@@ -28,6 +29,7 @@
 		D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE5EC538F57268098B92887 /* RootView.swift */; };
 		D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099C6743813AEF400BB92808 /* FoodDetailView.swift */; };
 		D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 636AFA992B9822700C009B9F /* Assets.xcassets */; };
+		F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,13 +47,15 @@
 		796CC2D90F52CABD600C2327 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyItemsView.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
+		9077EC65AFBC6E2B553A411F /* AskAIBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskAIBar.swift; sourceTree = "<group>"; };
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
 		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
 		F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
+		F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
 		FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -59,6 +63,7 @@
 		3CD85306E91B914BFE2CD23F /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				9077EC65AFBC6E2B553A411F /* AskAIBar.swift */,
 				5B8EEBF451C46BCC97662740 /* Cards.swift */,
 				4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */,
 				A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */,
@@ -99,6 +104,7 @@
 			isa = PBXGroup;
 			children = (
 				047C6E4F516485EBBFC753F0 /* AddView.swift */,
+				F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */,
 				6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */,
 				099C6743813AEF400BB92808 /* FoodDetailView.swift */,
 				3E52CFD17BE0201C3052D7C9 /* HistoryView.swift */,
@@ -163,7 +169,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9996AB496B3996F707E07B40 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -178,7 +183,6 @@
 			);
 			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -204,7 +208,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				437D4278654764E40E07300A /* AddView.swift in Sources */,
+				0409369AE34F734E7C927DBD /* AskAIBar.swift in Sources */,
 				A6BF42728F8065981F40476B /* Cards.swift in Sources */,
+				F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */,
 				CF0CB6FB01A3DF560ACF5CAC /* FoodDatabaseView.swift in Sources */,
 				D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */,
 				B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */,
@@ -235,6 +241,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -389,6 +396,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

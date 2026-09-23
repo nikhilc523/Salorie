@@ -32,14 +32,16 @@ final class MockStore {
     /// 0…∞ progress against target (rings can overshoot past 1).
     func progress(_ ring: RingColor) -> Double {
         switch ring {
-        case .carb:    return targets.carbs   > 0 ? carbsToday   / targets.carbs   : 0
-        case .protein: return targets.protein > 0 ? proteinToday / targets.protein : 0
-        case .fibre:   return targets.fibre   > 0 ? fibreToday   / targets.fibre   : 0
+        case .calories: return targets.calories > 0 ? Double(caloriesToday) / Double(targets.calories) : 0
+        case .carb:     return targets.carbs    > 0 ? carbsToday   / targets.carbs   : 0
+        case .protein:  return targets.protein  > 0 ? proteinToday / targets.protein : 0
+        case .fibre:    return targets.fibre    > 0 ? fibreToday   / targets.fibre   : 0
         }
     }
 
     func consumed(_ ring: RingColor) -> Double {
         switch ring {
+        case .calories: return Double(caloriesToday)
         case .carb: return carbsToday
         case .protein: return proteinToday
         case .fibre: return fibreToday
@@ -48,6 +50,7 @@ final class MockStore {
 
     func target(_ ring: RingColor) -> Double {
         switch ring {
+        case .calories: return Double(targets.calories)
         case .carb: return targets.carbs
         case .protein: return targets.protein
         case .fibre: return targets.fibre

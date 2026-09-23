@@ -119,11 +119,13 @@ struct RingLegend: View {
                     Text(ring.label)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.textPrimary)
-                    Spacer(minLength: 8)
+                    Spacer(minLength: 6)
                     Text(ring.valueText)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Theme.textSecondary)
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
             }
         }

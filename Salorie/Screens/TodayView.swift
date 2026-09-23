@@ -5,17 +5,22 @@ import Charts
 struct TodayView: View {
     @Environment(MockStore.self) private var store
     @State private var selectedFood: Food?
+    @State private var showDayDetail = false
+    @State private var dayIndex = 0
 
+    /// Hero rings — Calories (outer) · Protein (middle) · Carbs (inner). Fibre lives in detail, not the glance.
     private var macroRings: [Ring] {
         [
-            Ring(progress: store.progress(.carb), color: .carb,
-                 label: "Carb", valueText: "\(Int(store.carbsToday))g"),
+            Ring(progress: store.progress(.calories), color: .calories,
+                 label: "Calories", valueText: "\(store.caloriesToday) / \(store.targets.calories)"),
             Ring(progress: store.progress(.protein), color: .protein,
-                 label: "Protein", valueText: "\(Int(store.proteinToday))g"),
-            Ring(progress: store.progress(.fibre), color: .fibre,
-                 label: "Fibre", valueText: "\(Int(store.fibreToday))g"),
+                 label: "Protein", valueText: "\(Int(store.proteinToday.rounded())) / \(Int(store.targets.protein))g"),
+            Ring(progress: store.progress(.carb), color: .carb,
+                 label: "Carbs", valueText: "\(Int(store.carbsToday.rounded())) / \(Int(store.targets.carbs))g"),
         ]
     }
+
+    private var caloriesLeft: Int { max(0, store.targets.calories - store.caloriesToday) }
 
     var body: some View {
         NavigationStack {
@@ -23,7 +28,7 @@ struct TodayView: View {
                 VStack(spacing: 16) {
                     dateHeader
                     heroCard
-                    metricsRow
+                    macroStrip
                     calorieChartCard
                     weekRingsCard
                     quickActions
@@ -40,13 +45,21 @@ struct TodayView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         HapticManager.shared.trigger(.light)
+                        dayIndex = store.history.count - 1
+                        showDayDetail = true
                     } label: { Image(systemName: "calendar") }
                 }
             }
+            .safeAreaInset(edge: .bottom) { AskAIBar() }
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+            .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
             .onAppear {
                 if ProcessInfo.processInfo.environment["SALORIE_DETAIL"] == "1" {
                     selectedFood = store.foods[1]
+                }
+                if ProcessInfo.processInfo.environment["SALORIE_DAY"] == "1" {
+                    dayIndex = store.history.count - 3
+                    showDayDetail = true
                 }
             }
         }
@@ -71,40 +84,39 @@ struct TodayView: View {
 
     private var heroCard: some View {
         CalmCard {
-            HStack(spacing: 22) {
-                ActivityRings(
-                    rings: macroRings,
-                    centerText: "\(store.caloriesToday)",
-                    centerSubtitle: "kcal"
-                )
-                .frame(width: 148, height: 148)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("TODAY'S MACROS").overlineStyle()
+                    Spacer()
+                    StatPill(text: "\(caloriesLeft) kcal left", color: .green)
+                }
+                HStack(spacing: 22) {
+                    ActivityRings(
+                        rings: macroRings,
+                        lineWidth: 15,
+                        spacing: 5,
+                        centerText: "\(store.caloriesToday)",
+                        centerSubtitle: "kcal"
+                    )
+                    .frame(width: 152, height: 152)
 
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("MACROS").overlineStyle()
                     RingLegend(items: macroRings)
                 }
             }
         }
     }
 
-    // MARK: Metrics row
+    // MARK: Macro glance strip
 
-    private var metricsRow: some View {
+    private var macroStrip: some View {
         HStack(spacing: 12) {
-            MetricCard(
-                label: "Calories",
-                value: "\(store.caloriesToday)",
-                icon: "flame.fill",
-                accent: Theme.textPrimary,
-                footnote: "of \(store.targets.calories) kcal"
-            )
-            MetricCard(
-                label: "Remaining",
-                value: "\(max(0, store.targets.calories - store.caloriesToday))",
-                icon: "target",
-                accent: TagColor.green.fg,
-                footnote: "\(Int((store.caloriesProgress * 100).rounded()))% of goal"
-            )
+            MacroProgressCard(label: "Protein", consumed: store.proteinToday,
+                              target: store.targets.protein, colors: RingColor.protein.stops)
+            MacroProgressCard(label: "Carbs", consumed: store.carbsToday,
+                              target: store.targets.carbs, colors: RingColor.carb.stops)
+            MacroProgressCard(label: "Fat", consumed: store.fatToday,
+                              target: store.targets.fat,
+                              colors: Theme.macroFatStops)
         }
     }
 
@@ -112,59 +124,75 @@ struct TodayView: View {
 
     private struct HourBar: Identifiable {
         let id = UUID()
-        let hour: Int
+        let hour: Int      // 2-hour bin start
         let calories: Int
     }
 
+    /// Bucket today's entries into 2-hour bins → fewer, wider bars (clean like the reference).
     private var hourlyData: [HourBar] {
-        // Bucket today's entries into hours from their display time.
         var buckets: [Int: Int] = [:]
         for e in store.todayEntries {
-            let h = Self.hour(from: e.time)
-            buckets[h, default: 0] += e.calories
+            let bin = (Self.hour(from: e.time) / 2) * 2
+            buckets[bin, default: 0] += e.calories
         }
-        return (6...22).map { HourBar(hour: $0, calories: buckets[$0] ?? 0) }
+        return stride(from: 6, through: 22, by: 2).map { HourBar(hour: $0, calories: buckets[$0] ?? 0) }
     }
+
+    private var peakBin: Int { max(1, hourlyData.map(\.calories).max() ?? 0) }
 
     private var calorieChartCard: some View {
         CalmCard {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("INTAKE BY HOUR").overlineStyle()
-                        Text("\(store.caloriesToday) / \(store.targets.calories)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.textPrimary)
-                    }
+                    Text("INTAKE BY HOUR").overlineStyle()
                     Spacer()
-                    StatPill(text: "\(Int((store.caloriesProgress * 100).rounded()))%", color: .green)
+                    StatPill(text: "\(Int((store.caloriesProgress * 100).rounded()))% of goal", color: .green)
                 }
+                Text("\(store.todayEntries.count) meals · peak \(peakBin) kcal")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundStyle(RingColor.protein.tint) // caramel
+
                 Chart(hourlyData) { bar in
                     BarMark(
-                        x: .value("Hour", bar.hour),
+                        x: .value("Time", bar.hour),
                         y: .value("Calories", bar.calories),
-                        width: .fixed(9)
+                        width: .fixed(15)
                     )
-                    .foregroundStyle(
-                        LinearGradient(colors: [Theme.accent, Theme.accent.opacity(0.5)],
-                                       startPoint: .top, endPoint: .bottom)
-                    )
-                    .cornerRadius(3)
+                    .foregroundStyle(RingColor.carb.tint) // terracotta
+                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
                 }
-                .frame(height: 120)
-                .chartXScale(domain: 6...22)
-                .chartYAxis(.hidden)
-                .chartXAxis {
-                    AxisMarks(values: [6, 12, 18, 22]) { value in
-                        AxisValueLabel {
-                            if let h = value.as(Int.self) {
-                                Text(Self.hourLabel(h))
-                                    .font(.system(size: 10))
+                .frame(height: 130)
+                .chartXScale(domain: 5...23)
+                .chartYScale(domain: 0...(Double(peakBin) * 1.15))
+                .chartYAxis {
+                    AxisMarks(values: [0, peakBin]) { value in
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4]))
+                            .foregroundStyle(Theme.divider)
+                        if let v = value.as(Int.self), v > 0 {
+                            AxisValueLabel {
+                                Text("\(v)")
+                                    .font(.system(size: 11))
                                     .foregroundStyle(Theme.textTertiary)
                             }
                         }
                     }
                 }
+                .chartXAxis {
+                    AxisMarks(values: [6, 12, 18, 22]) { value in
+                        AxisValueLabel {
+                            if let h = value.as(Int.self) {
+                                Text(Self.hourLabel(h))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Theme.textTertiary)
+                            }
+                        }
+                    }
+                }
+
+                Text("TOTAL \(store.caloriesToday) KCAL")
+                    .font(.system(size: 12, weight: .semibold))
+                    .tracking(0.5)
+                    .foregroundStyle(RingColor.carb.tint)
             }
         }
     }
@@ -176,14 +204,21 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text("THIS WEEK").overlineStyle()
                 HStack(spacing: 0) {
-                    ForEach(store.history) { day in
-                        VStack(spacing: 8) {
-                            MiniDayRing(rings: rings(for: day))
-                            Text(day.weekdayLetter)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Theme.textTertiary)
+                    ForEach(Array(store.history.enumerated()), id: \.element.id) { i, day in
+                        Button {
+                            HapticManager.shared.trigger(.selection)
+                            dayIndex = i
+                            showDayDetail = true
+                        } label: {
+                            VStack(spacing: 8) {
+                                MiniDayRing(rings: rings(for: day))
+                                Text(day.weekdayLetter)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(Theme.textTertiary)
+                            }
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -192,9 +227,9 @@ struct TodayView: View {
 
     private func rings(for day: DayLog) -> [Ring] {
         [
-            Ring(progress: day.carbs / store.targets.carbs, color: .carb, label: "Carb", valueText: ""),
+            Ring(progress: Double(day.calories) / Double(store.targets.calories), color: .calories, label: "Calories", valueText: ""),
             Ring(progress: day.protein / store.targets.protein, color: .protein, label: "Protein", valueText: ""),
-            Ring(progress: day.fibre / store.targets.fibre, color: .fibre, label: "Fibre", valueText: ""),
+            Ring(progress: day.carbs / store.targets.carbs, color: .carb, label: "Carbs", valueText: ""),
         ]
     }
 

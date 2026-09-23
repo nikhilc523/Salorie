@@ -19,7 +19,7 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Today", systemImage: "flame.fill", value: AppTab.today) {
+            Tab("Today", systemImage: "house.fill", value: AppTab.today) {
                 TodayView()
             }
             Tab("Add", systemImage: "plus.circle.fill", value: AppTab.add) {
@@ -28,7 +28,7 @@ struct RootView: View {
             Tab("Foods", systemImage: "fork.knife", value: AppTab.foods) {
                 FoodDatabaseView()
             }
-            Tab("My Items", systemImage: "square.stack.3d.up.fill", value: AppTab.items) {
+            Tab("My Items", systemImage: "bookmark.fill", value: AppTab.items) {
                 MyItemsView()
             }
             Tab("History", systemImage: "clock.fill", value: AppTab.history) {
