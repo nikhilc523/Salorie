@@ -9,6 +9,7 @@ enum Theme {
     static let surface       = Color(hex: 0x1E1E1E) // cards, board columns, metric cards
     static let surfaceRaised = Color(hex: 0x262626) // selected/hover row, popovers
     static let divider       = Color(hex: 0x2C2C2C) // table lines, column separators
+    static let tableLine     = Color(hex: 0x3A3A3D) // thick, clearly-visible table row lines
 
     // MARK: Text — neutral off-white
     static let textPrimary   = Color(hex: 0xEDEDED) // names, big numbers, titles

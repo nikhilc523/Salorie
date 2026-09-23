@@ -46,21 +46,117 @@ struct NotionTable: View {
     var newRowTitle: String = "New page"
     var onNewRow: (() -> Void)? = nil
     var onToggleCheck: ((NotionRow) -> Void)? = nil
+    /// Fit all columns on screen (name flexes, no horizontal scroll).
+    var fitWidth: Bool = false
+    /// Thicker, clearly-visible row lines (ref: Body Metrics table).
+    var thickDividers: Bool = false
 
     private let rowHeight = Metrics.rowHeight
+    private var valuePadding: CGFloat { fitWidth ? 8 : Metrics.cellPadding }
 
     var body: some View {
-        HStack(spacing: 0) {
-            pinnedColumn
-                .background(Theme.bg)
-                .overlay(alignment: .trailing) {
-                    Rectangle().fill(Theme.divider).frame(width: Metrics.hairline)
-                }
-                .zIndex(1)
+        if fitWidth {
+            fittedTable
+        } else {
+            HStack(spacing: 0) {
+                pinnedColumn
+                    .background(Theme.bg)
+                    .overlay(alignment: .trailing) {
+                        Rectangle().fill(Theme.divider).frame(width: Metrics.hairline)
+                    }
+                    .zIndex(1)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                scrollingColumns
+                ScrollView(.horizontal, showsIndicators: false) {
+                    scrollingColumns
+                }
             }
+        }
+    }
+
+    @ViewBuilder private var rowDivider: some View {
+        if thickDividers {
+            Rectangle().fill(Theme.tableLine).frame(height: 1)
+        } else {
+            Divider().overlay(Theme.divider)
+        }
+    }
+
+    // MARK: Fit-to-width table (no horizontal scroll; name column flexes)
+
+    private var fittedTable: some View {
+        VStack(spacing: 0) {
+            fittedHeader
+            rowDivider
+            ForEach(rows) { row in
+                fittedRow(row)
+                rowDivider
+            }
+            if showNewRow { newRow }
+            if showCount { countFooter }
+        }
+    }
+
+    private var fittedHeader: some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "textformat")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                Text("Name")
+                    .font(.columnHeader)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Metrics.cellPadding)
+
+            ForEach(columns) { col in
+                HStack(spacing: 5) {
+                    if let icon = col.icon {
+                        Image(systemName: icon)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Text(col.title)
+                        .font(.columnHeader)
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                }
+                .frame(width: col.width, alignment: col.alignment)
+                .padding(.horizontal, valuePadding)
+            }
+        }
+        .frame(height: rowHeight)
+    }
+
+    private func fittedRow(_ row: NotionRow) -> some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: row.icon)
+                    .font(.system(size: 15))
+                    .foregroundStyle(row.tint.fg)
+                    .frame(width: 20)
+                Text(row.name)
+                    .font(.rowName)
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                if let ghost = row.ghost { GhostBadge(ghost).fixedSize() }
+                Spacer(minLength: 4)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Metrics.cellPadding)
+
+            ForEach(Array(columns.enumerated()), id: \.element.id) { idx, col in
+                cellView(cell(row, idx))
+                    .frame(width: col.width, alignment: col.alignment)
+                    .padding(.horizontal, valuePadding)
+            }
+        }
+        .frame(height: rowHeight)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            HapticManager.shared.trigger(.light)
+            row.onTap?()
         }
     }
 

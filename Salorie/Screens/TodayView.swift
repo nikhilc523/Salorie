@@ -265,10 +265,11 @@ struct TodayView: View {
         }
     }
 
-    /// One meal slot as a clean, cardless list — slot pill + total, then rows that
-    /// fit the width (no column headers, no horizontal scroll).
+    /// One meal slot as a fit-to-width Notion table (ref: Body Metrics) — slot pill +
+    /// total, then a clearly-labelled Cal/Protein/Carbs table with thick row lines,
+    /// name column flexed so there's no horizontal scroll and no wasted gap.
     private func mealGroup(slot: MealSlot, entries: [MealEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: slot.symbol)
                     .font(.system(size: 13))
@@ -280,62 +281,32 @@ struct TodayView: View {
                     .monospacedDigit()
                     .foregroundStyle(Theme.textSecondary)
             }
-            .padding(.bottom, 6)
-
-            ForEach(Array(entries.enumerated()), id: \.offset) { i, entry in
-                if i > 0 { Divider().overlay(Theme.divider) }
-                mealRow(entry)
-            }
-
-            Divider().overlay(Theme.divider)
-            Button {
-                HapticManager.shared.trigger(.light)
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus").font(.system(size: 13, weight: .semibold))
-                    Text("Add food").font(.system(size: 14, weight: .medium))
-                    Spacer()
-                }
-                .foregroundStyle(Theme.textTertiary)
-                .frame(height: 42)
-            }
-            .buttonStyle(.plain)
+            NotionTable(
+                columns: [
+                    NotionColumn(title: "Cal", width: 36, alignment: .trailing),
+                    NotionColumn(title: "Protein", width: 52, alignment: .trailing),
+                    NotionColumn(title: "Carbs", width: 46, alignment: .trailing),
+                ],
+                rows: entries.map { entry in
+                    NotionRow(
+                        icon: entry.food.symbol,
+                        tint: entry.food.tint,
+                        name: entry.food.name,
+                        ghost: entry.food.isOpen ? "OPEN" : nil,
+                        cells: [
+                            .number("\(entry.calories)"),
+                            .macro(.protein, "\(Int(entry.protein))g"),
+                            .macro(.carb, "\(Int(entry.carbs))g"),
+                        ],
+                        onTap: { selectedFood = entry.food }
+                    )
+                },
+                showCount: false,
+                newRowTitle: "Add food",
+                fitWidth: true,
+                thickDividers: true
+            )
         }
-    }
-
-    private func mealRow(_ entry: MealEntry) -> some View {
-        Button {
-            HapticManager.shared.trigger(.light)
-            selectedFood = entry.food
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: entry.food.symbol)
-                    .font(.system(size: 15))
-                    .foregroundStyle(entry.food.tint.fg)
-                    .frame(width: 22)
-                Text(entry.food.name)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                if entry.food.isOpen { GhostBadge("OPEN") }
-                Spacer(minLength: 8)
-                Text("\(entry.calories)")
-                    .font(.system(size: 15, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(width: 48, alignment: .trailing)
-                HStack(spacing: 5) {
-                    Circle().fill(RingColor.protein.tint).frame(width: 6, height: 6)
-                    Text("\(Int(entry.protein))g")
-                        .font(.system(size: 14))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                .frame(width: 52, alignment: .trailing)
-            }
-            .frame(height: 46)
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: Time helpers
