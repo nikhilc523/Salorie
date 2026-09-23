@@ -14,32 +14,30 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
 
     @State private var topIndex = 0
     @State private var drag: CGSize = .zero
+    // The card being thrown away renders as a transient flyaway, decoupled from the deck,
+    // so the deck can advance in one continuous spring (no two-phase stall).
+    @State private var flyingID: Item.ID?
+    @State private var flyOffset: CGSize = .zero
+    @State private var flyRotation: Double = 0
 
     private let maxVisible = 4
+    private let deckSpring: Animation = .spring(response: 0.5, dampingFraction: 0.86)
     private func depth(_ i: Int) -> Int { (i - topIndex + items.count) % items.count }
 
     var body: some View {
         VStack(spacing: 20) {
             ZStack {
                 ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
-                    let d = depth(i)
-                    let isFront = d == 0
-                    let shown = min(d, maxVisible)
-                    content(item, isFront)
-                        .frame(width: cardWidth, height: cardHeight)
-                        // fanned deck geometry (iMessage photo-stack) — back cards peek to
-                        // the bottom-right with a slight clockwise rotation.
-                        .scaleEffect(1 - CGFloat(shown) * 0.02, anchor: .center)
-                        .rotationEffect(.degrees(Double(shown) * 3.5), anchor: .center)
-                        .offset(x: CGFloat(shown) * 15, y: CGFloat(shown) * 7)
-                        .animation(.spring(response: 0.42, dampingFraction: 0.82), value: topIndex)
-                        // live drag on the front card (follows the finger 1:1)
-                        .rotationEffect(.degrees(isFront ? Double(drag.width) / 18 : 0), anchor: .bottom)
-                        .offset(x: isFront ? drag.width : 0, y: isFront ? drag.height : 0)
-                        .opacity(d <= maxVisible ? 1 : 0)
-                        .zIndex(isFront ? 1000 : Double(maxVisible - d))
-                        .allowsHitTesting(isFront)
-                        .gesture(isFront && items.count > 1 ? dragGesture : nil)
+                    if item.id == flyingID {
+                        content(item, false)
+                            .frame(width: cardWidth, height: cardHeight)
+                            .rotationEffect(.degrees(flyRotation), anchor: .center)
+                            .offset(flyOffset)
+                            .zIndex(2000)
+                            .allowsHitTesting(false)
+                    } else {
+                        deckCard(i, item)
+                    }
                 }
             }
             .frame(width: cardWidth + CGFloat(maxVisible) * 15 + 24,
@@ -59,25 +57,64 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
         .frame(maxWidth: .infinity)
     }
 
+    @ViewBuilder
+    private func deckCard(_ i: Int, _ item: Item) -> some View {
+        let d = depth(i)
+        let isFront = d == 0
+        let shown = min(d, maxVisible)
+        content(item, isFront)
+            .frame(width: cardWidth, height: cardHeight)
+            // fanned deck geometry (iMessage photo-stack) — animated only on topIndex,
+            // so the deck springs forward smoothly when a card is thrown.
+            .scaleEffect(1 - CGFloat(shown) * 0.02, anchor: .center)
+            .rotationEffect(.degrees(Double(shown) * 3.5), anchor: .center)
+            .offset(x: CGFloat(shown) * 15, y: CGFloat(shown) * 7)
+            .animation(deckSpring, value: topIndex)
+            // live drag on the front card — 1:1 with the finger (no implicit animation)
+            .rotationEffect(.degrees(isFront ? Double(drag.width) / 22 : 0), anchor: .bottom)
+            .offset(isFront ? drag : .zero)
+            .opacity(d <= maxVisible ? 1 : 0)
+            .zIndex(isFront ? 1000 : Double(maxVisible - d))
+            .allowsHitTesting(isFront)
+            .gesture(isFront && items.count > 1 ? dragGesture : nil)
+    }
+
     private var dragGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 4)
             .onChanged { drag = $0.translation }
             .onEnded { value in
-                let distance = hypot(value.translation.width, value.translation.height)
-                if distance > 90 {
-                    HapticManager.shared.trigger(.light)
-                    // Fling the card off along the drag direction, then advance the deck.
-                    let mag = max(1, distance)
-                    let off = CGSize(width: value.translation.width / mag * 650,
-                                     height: value.translation.height / mag * 650)
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        drag = off
-                    } completion: {
-                        drag = .zero
-                        topIndex = (topIndex + 1) % items.count
-                    }
-                } else {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.72)) { drag = .zero }
+                // Use the velocity-aware predicted end so a fast flick commits + throws far.
+                let predicted = value.predictedEndTranslation
+                let dist = hypot(value.translation.width, value.translation.height)
+                let predDist = hypot(predicted.width, predicted.height)
+
+                guard dist > 80 || predDist > 200 else {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { drag = .zero }
+                    return
+                }
+
+                HapticManager.shared.trigger(.light)
+                let n = items.count
+                // Hand the current card off to the flyaway layer at its live position…
+                flyingID = items[topIndex].id
+                flyOffset = drag
+                flyRotation = Double(drag.width) / 22
+                drag = .zero
+
+                // …advance the deck in one spring…
+                withAnimation(deckSpring) { topIndex = (topIndex + 1) % n }
+
+                // …and let the thrown card continue off in the flick direction (velocity).
+                let mag = max(1, predDist)
+                let target = CGSize(width: predicted.width / mag * 760,
+                                    height: predicted.height / mag * 760)
+                withAnimation(.easeOut(duration: 0.4)) {
+                    flyOffset = target
+                    flyRotation += predicted.width >= 0 ? 16 : -16
+                } completion: {
+                    flyingID = nil
+                    flyOffset = .zero
+                    flyRotation = 0
                 }
             }
     }
