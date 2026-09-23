@@ -1,5 +1,4 @@
 import SwiftUI
-import Charts
 
 /// Dashboard. Calm cards + Apple-style rings over the Notion-dark canvas.
 struct TodayView: View {
@@ -30,7 +29,6 @@ struct TodayView: View {
                     dateHeader
                     heroCard
                     macroStrip
-                    calorieChartCard
                     weekRingsCard
                     mealsSection.id("meals")
                 }
@@ -131,83 +129,6 @@ struct TodayView: View {
         }
     }
 
-    // MARK: Calorie-by-hour chart
-
-    private struct HourBar: Identifiable {
-        let id = UUID()
-        let hour: Int      // 2-hour bin start
-        let calories: Int
-    }
-
-    /// Bucket today's entries into 2-hour bins → fewer, wider bars (clean like the reference).
-    private var hourlyData: [HourBar] {
-        var buckets: [Int: Int] = [:]
-        for e in store.todayEntries {
-            let bin = (Self.hour(from: e.time) / 2) * 2
-            buckets[bin, default: 0] += e.calories
-        }
-        return stride(from: 6, through: 22, by: 2).map { HourBar(hour: $0, calories: buckets[$0] ?? 0) }
-    }
-
-    private var peakBin: Int { max(1, hourlyData.map(\.calories).max() ?? 0) }
-
-    private var calorieChartCard: some View {
-        CalmCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("INTAKE BY HOUR").overlineStyle()
-                    Spacer()
-                    StatPill(text: "\(Int((store.caloriesProgress * 100).rounded()))% of goal", color: .brown)
-                }
-                Text("\(store.todayEntries.count) meals · peak \(peakBin) kcal")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(RingColor.protein.tint) // caramel
-
-                Chart(hourlyData) { bar in
-                    BarMark(
-                        x: .value("Time", bar.hour),
-                        y: .value("Calories", bar.calories),
-                        width: .fixed(15)
-                    )
-                    .foregroundStyle(RingColor.carb.tint) // terracotta
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                }
-                .frame(height: 130)
-                .chartXScale(domain: 5...23)
-                .chartYScale(domain: 0...(Double(peakBin) * 1.15))
-                .chartYAxis {
-                    AxisMarks(values: [0, peakBin]) { value in
-                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4]))
-                            .foregroundStyle(Theme.divider)
-                        if let v = value.as(Int.self), v > 0 {
-                            AxisValueLabel {
-                                Text("\(v)")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Theme.textTertiary)
-                            }
-                        }
-                    }
-                }
-                .chartXAxis {
-                    AxisMarks(values: [6, 12, 18, 22]) { value in
-                        AxisValueLabel {
-                            if let h = value.as(Int.self) {
-                                Text(Self.hourLabel(h))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Theme.textTertiary)
-                            }
-                        }
-                    }
-                }
-
-                Text("TOTAL \(store.caloriesToday) KCAL")
-                    .font(.system(size: 12, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundStyle(RingColor.carb.tint)
-            }
-        }
-    }
-
     // MARK: Week mini-rings
 
     private var weekRingsCard: some View {
@@ -302,24 +223,6 @@ struct TodayView: View {
         }
     }
 
-    // MARK: Time helpers
-
-    private static func hour(from time: String) -> Int {
-        // Parses "8:24 AM" / "12:45 PM" → 24h hour.
-        let comps = time.split(separator: " ")
-        guard let clock = comps.first,
-              let hStr = clock.split(separator: ":").first,
-              var h = Int(hStr) else { return 12 }
-        let pm = comps.count > 1 && comps[1].uppercased() == "PM"
-        if pm && h != 12 { h += 12 }
-        if !pm && h == 12 { h = 0 }
-        return h
-    }
-
-    private static func hourLabel(_ h: Int) -> String {
-        let hour12 = h % 12 == 0 ? 12 : h % 12
-        return "\(hour12)\(h < 12 ? "a" : "p")"
-    }
 }
 
 #Preview {
