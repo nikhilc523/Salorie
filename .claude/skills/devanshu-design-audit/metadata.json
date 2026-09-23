@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "organization": "devanshuDesai",
+  "date": "February 2026",
+  "abstract": "UI/UX design audit skill with Steve Jobs and Jony Ive design philosophy. Provides a structured protocol for auditing visual hierarchy, spacing, typography, color, motion, and 10 more dimensions across every screen, with phased implementation and approval gates.",
+  "inspiration": "https://x.com/kloss_xyz",
+  "references": [
+    "https://developer.apple.com/design/human-interface-guidelines/",
+    "https://developer.apple.com/videos/play/wwdc2025/",
+    "https://www.interaction-design.org/literature/article/dieter-rams-10-timeless-commandments-for-good-design"
+  ]
+}

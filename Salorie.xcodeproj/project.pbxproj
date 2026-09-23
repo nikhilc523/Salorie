@@ -1,0 +1,433 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		04444891B7E698C9C927DA16 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975EE432B600E36E3C95416F /* TodayView.swift */; };
+		2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */; };
+		427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */; };
+		437D4278654764E40E07300A /* AddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047C6E4F516485EBBFC753F0 /* AddView.swift */; };
+		43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */; };
+		4B0453D86F29216379AE5F39 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B012781019B5FE6E6A6921A /* Theme.swift */; };
+		5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */; };
+		828363F7F5850E9B66FFBF85 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E52CFD17BE0201C3052D7C9 /* HistoryView.swift */; };
+		8605A835CD704EC094E381C0 /* Rings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEF1A9763C1A527C2901A50 /* Rings.swift */; };
+		9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796CC2D90F52CABD600C2327 /* ScanView.swift */; };
+		A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */; };
+		A6BF42728F8065981F40476B /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8EEBF451C46BCC97662740 /* Cards.swift */; };
+		AF653DFF152A256E38791299 /* Pills.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63E0ED90EE41BBE3D238551 /* Pills.swift */; };
+		B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 538D84F27FD95FE00E9125A1 /* MockStore.swift */; };
+		B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0F1310D8556FE2BBFE59AD /* Haptics.swift */; };
+		BEA1438614E6CD724C560E7E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */; };
+		CF0CB6FB01A3DF560ACF5CAC /* FoodDatabaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */; };
+		D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63FB642B0D3D9F924FEA51F /* Models.swift */; };
+		D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE5EC538F57268098B92887 /* RootView.swift */; };
+		D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099C6743813AEF400BB92808 /* FoodDetailView.swift */; };
+		D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 636AFA992B9822700C009B9F /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		047C6E4F516485EBBFC753F0 /* AddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddView.swift; sourceTree = "<group>"; };
+		099C6743813AEF400BB92808 /* FoodDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailView.swift; sourceTree = "<group>"; };
+		2B012781019B5FE6E6A6921A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		2B0F1310D8556FE2BBFE59AD /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalorieApp.swift; sourceTree = "<group>"; };
+		3E52CFD17BE0201C3052D7C9 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionHeader.swift; sourceTree = "<group>"; };
+		538D84F27FD95FE00E9125A1 /* MockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockStore.swift; sourceTree = "<group>"; };
+		5B8EEBF451C46BCC97662740 /* Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cards.swift; sourceTree = "<group>"; };
+		636AFA992B9822700C009B9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDatabaseView.swift; sourceTree = "<group>"; };
+		796CC2D90F52CABD600C2327 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyItemsView.swift; sourceTree = "<group>"; };
+		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
+		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
+		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
+		F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
+		FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3CD85306E91B914BFE2CD23F /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				5B8EEBF451C46BCC97662740 /* Cards.swift */,
+				4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */,
+				A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */,
+				D63E0ED90EE41BBE3D238551 /* Pills.swift */,
+				8DEF1A9763C1A527C2901A50 /* Rings.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		4B5F4F93DB8E0E5544C71FAD = {
+			isa = PBXGroup;
+			children = (
+				CA9411D8D3663B06F86DA968 /* Salorie */,
+				765C0F5F7EB6D0296FF412BC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		724155568F9E5867A9903F3C /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				2B0F1310D8556FE2BBFE59AD /* Haptics.swift */,
+				2B012781019B5FE6E6A6921A /* Theme.swift */,
+				FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */,
+				3CD85306E91B914BFE2CD23F /* Components */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		765C0F5F7EB6D0296FF412BC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D168D26A98FC94E8ED0987C6 /* Salorie.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C6F76448C7EBC52A5425EB0C /* Screens */ = {
+			isa = PBXGroup;
+			children = (
+				047C6E4F516485EBBFC753F0 /* AddView.swift */,
+				6FD1B4953F7D734024869A0C /* FoodDatabaseView.swift */,
+				099C6743813AEF400BB92808 /* FoodDetailView.swift */,
+				3E52CFD17BE0201C3052D7C9 /* HistoryView.swift */,
+				8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */,
+				796CC2D90F52CABD600C2327 /* ScanView.swift */,
+				975EE432B600E36E3C95416F /* TodayView.swift */,
+			);
+			path = Screens;
+			sourceTree = "<group>";
+		};
+		CA9411D8D3663B06F86DA968 /* Salorie */ = {
+			isa = PBXGroup;
+			children = (
+				636AFA992B9822700C009B9F /* Assets.xcassets */,
+				9BE5EC538F57268098B92887 /* RootView.swift */,
+				2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */,
+				724155568F9E5867A9903F3C /* DesignSystem */,
+				D323DD6EB467A8E419EC1834 /* Models */,
+				C6F76448C7EBC52A5425EB0C /* Screens */,
+			);
+			path = Salorie;
+			sourceTree = "<group>";
+		};
+		D323DD6EB467A8E419EC1834 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				538D84F27FD95FE00E9125A1 /* MockStore.swift */,
+				A63FB642B0D3D9F924FEA51F /* Models.swift */,
+				F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9996AB496B3996F707E07B40 /* Salorie */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 08C7A31D33750AA1A96E932C /* Build configuration list for PBXNativeTarget "Salorie" */;
+			buildPhases = (
+				7330E205B6723ABEA6D508A9 /* Sources */,
+				EBAA1512FB790165728E9DB2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Salorie;
+			packageProductDependencies = (
+			);
+			productName = Salorie;
+			productReference = D168D26A98FC94E8ED0987C6 /* Salorie.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0B221767A0629A56A4514FA9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					9996AB496B3996F707E07B40 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 0B7A55A35D814B62D1A73E58 /* Build configuration list for PBXProject "Salorie" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				9996AB496B3996F707E07B40 /* Salorie */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		EBAA1512FB790165728E9DB2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7330E205B6723ABEA6D508A9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				437D4278654764E40E07300A /* AddView.swift in Sources */,
+				A6BF42728F8065981F40476B /* Cards.swift in Sources */,
+				CF0CB6FB01A3DF560ACF5CAC /* FoodDatabaseView.swift in Sources */,
+				D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */,
+				B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */,
+				828363F7F5850E9B66FFBF85 /* HistoryView.swift in Sources */,
+				B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */,
+				D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */,
+				2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */,
+				43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */,
+				5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */,
+				AF653DFF152A256E38791299 /* Pills.swift in Sources */,
+				8605A835CD704EC094E381C0 /* Rings.swift in Sources */,
+				D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */,
+				427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */,
+				A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */,
+				9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */,
+				4B0453D86F29216379AE5F39 /* Theme.swift in Sources */,
+				04444891B7E698C9C927DA16 /* TodayView.swift in Sources */,
+				BEA1438614E6CD724C560E7E /* Typography.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		18D531574D4675E056D32158 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.salorie.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		600B91948A1805808EE10091 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		8A57B47565787F4A4030FBE8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		945A8A35E9B8F5FDF497FCA7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.salorie.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		08C7A31D33750AA1A96E932C /* Build configuration list for PBXNativeTarget "Salorie" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				945A8A35E9B8F5FDF497FCA7 /* Debug */,
+				18D531574D4675E056D32158 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		0B7A55A35D814B62D1A73E58 /* Build configuration list for PBXProject "Salorie" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8A57B47565787F4A4030FBE8 /* Debug */,
+				600B91948A1805808EE10091 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0B221767A0629A56A4514FA9 /* Project object */;
+}
