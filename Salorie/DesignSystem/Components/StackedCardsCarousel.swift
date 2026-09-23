@@ -27,9 +27,11 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
                     let shown = min(d, maxVisible)
                     content(item, isFront)
                         .frame(width: cardWidth, height: cardHeight)
-                        // deck geometry — animated only when the deck advances (topIndex)
-                        .scaleEffect(1 - CGFloat(shown) * 0.06, anchor: .center)
-                        .offset(y: CGFloat(shown) * 16)
+                        // fanned deck geometry (iMessage photo-stack) — back cards peek to
+                        // the bottom-right with a slight clockwise rotation.
+                        .scaleEffect(1 - CGFloat(shown) * 0.02, anchor: .center)
+                        .rotationEffect(.degrees(Double(shown) * 3.5), anchor: .center)
+                        .offset(x: CGFloat(shown) * 15, y: CGFloat(shown) * 7)
                         .animation(.spring(response: 0.42, dampingFraction: 0.82), value: topIndex)
                         // live drag on the front card (follows the finger 1:1)
                         .rotationEffect(.degrees(isFront ? Double(drag.width) / 18 : 0), anchor: .bottom)
@@ -40,7 +42,8 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
                         .gesture(isFront && items.count > 1 ? dragGesture : nil)
                 }
             }
-            .frame(width: cardWidth, height: cardHeight + CGFloat(maxVisible) * 16, alignment: .top)
+            .frame(width: cardWidth + CGFloat(maxVisible) * 15 + 24,
+                   height: cardHeight + CGFloat(maxVisible) * 7 + 30)
 
             if items.count > 1 {
                 HStack(spacing: 6) {
