@@ -88,7 +88,16 @@ struct TodayView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Spacer()
-                    StatPill(text: "\(caloriesLeft) kcal left", color: .brown)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("\(caloriesLeft)")
+                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.textPrimary)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                        Text("kcal left")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Theme.textTertiary)
+                    }
                 }
                 HStack(alignment: .center, spacing: 34) {
                     ActivityRings(
