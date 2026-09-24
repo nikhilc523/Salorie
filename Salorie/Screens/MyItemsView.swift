@@ -96,19 +96,24 @@ struct MyItemsView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Spacer()
-            Button {
-                HapticManager.shared.trigger(.light)
-                showBuilder = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(width: 42, height: 42)
-                    .background(Theme.surface, in: Circle())
-                    .overlay(Circle().stroke(Theme.cardStroke, lineWidth: 1))
+            // No add on Favorites — you don't create directly into favorites.
+            if tab != 0 {
+                Button {
+                    HapticManager.shared.trigger(.light)
+                    showBuilder = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .frame(width: 42, height: 42)
+                        .background(Theme.surface, in: Circle())
+                        .overlay(Circle().stroke(Theme.cardStroke, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .transition(.scale.combined(with: .opacity))
             }
-            .buttonStyle(.plain)
         }
+        .animation(.snappy(duration: 0.2), value: tab)
     }
 
     private var emptyState: some View {
