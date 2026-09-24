@@ -8,6 +8,7 @@ struct DayDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var index: Int
+    @State private var selectedNutrient: StatKind?
     init(initialIndex: Int) { _index = State(initialValue: initialIndex) }
 
     private var day: DayLog { store.history[min(index, store.history.count - 1)] }
@@ -18,9 +19,9 @@ struct DayDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     weekSelector
                     heroRing
-                    chart
-                    proteinChart
-                    carbsChart
+                    chart.contentShape(Rectangle()).onTapGesture { openNutrient(.calories) }
+                    proteinChart.contentShape(Rectangle()).onTapGesture { openNutrient(.protein) }
+                    carbsChart.contentShape(Rectangle()).onTapGesture { openNutrient(.carbs) }
                     nutritionDetails
                 }
                 .padding(.horizontal, Metrics.pagePadding)
@@ -41,6 +42,15 @@ struct DayDetailView: View {
             }
         }
         .presentationDragIndicator(.visible)
+        .sheet(item: $selectedNutrient) { kind in
+            StatDetailView(kind: kind, initialPeriod: .day, day: day, targets: store.targets)
+        }
+    }
+
+    /// Present the per-metric D/W/M/Y detail for a tapped nutrient.
+    private func openNutrient(_ kind: StatKind) {
+        HapticManager.shared.trigger(.light)
+        selectedNutrient = kind
     }
 
     // MARK: Week day selector
@@ -107,9 +117,15 @@ struct DayDetailView: View {
     /// Big colored value header — Apple Fitness "Move / Exercise / Stand" style.
     private func activityHeader(_ title: String, value: Int, target: Int, unit: String, tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(Theme.textTertiary)
+                Spacer(minLength: 0)
+            }
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text("\(value)")
                     .font(.system(size: 34, weight: .bold, design: .rounded))
@@ -252,6 +268,7 @@ struct DayDetailView: View {
         let label: String
         let value: String
         let target: String?   // e.g. "of 30g", nil when we have no daily target
+        let kind: StatKind    // tap → per-metric D/W/M/Y detail
     }
 
     /// The full macro breakdown consumed across the day.
@@ -259,12 +276,12 @@ struct DayDetailView: View {
         func g(_ v: Double) -> String { "\(Int(v.rounded()))g" }
         func mg(_ v: Double) -> String { "\(Int(v.rounded())) mg" }
         return [
-            NutrientStat(label: "Total Fat", value: g(day.fat), target: "of \(Int(store.targets.fat.rounded()))g"),
-            NutrientStat(label: "Saturated Fat", value: g(day.saturatedFat), target: nil),
-            NutrientStat(label: "Sugars", value: g(day.sugars), target: nil),
-            NutrientStat(label: "Dietary Fibre", value: g(day.fibre), target: "of \(Int(store.targets.fibre.rounded()))g"),
-            NutrientStat(label: "Sodium", value: mg(day.sodium), target: "of 2,300 mg"),
-            NutrientStat(label: "Cholesterol", value: mg(day.cholesterol), target: nil),
+            NutrientStat(label: "Total Fat", value: g(day.fat), target: "of \(Int(store.targets.fat.rounded()))g", kind: .fat),
+            NutrientStat(label: "Saturated Fat", value: g(day.saturatedFat), target: nil, kind: .saturatedFat),
+            NutrientStat(label: "Sugars", value: g(day.sugars), target: nil, kind: .sugars),
+            NutrientStat(label: "Dietary Fibre", value: g(day.fibre), target: "of \(Int(store.targets.fibre.rounded()))g", kind: .fibre),
+            NutrientStat(label: "Sodium", value: mg(day.sodium), target: "of 2,300 mg", kind: .sodium),
+            NutrientStat(label: "Cholesterol", value: mg(day.cholesterol), target: nil, kind: .cholesterol),
         ]
     }
 
@@ -300,22 +317,33 @@ struct DayDetailView: View {
     }
 
     private func nutrientCell(_ stat: NutrientStat) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(stat.label)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Theme.textSecondary)
-            Text(stat.value)
-                .font(.system(size: 26, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.textPrimary)
-                .monospacedDigit()
-            if let target = stat.target {
-                Text(target)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textTertiary)
+        Button {
+            openNutrient(stat.kind)
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(stat.label)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.textTertiary)
+                }
+                Text(stat.value)
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
                     .monospacedDigit()
+                if let target = stat.target {
+                    Text(target)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.textTertiary)
+                        .monospacedDigit()
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .buttonStyle(.plain)
     }
 
     // MARK: Helpers
