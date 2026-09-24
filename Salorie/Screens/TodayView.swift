@@ -203,13 +203,9 @@ struct TodayView: View {
                         }
                     }
                 }
-                // Indent + a quiet rail so items read as children of their meal,
-                // not as siblings of the next meal header.
+                // Indent so items read as children of their meal, not as
+                // siblings of the next meal header.
                 .padding(.leading, 22)
-                .overlay(alignment: .leading) {
-                    Rectangle().fill(Theme.divider).frame(width: 2)
-                        .padding(.vertical, 4)
-                }
                 .padding(.bottom, 8)
                 .transition(.opacity)
             }
