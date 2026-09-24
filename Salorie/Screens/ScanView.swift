@@ -18,6 +18,8 @@ struct ScanView: View {
     @State private var showManualEntry = false
     @State private var manualCode = ""
     @State private var notFoundCode: String?
+    @State private var torchOn = false
+    @State private var showBuilder = false
 
     private let scanTint = RingColor.carb.tint      // warm terracotta (palette, no blue)
 
@@ -32,10 +34,12 @@ struct ScanView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.bg)
         .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+        .sheet(isPresented: $showBuilder) { MealBuilderView() }
         .alert("No match for that code", isPresented: .constant(notFoundCode != nil)) {
-            Button("OK") { notFoundCode = nil }
+            Button("Add Manually") { notFoundCode = nil; showBuilder = true }
+            Button("Cancel", role: .cancel) { notFoundCode = nil }
         } message: {
-            Text("\(notFoundCode ?? "") isn't in your catalog yet. Add it by hand or try another.")
+            Text("\(notFoundCode ?? "") isn't in your catalog yet. Build it by hand or try another.")
         }
         .alert("Enter barcode", isPresented: $showManualEntry) {
             TextField("Barcode number", text: $manualCode)
@@ -58,6 +62,7 @@ struct ScanView: View {
                 BarcodeScannerView(onScan: handleScan)
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     .overlay(scrim)
+                    .overlay(alignment: .topTrailing) { torchButton }
             } else {
                 cameraPlaceholder
             }
@@ -68,6 +73,33 @@ struct ScanView: View {
         .padding(.horizontal, Metrics.pagePadding)
         .compositingGroup()
         .shadow(color: .black.opacity(0.4), radius: 10, y: 6)
+        .onDisappear { setTorch(false) }
+    }
+
+    private var torchButton: some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            setTorch(!torchOn)
+        } label: {
+            Image(systemName: torchOn ? "bolt.fill" : "bolt.slash.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(torchOn ? RingColor.protein.tint : Theme.textSecondary)
+                .frame(width: 40, height: 40)
+                .glassEffect(.regular, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .padding(12)
+    }
+
+    /// Toggle the capture device torch (no-op on Simulator / devices without one).
+    private func setTorch(_ on: Bool) {
+        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = on ? .on : .off
+            device.unlockForConfiguration()
+            torchOn = on
+        } catch { }
     }
 
     /// Soft vignette so the reticle reads over a busy camera image.
@@ -186,6 +218,7 @@ struct ScanView: View {
         guard !code.isEmpty else { return }
         if let food = store.food(forBarcode: code) {
             HapticManager.shared.trigger(.success)
+            setTorch(false)
             withAnimation(.snappy(duration: 0.18)) { flash = true }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
                 withAnimation(.snappy) { flash = false }
