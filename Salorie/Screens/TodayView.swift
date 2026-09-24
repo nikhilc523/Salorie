@@ -4,9 +4,11 @@ import SwiftUI
 struct TodayView: View {
     @Environment(MockStore.self) private var store
     @State private var selectedFood: Food?
+    @State private var selectedMeal: Food?
     @State private var showDayDetail = false
     @State private var dayIndex = 0
     @State private var expandedSlots: Set<MealSlot> = []
+    @State private var expandedMeals: Set<UUID> = []
 
     /// Hero rings — Calories (outer) · Protein (middle) · Carbs (inner). Fibre lives in detail, not the glance.
     private var macroRings: [Ring] {
@@ -53,6 +55,7 @@ struct TodayView: View {
             }
             .safeAreaInset(edge: .bottom) { AskAIBar() }
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+            .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
             .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
             .onAppear {
                 if ProcessInfo.processInfo.environment["SALORIE_DETAIL"] == "1" {
@@ -61,6 +64,12 @@ struct TodayView: View {
                 if ProcessInfo.processInfo.environment["SALORIE_DAY"] == "1" {
                     dayIndex = store.history.count - 3
                     showDayDetail = true
+                }
+                if ProcessInfo.processInfo.environment["SALORIE_EXPAND"] == "meal" {
+                    for e in store.todayEntries where e.food.isCustomMeal {
+                        expandedMeals.insert(e.id)
+                        expandedSlots.insert(e.slot)
+                    }
                 }
             }
             }
@@ -216,10 +225,9 @@ struct TodayView: View {
     }
 
     private func mealRow(_ entry: MealEntry) -> some View {
-        Button {
-            HapticManager.shared.trigger(.light)
-            selectedFood = entry.food
-        } label: {
+        let isMeal = entry.food.isCustomMeal
+        let isOpen = expandedMeals.contains(entry.id)
+        return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 Image(systemName: entry.food.symbol)
                     .font(.system(size: 15))
@@ -231,7 +239,9 @@ struct TodayView: View {
                         .foregroundStyle(Theme.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    Text("\(Int(entry.protein))g protein · \(Int(entry.carbs))g carbs")
+                    Text(isMeal
+                         ? "\(entry.food.components.count) items · \(Int(entry.protein))g protein"
+                         : "\(Int(entry.protein))g protein · \(Int(entry.carbs))g carbs")
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.textTertiary)
                         .monospacedDigit()
@@ -241,11 +251,71 @@ struct TodayView: View {
                     .font(.system(size: 17, weight: .medium, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
+                if isMeal {
+                    Button {
+                        HapticManager.shared.trigger(.light)
+                        withAnimation(.snappy(duration: 0.26)) {
+                            if isOpen { expandedMeals.remove(entry.id) }
+                            else { expandedMeals.insert(entry.id) }
+                        }
+                    } label: {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Theme.textTertiary)
+                            .rotationEffect(.degrees(isOpen ? 180 : 0))
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.vertical, 12)
             .contentShape(Rectangle())
+            .onTapGesture { openEntry(entry) }
+
+            if isMeal && isOpen {
+                VStack(spacing: 0) {
+                    ForEach(entry.food.components) { component in
+                        componentSubRow(component, mealServings: entry.servings)
+                    }
+                }
+                .padding(.leading, 34)
+                .padding(.bottom, 6)
+                .transition(.opacity)
+            }
+        }
+    }
+
+    /// One indented ingredient under an expanded meal; opens that food's detail.
+    private func componentSubRow(_ component: MealComponent, mealServings: Double) -> some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            selectedFood = component.food
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: component.food.symbol)
+                    .font(.system(size: 12))
+                    .foregroundStyle(component.food.tint.fg)
+                    .frame(width: 18)
+                Text(component.food.name)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text("\(Int((component.calories * mealServings).rounded()))")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            .padding(.vertical, 7)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func openEntry(_ entry: MealEntry) {
+        HapticManager.shared.trigger(.light)
+        if entry.food.isCustomMeal { selectedMeal = entry.food } else { selectedFood = entry.food }
     }
 
 }

@@ -31,7 +31,7 @@ enum Theme {
 
 // MARK: - Tag pill palette (Notion's 9 muted dark colors)
 
-enum TagColor: String, CaseIterable, Hashable {
+enum TagColor: String, CaseIterable, Hashable, Codable {
     case gray, brown, orange, yellow, green, blue, purple, pink, red
 
     /// Soft background used by the default pill style.

@@ -5,11 +5,22 @@ import SwiftUI
 struct MyItemsView: View {
     @Environment(MockStore.self) private var store
     @State private var selectedFood: Food?
+    @State private var selectedMeal: Food?
+    @State private var showBuilder = false
     @State private var tab = 0
 
-    private var favorites: [Food] { store.foods.filter(\.isFavorite) }
+    private var favorites: [Food] { store.searchableFoods.filter(\.isFavorite) }
+    private var meals: [Food] { store.customMeals }
     private var custom: [Food] { store.foods.filter { $0.source == .openFoodFacts || $0.source == .custom } }
-    private var shown: [Food] { tab == 0 ? favorites : custom }
+    private var shown: [Food] {
+        switch tab { case 0: return favorites; case 1: return meals; default: return custom }
+    }
+
+    /// Custom meals open the meal detail; single foods open the food detail.
+    private func open(_ food: Food) {
+        HapticManager.shared.trigger(.light)
+        if food.isCustomMeal { selectedMeal = food } else { selectedFood = food }
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,18 +32,32 @@ struct MyItemsView: View {
                     HStack(spacing: 10) {
                         switcherPill
                         Spacer()
-                        Text("\(shown.count) \(shown.count == 1 ? "item" : "items")")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Theme.textTertiary)
+                        if tab == 1 {
+                            Button {
+                                HapticManager.shared.trigger(.light)
+                                showBuilder = true
+                            } label: {
+                                Label("New meal", systemImage: "plus")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Theme.accent)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Text("\(shown.count) \(shown.count == 1 ? "item" : "items")")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Theme.textTertiary)
+                        }
                     }
 
                     if shown.isEmpty {
                         emptyState
+                    } else if tab == 1 {
+                        mealGrid
                     } else {
                         LazyVStack(spacing: 12) {
                             ForEach(shown) { food in
                                 SavedItemRow(food: food,
-                                             onTap: { selectedFood = food },
+                                             onTap: { open(food) },
                                              onToggleFavorite: {
                                                  HapticManager.shared.trigger(.selection)
                                                  withAnimation(.snappy) { store.toggleFavorite(food) }
@@ -49,6 +74,32 @@ struct MyItemsView: View {
             .navigationTitle("My Items")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+            .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
+            .sheet(isPresented: $showBuilder) { MealBuilderView() }
+            .onAppear {
+                switch ProcessInfo.processInfo.environment["SALORIE_ITEMS"] {
+                case "meals": tab = 1
+                case "custom": tab = 2
+                default: break
+                }
+            }
+        }
+    }
+
+    /// Tall portrait meal cards, 2-up, with a matching create tile at the end.
+    private var mealGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12),
+                            GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(shown) { meal in
+                MealTallCard(
+                    meal: meal,
+                    onTap: { open(meal) },
+                    onToggleFavorite: {
+                        withAnimation(.snappy) { store.toggleFavorite(meal) }
+                    }
+                )
+            }
+            CreateMealTallCard { showBuilder = true }
         }
     }
 
@@ -66,13 +117,19 @@ struct MyItemsView: View {
                 HapticManager.shared.trigger(.selection)
                 withAnimation(.snappy) { tab = 1 }
             } label: {
-                Label("Custom", systemImage: tab == 1 ? "checkmark" : "puzzlepiece")
+                Label("Meals", systemImage: tab == 1 ? "checkmark" : "takeoutbag.and.cup.and.straw")
+            }
+            Button {
+                HapticManager.shared.trigger(.selection)
+                withAnimation(.snappy) { tab = 2 }
+            } label: {
+                Label("Custom", systemImage: tab == 2 ? "checkmark" : "puzzlepiece")
             }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "asterisk")
                     .font(.system(size: 13, weight: .semibold))
-                Text(tab == 0 ? "Favorites" : "Custom")
+                Text(tabTitle)
                     .font(.system(size: 15, weight: .medium))
                 Image(systemName: "chevron.down")
                     .font(.system(size: 11, weight: .semibold))
@@ -86,19 +143,38 @@ struct MyItemsView: View {
         .buttonStyle(.plain)
     }
 
+    private var tabTitle: String {
+        switch tab { case 0: return "Favorites"; case 1: return "Meals"; default: return "Custom" }
+    }
+
     private var emptyState: some View {
         VStack(spacing: 10) {
-            Image(systemName: tab == 0 ? "star" : "puzzlepiece")
+            Image(systemName: tab == 0 ? "star" : (tab == 1 ? "takeoutbag.and.cup.and.straw" : "puzzlepiece"))
                 .font(.system(size: 30, weight: .regular))
                 .foregroundStyle(Theme.textTertiary)
-            Text(tab == 0 ? "No favorites yet" : "No custom foods yet")
+            Text(tab == 0 ? "No favorites yet" : (tab == 1 ? "No meals yet" : "No custom foods yet"))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.textSecondary)
             Text(tab == 0 ? "Tap the star on any food to save it here."
-                          : "Foods you scan or add by hand show up here.")
+                 : (tab == 1 ? "Build a meal from your foods to log it in one tap."
+                             : "Foods you scan or add by hand show up here."))
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.textTertiary)
                 .multilineTextAlignment(.center)
+            if tab == 1 {
+                Button {
+                    HapticManager.shared.trigger(.light)
+                    showBuilder = true
+                } label: {
+                    Label("Create meal", systemImage: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                        .padding(.horizontal, 16).padding(.vertical, 9)
+                        .background(Theme.accent.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 6)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)

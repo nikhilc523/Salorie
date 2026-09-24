@@ -7,6 +7,7 @@ import Observation
 @Observable
 final class MockStore {
     var foods: [Food]
+    var customMeals: [Food]        // user-built composite meals (kind == .custom)
     var todayEntries: [MealEntry]
     var history: [DayLog]          // curated last 7 days (Today / DayDetail week strips)
     var dailyLog: [DayLog]         // long run for History trends (Week / Month / Year)
@@ -17,6 +18,7 @@ final class MockStore {
 
     init() {
         self.foods = SampleData.foods
+        self.customMeals = SampleData.customMeals()
         self.todayEntries = SampleData.todayEntries()
         self.history = SampleData.history()
         self.dailyLog = SampleData.extendedHistory()
@@ -69,7 +71,10 @@ final class MockStore {
         todayEntries.filter { $0.slot == slot }
     }
 
-    var favorites: [Food] { foods.filter(\.isFavorite) }
+    /// Single foods + custom meals, the full set the search picker draws from.
+    var searchableFoods: [Food] { customMeals + foods }
+
+    var favorites: [Food] { searchableFoods.filter(\.isFavorite) }
 
     // MARK: Recent & frequent (for quick re-log — derived from what you've logged)
 
@@ -100,11 +105,38 @@ final class MockStore {
     }
 
     func toggleFavorite(_ food: Food) {
-        guard let idx = foods.firstIndex(of: food) else { return }
-        foods[idx].isFavorite.toggle()
+        if let idx = customMeals.firstIndex(where: { $0.id == food.id }) {
+            customMeals[idx].isFavorite.toggle()
+        } else if let idx = foods.firstIndex(where: { $0.id == food.id }) {
+            foods[idx].isFavorite.toggle()
+        }
     }
 
     func removeEntry(_ entry: MealEntry) {
         todayEntries.removeAll { $0.id == entry.id }
+    }
+
+    // MARK: Custom meals
+
+    /// Add every ingredient of a custom meal to a slot as its own entry —
+    /// used when the user wants the components broken out instead of one row.
+    func logMealExpanded(_ meal: Food, slot: MealSlot, time: String = "Now") {
+        for component in meal.components {
+            addEntry(component.food, slot: slot, servings: component.servings, time: time)
+        }
+    }
+
+    /// Insert a new custom meal (newest first) or replace an existing one by id.
+    func saveMeal(_ meal: Food) {
+        guard meal.kind == .custom else { return }
+        if let idx = customMeals.firstIndex(where: { $0.id == meal.id }) {
+            customMeals[idx] = meal
+        } else {
+            customMeals.insert(meal, at: 0)
+        }
+    }
+
+    func deleteMeal(_ meal: Food) {
+        customMeals.removeAll { $0.id == meal.id }
     }
 }

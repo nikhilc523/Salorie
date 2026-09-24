@@ -7,10 +7,12 @@ struct AddView: View {
     @State private var tab = ProcessInfo.processInfo.environment["SALORIE_SCAN"] == "1" ? 1 : 0
     @State private var query = ""
     @State private var selectedFood: Food?
+    @State private var selectedMeal: Food?
+    @State private var showBuilder = false
 
     private var results: [Food] {
         guard !query.isEmpty else { return [] }
-        return store.foods.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        return store.searchableFoods.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
 
     /// One-tap adds land in the meal that fits the time of day.
@@ -36,7 +38,23 @@ struct AddView: View {
             .navigationTitle("Add Food")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+            .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
+            .sheet(isPresented: $showBuilder) { MealBuilderView() }
+            .onAppear {
+                // Screenshot/testing hooks: SALORIE_MEAL=detail|builder.
+                switch ProcessInfo.processInfo.environment["SALORIE_MEAL"] {
+                case "detail": selectedMeal = store.customMeals.first
+                case "builder": showBuilder = true
+                default: break
+                }
+            }
         }
+    }
+
+    /// Custom meals open the meal detail; single foods open the food detail.
+    private func open(_ food: Food) {
+        HapticManager.shared.trigger(.light)
+        if food.isCustomMeal { selectedMeal = food } else { selectedFood = food }
     }
 
     // MARK: Search + auto-populated lists
@@ -47,8 +65,9 @@ struct AddView: View {
                 searchField
 
                 if query.isEmpty {
-                    section("FREQUENT", Array(store.frequentFoods.prefix(5)))
-                    section("RECENT", Array(store.recentFoods.prefix(6)))
+                    myMealsRail
+                    section("FREQUENT", Array(store.frequentFoods.filter { !$0.isCustomMeal }.prefix(5)))
+                    section("RECENT", Array(store.recentFoods.filter { !$0.isCustomMeal }.prefix(6)))
                     section("FAVORITES", store.favorites)
                 } else if results.isEmpty {
                     emptyResults
@@ -62,6 +81,41 @@ struct AddView: View {
         }
         .background(Theme.bg)
         .scrollContentBackground(.hidden)
+    }
+
+    // MARK: MY MEALS rail — gradient hero cards + create tile
+
+    private var myMealsRail: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("MY MEALS").overlineStyle()
+                Spacer()
+                Button {
+                    HapticManager.shared.trigger(.light)
+                    showBuilder = true
+                } label: {
+                    Label("Create", systemImage: "plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(store.customMeals) { meal in
+                        MealHeroCard(
+                            meal: meal,
+                            caloriesTarget: store.targets.calories,
+                            onTap: { open(meal) },
+                            onQuickAdd: { store.addEntry(meal, slot: defaultSlot) }
+                        )
+                    }
+                    CreateMealCard { showBuilder = true }
+                }
+                .padding(.horizontal, 1)
+            }
+            .scrollClipDisabled()
+        }
     }
 
     @ViewBuilder
@@ -112,10 +166,7 @@ struct AddView: View {
         }
         .padding(.vertical, 7)
         .contentShape(Rectangle())
-        .onTapGesture {
-            HapticManager.shared.trigger(.light)
-            selectedFood = food
-        }
+        .onTapGesture { open(food) }
     }
 
     private var emptyResults: some View {

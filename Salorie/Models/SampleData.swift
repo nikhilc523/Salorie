@@ -72,6 +72,28 @@ enum SampleData {
              servingDescription: "1 cup (148 g)", calories: 84, carbs: 21, protein: 1, fat: 0, fibre: 4, sugars: 15, saturatedFat: 0, sodium: 1, cholesterol: 0),
     ]
 
+    // MARK: Custom meals (user-built composites of the foods above)
+
+    static func customMeals() -> [Food] {
+        [
+            Food.customMeal(
+                name: "Protein Oat Bowl", symbol: "cup.and.saucer.fill", tint: .brown, isFavorite: true,
+                components: [
+                    MealComponent(food: foods[0], servings: 1),   // greek yogurt
+                    MealComponent(food: foods[5], servings: 1),   // banana
+                    MealComponent(food: foods[4], servings: 1),   // almond butter
+                    MealComponent(food: foods[11], servings: 1),  // blueberries
+                ]),
+            Food.customMeal(
+                name: "Chicken Rice Bowl", symbol: "takeoutbag.and.cup.and.straw.fill", tint: .green,
+                components: [
+                    MealComponent(food: foods[2], servings: 1.5), // chicken
+                    MealComponent(food: foods[7], servings: 1),   // brown rice
+                    MealComponent(food: foods[9], servings: 1),   // broccoli
+                ]),
+        ]
+    }
+
     // MARK: Targets
 
     static let targets = MacroTargets(calories: 2200, carbs: 250, protein: 140, fibre: 30, fat: 70)
@@ -80,6 +102,7 @@ enum SampleData {
 
     static func todayEntries() -> [MealEntry] {
         [
+            MealEntry(food: customMeals()[0], slot: .breakfast, servings: 1, time: "8:05 AM"), // Protein Oat Bowl
             MealEntry(food: foods[6], slot: .breakfast, servings: 2, time: "8:12 AM"),   // eggs
             MealEntry(food: foods[3], slot: .breakfast, servings: 1, time: "8:14 AM"),   // sourdough
             MealEntry(food: foods[0], slot: .breakfast, servings: 1, time: "8:20 AM"),   // yogurt
