@@ -162,14 +162,14 @@ struct TodayView: View {
                             .foregroundStyle(Theme.textTertiary)
                     }
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 1) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text("\(total)")
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .monospacedDigit()
                             .foregroundStyle(total > 0 ? Theme.textPrimary : Theme.textTertiary)
                             .contentTransition(.numericText())
                         Text("cal")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundStyle(Theme.textTertiary)
                     }
                     Image(systemName: "chevron.down")
