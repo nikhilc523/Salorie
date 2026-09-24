@@ -300,21 +300,12 @@ enum StatKind: String, CaseIterable, Identifiable {
     }
     var grouped: Bool { self == .calories }
 
-    /// The big number / title tone — the lighter warm shade.
-    var numberColor: Color {
-        let hex: UInt = switch self {
-        case .calories: 0xE7C39A
-        case .protein, .sugars: 0xEAD8B4
-        case .carbs:    0xE3A87C
-        case .fat, .saturatedFat: 0xEFE6D2
-        case .fibre, .sodium: 0xE9C79A
-        case .cholesterol, .onTarget: 0xE7C39A
-        }
-        return Color(hex: hex)
-    }
+    /// Number tone — matched to the bars (Apple-authentic: number == bar colour).
+    /// Uses the bar gradient's top tone so the number reads as the same hue.
+    var numberColor: Color { barColors.first ?? .white }
 
-    /// The bar-graph gradient — a deeper tone, so bars read distinct from the
-    /// number (top → bottom, light-deep → deep). Different colour = looks great.
+    /// The bar-graph gradient (top → bottom). One warm tone per metric for now;
+    /// the number matches its top tone. (Palette to be finalised later.)
     var barColors: [Color] {
         let hex: [UInt] = switch self {
         case .calories: [0xC97F5A, 0xB3664C]
