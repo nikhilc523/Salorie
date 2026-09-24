@@ -90,7 +90,7 @@ struct TodayView: View {
                     Spacer()
                     StatPill(text: "\(caloriesLeft) kcal left", color: .brown)
                 }
-                HStack(spacing: 34) {
+                HStack(alignment: .center, spacing: 34) {
                     ActivityRings(
                         rings: macroRings,
                         lineWidth: 12,
@@ -105,6 +105,7 @@ struct TodayView: View {
                     }
 
                     RingLegend(items: macroRings)
+                        .offset(y: -6)
                 }
             }
         }
