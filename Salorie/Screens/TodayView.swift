@@ -100,7 +100,7 @@ struct TodayView: View {
                             .foregroundStyle(Theme.textTertiary)
                     }
                 }
-                HStack(alignment: .center, spacing: 30) {
+                HStack(alignment: .center, spacing: 26) {
                     ActivityRings(
                         rings: macroRings,
                         lineWidth: 11,
@@ -113,11 +113,11 @@ struct TodayView: View {
                         dayIndex = store.history.count - 1
                         showDayDetail = true
                     }
-                    .padding(.leading, 10)
+                    .padding(.leading, 28)
 
                     RingLegend(items: macroRings)
                         .offset(y: -6)
-                        .padding(.leading, 14)
+                        .padding(.leading, 6)
                 }
             }
         }
@@ -148,7 +148,7 @@ struct TodayView: View {
                     if isOpen { expandedSlots.remove(slot) } else { expandedSlots.insert(slot) }
                 }
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
                     Image(systemName: slot.symbol)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(slot.tagColor.fg)
@@ -162,21 +162,24 @@ struct TodayView: View {
                             .foregroundStyle(Theme.textTertiary)
                     }
                     Spacer()
-                    Text("\(total)")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(total > 0 ? Theme.textPrimary : Theme.textTertiary)
-                        .contentTransition(.numericText())
-                    Text("cal")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Theme.textTertiary)
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("\(total)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(total > 0 ? Theme.textPrimary : Theme.textTertiary)
+                            .contentTransition(.numericText())
+                        Text("cal")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Theme.textTertiary)
+                    }
                     Image(systemName: "chevron.down")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundStyle(Theme.textTertiary)
                         .rotationEffect(.degrees(isOpen ? 180 : 0))
-                        .padding(.leading, 2)
+                        .frame(width: 14)
+                        .padding(.leading, 4)
                 }
-                .padding(.vertical, 15)
+                .padding(.vertical, 14)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
