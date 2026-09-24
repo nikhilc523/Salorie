@@ -144,10 +144,12 @@ struct HistoryView: View {
         StackedCardsCarousel(items: statCards, cardWidth: 268, cardHeight: 316) { card, isFront in
             BigStatCard(title: card.kind.title, subtitle: card.subtitle, value: card.value,
                         grouped: card.kind.grouped, unit: card.kind.unit, bars: card.bars,
-                        goal: card.goal, colors: card.kind.colors, animate: isFront)
+                        goal: card.goal, numberColor: card.kind.numberColor,
+                        barColors: card.kind.barColors, animate: isFront)
                 .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .onTapGesture { if isFront { HapticManager.shared.trigger(.light); selectedStat = card } }
         }
+        .offset(x: -16)   // nudge the deck slightly left (matches the reference framing)
     }
 
     // MARK: Trend chart
@@ -322,14 +324,29 @@ enum StatKind: String, CaseIterable, Identifiable {
     var unit: String { switch self { case .calories: "kcal"; case .onTarget: "%"; default: "g" } }
     var grouped: Bool { self == .calories }
 
-    var colors: [Color] {
+    /// The big number / title tone — the lighter warm shade.
+    var numberColor: Color {
+        let hex: UInt = switch self {
+        case .calories: 0xE7C39A
+        case .protein:  0xEAD8B4
+        case .carbs:    0xE3A87C
+        case .fat:      0xEFE6D2
+        case .fibre:    0xE9C79A
+        case .onTarget: 0xE7C39A
+        }
+        return Color(hex: hex)
+    }
+
+    /// The bar-graph gradient — a deeper tone, so bars read distinct from the
+    /// number (top → bottom, light-deep → deep). Different colour = looks great.
+    var barColors: [Color] {
         let hex: [UInt] = switch self {
-        case .calories: [0xD1A67A, 0xB3664C]
-        case .protein:  [0xE6D0A8, 0xD1A67A]
-        case .carbs:    [0xD1A67A, 0xB3664C]
-        case .fat:      [0xE3D9C6, 0xCBB892]
-        case .fibre:    [0xDDB98C, 0xC98A5E]
-        case .onTarget: [0xD1A67A, 0xB3664C]
+        case .calories: [0xC97F5A, 0xB3664C]
+        case .protein:  [0xD1A67A, 0xB98A5E]
+        case .carbs:    [0xBE6E4E, 0xA85A3E]
+        case .fat:      [0xD3C094, 0xB89E6E]
+        case .fibre:    [0xCE8C5C, 0xB06A42]
+        case .onTarget: [0xC97F5A, 0xB3664C]
         }
         return hex.map { Color(hex: $0) }
     }
@@ -369,26 +386,35 @@ private func statSeries(_ kind: StatKind, _ period: HistoryView.Period, _ store:
     let cal = Calendar.current
     switch period {
     case .week:
+        // Full week, Mon…Sun weekday labels (Apple shows all seven).
+        let fmt = DateFormatter(); fmt.dateFormat = "EEE"
         let days = store.history
-        let bars = days.enumerated().map { i, d in StatBar(index: i, label: d.weekdayLetter, value: kind.dayValue(d)) }
+        let bars = days.enumerated().map { i, d in StatBar(index: i, label: fmt.string(from: d.date), value: kind.dayValue(d)) }
         return (bars, mean(bars.map(\.value)))
     case .month:
+        // Last 30 days, day-of-month labels (ticks land on 1·8·15·22·29).
         let days = Array(store.dailyLog.suffix(30))
         let fmt = DateFormatter(); fmt.dateFormat = "d"
         let bars = days.enumerated().map { i, d in StatBar(index: i, label: fmt.string(from: d.date), value: kind.dayValue(d)) }
         return (bars, mean(bars.map(\.value)))
     case .year:
-        let fmt = DateFormatter(); fmt.dateFormat = "LLLLL"   // single-letter month
-        var order: [Int] = [], sum: [Int: Double] = [:], cnt: [Int: Int] = [:], lab: [Int: String] = [:]
-        for d in store.dailyLog {
-            let key = cal.component(.year, from: d.date) * 12 + cal.component(.month, from: d.date)
-            if sum[key] == nil { order.append(key); lab[key] = fmt.string(from: d.date) }
-            sum[key, default: 0] += kind.dayValue(d); cnt[key, default: 0] += 1
+        // Twelve fixed month slots J…D of the reference year; empty months show
+        // no bar (mirrors Apple's year chart), single-letter month labels.
+        let fmt = DateFormatter(); fmt.dateFormat = "LLLLL"
+        let year = cal.component(.year, from: store.today)
+        var sum = [Double](repeating: 0, count: 12)
+        var cnt = [Int](repeating: 0, count: 12)
+        for d in store.dailyLog where cal.component(.year, from: d.date) == year {
+            let m = cal.component(.month, from: d.date) - 1
+            sum[m] += kind.dayValue(d); cnt[m] += 1
         }
-        let bars = order.enumerated().map { i, key in
-            StatBar(index: i, label: lab[key] ?? "", value: sum[key]! / Double(max(1, cnt[key]!)))
+        let bars: [StatBar] = (0..<12).map { m in
+            let date = cal.date(from: DateComponents(year: year, month: m + 1, day: 1)) ?? store.today
+            let v = cnt[m] > 0 ? sum[m] / Double(cnt[m]) : 0
+            return StatBar(index: m, label: fmt.string(from: date), value: v)
         }
-        return (bars, mean(store.dailyLog.map(kind.dayValue)))
+        let present = bars.map(\.value).filter { $0 > 0 }
+        return (bars, mean(present))
     }
 }
 
@@ -410,12 +436,13 @@ private struct StatDetailView: View {
         _period = State(initialValue: initialPeriod)
     }
 
-    private var grad: LinearGradient { LinearGradient(colors: kind.colors, startPoint: .top, endPoint: .bottom) }
+    private var barGrad: LinearGradient { LinearGradient(colors: kind.barColors, startPoint: .top, endPoint: .bottom) }
     private var series: (bars: [StatBar], avg: Double) { statSeries(kind, period, store) }
     private var bars: [StatBar] { series.bars }
     private var goal: Double { kind.goal(targets) }
-    private var maxY: Double { max(goal, bars.map(\.value).max() ?? 1) * 1.14 }
-    private var barWidth: CGFloat { bars.count <= 7 ? 22 : (bars.count <= 31 ? 7 : 16) }
+    private var barWidth: CGFloat {
+        switch period { case .week: 26; case .month: 6; case .year: 16 }
+    }
     private func fmt(_ v: Double) -> String { kind.grouped ? Int(v).formatted() : "\(Int(v.rounded()))" }
 
     private var periodDays: [DayLog] {
@@ -424,6 +451,7 @@ private struct StatDetailView: View {
     private var periodLabel: String {
         switch period { case .week: "This week"; case .month: "Last 30 days"; case .year: "This year" }
     }
+    private var presentValues: [Double] { bars.map(\.value).filter { $0 > 0 } }
     private var value: Double {
         if kind == .onTarget {
             let d = periodDays
@@ -432,11 +460,13 @@ private struct StatDetailView: View {
         }
         return series.avg
     }
-    private var tickIndices: [Int] {
-        let n = bars.count
-        guard n > 4 else { return Array(0..<n) }
-        let step = max(1, (n - 1) / 3)
-        return stride(from: 0, through: n - 1, by: step).map { $0 }
+    /// X positions that get a dashed gridline + label (Apple's column grid).
+    private var labelTicks: [Int] {
+        switch period {
+        case .week: Array(bars.indices)                                  // all 7 weekdays
+        case .month: stride(from: 0, through: bars.count - 1, by: 7).map { $0 }  // 1·8·15·22·29
+        case .year: Array(bars.indices)                                  // all 12 months
+        }
     }
 
     var body: some View {
@@ -454,9 +484,9 @@ private struct StatDetailView: View {
                     periodPicker
                     chartCard
                     HStack(spacing: 12) {
-                        miniStat("LOW", bars.map(\.value).min() ?? 0)
+                        miniStat("LOW", presentValues.min() ?? 0)
                         miniStat("AVG", series.avg)
-                        miniStat("HIGH", bars.map(\.value).max() ?? 0)
+                        miniStat("HIGH", presentValues.max() ?? 0)
                     }
                 }
                 .padding(Metrics.pagePadding)
@@ -505,47 +535,47 @@ private struct StatDetailView: View {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 Text(fmt(value))
                     .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundStyle(grad).monospacedDigit()
+                    .foregroundStyle(kind.numberColor).monospacedDigit()
                     .lineLimit(1).minimumScaleFactor(0.6)
                     .contentTransition(.numericText())
                 Text(kind.unit).font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle((kind.colors.first ?? .white).opacity(0.75))
+                    .foregroundStyle(kind.numberColor.opacity(0.7))
             }
             .animation(.snappy, value: period)
 
             Chart {
                 ForEach(bars) { bar in
-                    BarMark(x: .value("i", bar.index), y: .value("v", bar.value), width: .fixed(barWidth))
-                        .foregroundStyle(grad)
-                        .clipShape(Capsule())
-                }
-                RuleMark(y: .value("goal", goal))
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 4]))
-                    .foregroundStyle(Theme.textTertiary.opacity(0.6))
-                    .annotation(position: .top, alignment: .trailing) {
-                        Text("goal \(kind.grouped ? Int(goal).formatted() : "\(Int(goal))")")
-                            .font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
+                    if bar.value > 0 {
+                        BarMark(x: .value("i", bar.index), y: .value("v", bar.value), width: .fixed(barWidth))
+                            .foregroundStyle(barGrad)
+                            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                     }
+                }
             }
             .frame(height: 220)
-            .chartXScale(domain: -0.7 ... (Double(bars.count) - 0.3))
-            .chartYScale(domain: 0 ... maxY)
+            // Right pad on Week so the last weekday label clears the y-axis labels.
+            .chartXScale(domain: -0.6 ... (Double(bars.count) - 0.5 + (period == .week ? 1.0 : 0.3)))
+            .chartYScale(domain: .automatic(includesZero: true))
+            // Right-side y labels + faint horizontal gridlines (Apple)
             .chartYAxis {
-                AxisMarks(position: .trailing, values: .automatic(desiredCount: 4)) { value in
-                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 5])).foregroundStyle(Theme.divider)
+                AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Theme.divider.opacity(0.55))
                     AxisValueLabel {
                         if let d = value.as(Double.self) {
                             Text(kind.grouped ? Int(d).formatted() : "\(Int(d))")
-                                .font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+                                .font(.system(size: 12)).foregroundStyle(Theme.textTertiary)
                         }
                     }
                 }
             }
+            // Vertical dashed column gridlines + date labels (Apple)
             .chartXAxis {
-                AxisMarks(values: tickIndices) { value in
+                AxisMarks(values: labelTicks) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4]))
+                        .foregroundStyle(Theme.divider.opacity(0.8))
                     AxisValueLabel {
                         if let i = value.as(Int.self), let b = bars.first(where: { $0.index == i }) {
-                            Text(b.label).font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+                            Text(b.label).font(.system(size: 12)).foregroundStyle(Theme.textTertiary)
                         }
                     }
                 }

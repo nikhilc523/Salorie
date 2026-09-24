@@ -142,14 +142,15 @@ struct BigStatCard: View {
     var unit: String
     var bars: [StatBar]
     var goal: Double
-    var colors: [Color]
+    var numberColor: Color
+    var barColors: [Color]
     var animate: Bool
 
     @State private var shownValue: Double = 0
     @State private var grow: Double = 0
 
-    private var grad: LinearGradient {
-        LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+    private var barGrad: LinearGradient {
+        LinearGradient(colors: barColors, startPoint: .top, endPoint: .bottom)
     }
     private var maxY: Double { max(goal, bars.map(\.value).max() ?? 1) * 1.12 }
     private func fmt(_ v: Double) -> String { grouped ? Int(v).formatted() : "\(Int(v.rounded()))" }
@@ -184,17 +185,17 @@ struct BigStatCard: View {
                 .foregroundStyle(Theme.textSecondary)
                 .padding(.top, 8)
 
-            // Big colored number + unit suffix
+            // Big colored number + unit suffix (lighter tone than the bars)
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text(fmt(shownValue))
                     .font(.system(size: 46, weight: .bold, design: .rounded))
-                    .foregroundStyle(grad)
+                    .foregroundStyle(numberColor)
                     .monospacedDigit()
                     .lineLimit(1).minimumScaleFactor(0.7)
                     .contentTransition(.numericText())
                 Text(unit)
                     .font(.system(size: 21, weight: .bold, design: .rounded))
-                    .foregroundStyle((colors.first ?? .white).opacity(0.75))
+                    .foregroundStyle(numberColor.opacity(0.7))
             }
             .padding(.top, 2)
 
@@ -203,13 +204,15 @@ struct BigStatCard: View {
             // Per-period bar chart with faint gridlines + date axis
             Chart {
                 ForEach(bars) { bar in
-                    BarMark(
-                        x: .value("i", bar.index),
-                        y: .value("v", bar.value * grow),
-                        width: .fixed(barWidth)
-                    )
-                    .foregroundStyle(grad)
-                    .clipShape(Capsule())
+                    if bar.value > 0 {
+                        BarMark(
+                            x: .value("i", bar.index),
+                            y: .value("v", bar.value * grow),
+                            width: .fixed(barWidth)
+                        )
+                        .foregroundStyle(barGrad)
+                        .clipShape(RoundedRectangle(cornerRadius: 3, style: .continuous))
+                    }
                 }
             }
             .chartXScale(domain: -0.7 ... (Double(bars.count) - 0.3))
@@ -234,7 +237,7 @@ struct BigStatCard: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(Theme.surface)
                 .overlay {
-                    RadialGradient(colors: [(colors.first ?? .clear).opacity(0.16), .clear],
+                    RadialGradient(colors: [(numberColor).opacity(0.14), .clear],
                                    center: .topTrailing, startRadius: 0, endRadius: 300)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -59,7 +59,7 @@
 		9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealHeroCard.swift; sourceTree = "<group>"; };
 		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
 		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
 		DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
 		F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
@@ -181,7 +181,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9996AB496B3996F707E07B40 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -196,7 +195,6 @@
 			);
 			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -259,6 +257,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -413,6 +412,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
