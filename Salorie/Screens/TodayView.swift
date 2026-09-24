@@ -99,19 +99,20 @@ struct TodayView: View {
                             .foregroundStyle(Theme.textTertiary)
                     }
                 }
-                HStack(alignment: .center, spacing: 34) {
+                HStack(alignment: .center, spacing: 30) {
                     ActivityRings(
                         rings: macroRings,
-                        lineWidth: 12,
+                        lineWidth: 11,
                         spacing: 4
                     )
-                    .frame(width: 120, height: 120)
+                    .frame(width: 104, height: 104)
                     .contentShape(Circle())
                     .onTapGesture {
                         HapticManager.shared.trigger(.light)
                         dayIndex = store.history.count - 1
                         showDayDetail = true
                     }
+                    .padding(.leading, 10)
 
                     RingLegend(items: macroRings)
                         .offset(y: -6)
