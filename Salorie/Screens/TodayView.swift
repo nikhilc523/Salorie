@@ -90,7 +90,7 @@ struct TodayView: View {
                     Spacer()
                     StatPill(text: "\(caloriesLeft) kcal left", color: .brown)
                 }
-                HStack(spacing: 22) {
+                HStack(spacing: 34) {
                     ActivityRings(
                         rings: macroRings,
                         lineWidth: 12,

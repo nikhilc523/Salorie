@@ -112,7 +112,7 @@ struct ActivityRings: View {
 struct RingLegend: View {
     let items: [Ring]
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(items) { ring in
                 VStack(alignment: .leading, spacing: 0) {
                     Text(ring.label)
