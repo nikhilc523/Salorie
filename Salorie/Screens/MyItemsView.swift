@@ -26,28 +26,8 @@ struct MyItemsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    NotionPageHeader(symbol: "square.stack.3d.up.fill", tint: .purple, title: "My Items",
-                                     subtitle: "Your saved & custom foods")
-
-                    HStack(spacing: 10) {
-                        switcherPill
-                        Spacer()
-                        if tab == 1 {
-                            Button {
-                                HapticManager.shared.trigger(.light)
-                                showBuilder = true
-                            } label: {
-                                Label("New meal", systemImage: "plus")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(Theme.accent)
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                            Text("\(shown.count) \(shown.count == 1 ? "item" : "items")")
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(Theme.textTertiary)
-                        }
-                    }
+                    header
+                    SegmentedTabs(items: ["Favorites", "Meals", "Custom"], selection: $tab)
 
                     if shown.isEmpty {
                         emptyState
@@ -71,7 +51,7 @@ struct MyItemsView: View {
             }
             .background(Theme.bg)
             .scrollContentBackground(.hidden)
-            .navigationTitle("My Items")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
             .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
@@ -103,48 +83,32 @@ struct MyItemsView: View {
         }
     }
 
-    /// The glass "✳ Favorites ⌄" dropdown pill (ref: Food Database's "All foods" chip).
-    /// Opens a menu to switch the visible list between Favorites and Custom.
-    private var switcherPill: some View {
-        Menu {
-            Button {
-                HapticManager.shared.trigger(.selection)
-                withAnimation(.snappy) { tab = 0 }
-            } label: {
-                Label("Favorites", systemImage: tab == 0 ? "checkmark" : "star")
-            }
-            Button {
-                HapticManager.shared.trigger(.selection)
-                withAnimation(.snappy) { tab = 1 }
-            } label: {
-                Label("Meals", systemImage: tab == 1 ? "checkmark" : "takeoutbag.and.cup.and.straw")
-            }
-            Button {
-                HapticManager.shared.trigger(.selection)
-                withAnimation(.snappy) { tab = 2 }
-            } label: {
-                Label("Custom", systemImage: tab == 2 ? "checkmark" : "puzzlepiece")
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "asterisk")
-                    .font(.system(size: 13, weight: .semibold))
-                Text(tabTitle)
-                    .font(.system(size: 15, weight: .medium))
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
+    /// Bold title (our screen typography) + a neutral add-meal button. No icon,
+    /// no redundant nav title, no count — the segmented strip carries navigation.
+    private var header: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("My Items")
+                    .font(.screenTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Your saved & custom foods")
+                    .font(.system(size: 15))
                     .foregroundStyle(Theme.textSecondary)
             }
-            .foregroundStyle(Theme.textPrimary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 9)
-            .glassEffect(.regular, in: Capsule())
+            Spacer()
+            Button {
+                HapticManager.shared.trigger(.light)
+                showBuilder = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(width: 42, height: 42)
+                    .background(Theme.surface, in: Circle())
+                    .overlay(Circle().stroke(Theme.cardStroke, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
-    }
-
-    private var tabTitle: String {
-        switch tab { case 0: return "Favorites"; case 1: return "Meals"; default: return "Custom" }
     }
 
     private var emptyState: some View {
