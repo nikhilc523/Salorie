@@ -28,7 +28,6 @@ struct TodayView: View {
                 VStack(spacing: 16) {
                     dateHeader
                     heroCard
-                    macroStrip
                     mealsSection.id("meals")
                 }
                 .padding(.horizontal, Metrics.pagePadding)
@@ -108,20 +107,6 @@ struct TodayView: View {
                     RingLegend(items: macroRings)
                 }
             }
-        }
-    }
-
-    // MARK: Macro glance strip
-
-    private var macroStrip: some View {
-        HStack(spacing: 12) {
-            MacroProgressCard(label: "Protein", consumed: store.proteinToday,
-                              target: store.targets.protein, colors: RingColor.protein.stops)
-            MacroProgressCard(label: "Carbs", consumed: store.carbsToday,
-                              target: store.targets.carbs, colors: RingColor.carb.stops)
-            MacroProgressCard(label: "Fat", consumed: store.fatToday,
-                              target: store.targets.fat,
-                              colors: Theme.macroFatStops)
         }
     }
 
