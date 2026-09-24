@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - StackedCardsCarousel (portrait photo-deck)
 
@@ -40,8 +41,8 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
                     }
                 }
             }
-            .frame(width: cardWidth + CGFloat(maxVisible) * 15 + 24,
-                   height: cardHeight + CGFloat(maxVisible) * 7 + 30)
+            .frame(width: cardWidth + 24,
+                   height: cardHeight + CGFloat(maxVisible) * 12 + 26)
 
             if items.count > 1 {
                 HStack(spacing: 6) {
@@ -64,11 +65,10 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
         let shown = min(d, maxVisible)
         content(item, isFront)
             .frame(width: cardWidth, height: cardHeight)
-            // fanned deck geometry (iMessage photo-stack) — animated only on topIndex,
-            // so the deck springs forward smoothly when a card is thrown.
-            .scaleEffect(1 - CGFloat(shown) * 0.02, anchor: .center)
-            .rotationEffect(.degrees(Double(shown) * 3.5), anchor: .center)
-            .offset(x: CGFloat(shown) * 15, y: CGFloat(shown) * 7)
+            // Centered photo-stack: cards peek straight down (no rightward drift),
+            // animated only on topIndex so the deck springs forward smoothly.
+            .scaleEffect(1 - CGFloat(shown) * 0.03, anchor: .top)
+            .offset(y: CGFloat(shown) * 12)
             .animation(deckSpring, value: topIndex)
             // live drag on the front card — 1:1 with the finger (no implicit animation)
             .rotationEffect(.degrees(isFront ? Double(drag.width) / 22 : 0), anchor: .bottom)
@@ -120,85 +120,122 @@ struct StackedCardsCarousel<Item: Identifiable, Content: View>: View {
     }
 }
 
-// MARK: - BigStatCard (portrait)
+// MARK: - One bar of the stat card chart
 
-/// Marketing-style portrait stat card: tag, a huge gradient number that counts up when
-/// this card is at the front, a progress bar, and a caption — over a photo-like panel.
+struct StatBar: Identifiable {
+    let id = UUID()
+    let index: Int
+    let label: String
+    let value: Double
+}
+
+// MARK: - BigStatCard (Apple Health card)
+
+/// Apple-Health-style stat card: bold title + a circular chevron (tap → detail),
+/// a small period subtitle, a big colored number with a unit suffix, and a clear
+/// per-period bar chart with faint gridlines and a date axis at the bottom.
 struct BigStatCard: View {
-    var tag: String
+    var title: String
+    var subtitle: String
     var value: Double
-    var format: (Double) -> String
+    var grouped: Bool
     var unit: String
-    var percent: Int
-    var caption: String
+    var bars: [StatBar]
+    var goal: Double
     var colors: [Color]
     var animate: Bool
 
-    // Displayed values roll via .numericText content transitions (no per-frame formatting).
     @State private var shownValue: Double = 0
-    @State private var shownPercent: Int = 0
-    @State private var barProgress: Double = 0
+    @State private var grow: Double = 0
 
     private var grad: LinearGradient {
-        LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
+    }
+    private var maxY: Double { max(goal, bars.map(\.value).max() ?? 1) * 1.12 }
+    private func fmt(_ v: Double) -> String { grouped ? Int(v).formatted() : "\(Int(v.rounded()))" }
+    private var barWidth: CGFloat { bars.count <= 7 ? 16 : (bars.count <= 31 ? 5 : 9) }
+
+    /// Up to four evenly-spaced x labels (Apple shows 12AM·6AM·12PM·6PM).
+    private var tickIndices: [Int] {
+        let n = bars.count
+        guard n > 4 else { return Array(0..<n) }
+        let step = max(1, (n - 1) / 3)
+        return stride(from: 0, through: n - 1, by: step).map { $0 }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                Text(tag)
-                    .font(.system(size: 13, weight: .bold)).tracking(1.4)
+            // Title + circular chevron
+            HStack(alignment: .center) {
+                Text(title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Theme.textSecondary)
-                Spacer()
-                Text("\(shownPercent)%")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(grad).monospacedDigit()
-                    .contentTransition(.numericText())
+                    .frame(width: 28, height: 28)
+                    .background(Theme.surfaceRaised, in: Circle())
             }
 
-            Spacer(minLength: 0)
+            Text(subtitle)
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.textSecondary)
+                .padding(.top, 8)
 
-            // Huge hero number, centered in the portrait body
-            VStack(alignment: .leading, spacing: -4) {
-                Text(format(shownValue))
-                    .font(.system(size: 64, weight: .heavy, design: .rounded))
+            // Big colored number + unit suffix
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text(fmt(shownValue))
+                    .font(.system(size: 46, weight: .bold, design: .rounded))
                     .foregroundStyle(grad)
                     .monospacedDigit()
-                    .lineLimit(1)
+                    .lineLimit(1).minimumScaleFactor(0.7)
                     .contentTransition(.numericText())
                 Text(unit)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Theme.textTertiary)
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
+                    .foregroundStyle((colors.first ?? .white).opacity(0.75))
             }
+            .padding(.top, 2)
 
-            Spacer(minLength: 0)
+            Spacer(minLength: 12)
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill((colors.first ?? .white).opacity(0.16))
-                    Capsule().fill(grad)
-                        .frame(width: max(6, geo.size.width * min(Double(percent) / 100, 1) * barProgress))
+            // Per-period bar chart with faint gridlines + date axis
+            Chart {
+                ForEach(bars) { bar in
+                    BarMark(
+                        x: .value("i", bar.index),
+                        y: .value("v", bar.value * grow),
+                        width: .fixed(barWidth)
+                    )
+                    .foregroundStyle(grad)
+                    .clipShape(Capsule())
                 }
             }
-            .frame(height: 8)
-
-            HStack(spacing: 6) {
-                Text(caption)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textTertiary)
-                    .lineLimit(2)
-                Spacer(minLength: 0)
+            .chartXScale(domain: -0.7 ... (Double(bars.count) - 0.3))
+            .chartYScale(domain: 0 ... maxY)
+            .chartYAxis(.hidden)
+            .chartXAxis {
+                AxisMarks(values: tickIndices) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 5]))
+                        .foregroundStyle(Theme.divider.opacity(0.7))
+                    AxisValueLabel {
+                        if let i = value.as(Int.self), let b = bars.first(where: { $0.index == i }) {
+                            Text(b.label).font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+                        }
+                    }
+                }
             }
-            .padding(.top, 12)
+            .frame(height: 132)
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding(22)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .fill(Theme.surface)
                 .overlay {
-                    RadialGradient(colors: [(colors.first ?? .clear).opacity(0.22), .clear],
-                                   center: .topTrailing, startRadius: 0, endRadius: 320)
+                    RadialGradient(colors: [(colors.first ?? .clear).opacity(0.16), .clear],
+                                   center: .topTrailing, startRadius: 0, endRadius: 300)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
@@ -211,16 +248,10 @@ struct BigStatCard: View {
 
     private func runCount() {
         if animate {
-            shownValue = 0; shownPercent = 0; barProgress = 0
-            withAnimation(.snappy(duration: 0.55)) {
-                shownValue = value
-                shownPercent = percent
-                barProgress = 1
-            }
+            shownValue = 0; grow = 0
+            withAnimation(.snappy(duration: 0.6)) { shownValue = value; grow = 1 }
         } else {
-            shownValue = value
-            shownPercent = percent
-            barProgress = 1
+            shownValue = value; grow = 1
         }
     }
 }

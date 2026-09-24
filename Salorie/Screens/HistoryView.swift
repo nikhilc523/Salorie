@@ -10,6 +10,7 @@ struct HistoryView: View {
     enum Period: String, CaseIterable, Identifiable {
         case week = "Week", month = "Month", year = "Year"
         var id: String { rawValue }
+        var short: String { switch self { case .week: "W"; case .month: "M"; case .year: "Y" } }
     }
     @State private var period: Period = {
         switch ProcessInfo.processInfo.environment["SALORIE_PERIOD"] {
@@ -84,7 +85,7 @@ struct HistoryView: View {
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
-            .sheet(item: $selectedStat) { StatDetailView(card: $0, targets: targets) }
+            .sheet(item: $selectedStat) { StatDetailView(kind: $0.kind, initialPeriod: period, targets: targets) }
         }
     }
 
@@ -111,39 +112,40 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: Stats carousel — big bold cards (Calories · macros · adherence)
+    // MARK: Stats carousel — Apple-Health cards (Calories · macros · adherence)
 
-    private func pct(_ v: Double, _ t: Double) -> Int { t > 0 ? Int((v / t * 100).rounded()) : 0 }
+    /// Headline number on a card for the current period.
+    private func headline(_ kind: StatKind) -> Double {
+        kind == .onTarget ? Double(adherence) : avg(kind.dayValue)
+    }
+    private func subtitle(_ kind: StatKind) -> String {
+        kind == .onTarget ? "of days on target · \(periodLabel)" : "avg / day · \(periodLabel)"
+    }
+    private func goalCaption(_ kind: StatKind) -> String {
+        if kind == .onTarget { return "\(onTargetCount)/\(days.count) days · streak \(bestStreak)" }
+        let g = kind.grouped ? Int(kind.goal(targets)).formatted() : "\(Int(kind.goal(targets)))"
+        return "goal \(g) \(kind.unit) · \(periodLabel)"
+    }
 
     private var statCards: [StatCardData] {
-        let calSeries = days.map { Double($0.calories) }
-        return [
-            StatCardData(tag: "CALORIES", numericValue: Double(avgCalories), grouped: true, unit: "kcal", percent: goalPct,
-                         caption: "avg/day · goal \(targets.calories) · \(periodLabel)",
-                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)], goal: Double(targets.calories), series: calSeries),
-            StatCardData(tag: "PROTEIN", numericValue: Double(avgProtein), grouped: false, unit: "g", percent: pct(avg(\.protein), targets.protein),
-                         caption: "avg/day · goal \(Int(targets.protein)) g",
-                         colors: [Color(hex: 0xE6D0A8), Color(hex: 0xD1A67A)], goal: targets.protein, series: days.map(\.protein)),
-            StatCardData(tag: "CARBS", numericValue: avg(\.carbs).rounded(), grouped: false, unit: "g", percent: pct(avg(\.carbs), targets.carbs),
-                         caption: "avg/day · goal \(Int(targets.carbs)) g",
-                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)], goal: targets.carbs, series: days.map(\.carbs)),
-            StatCardData(tag: "FAT", numericValue: avg(\.fat).rounded(), grouped: false, unit: "g", percent: pct(avg(\.fat), targets.fat),
-                         caption: "avg/day · goal \(Int(targets.fat)) g",
-                         colors: [Color(hex: 0xE3D9C6), Color(hex: 0xCBB892)], goal: targets.fat, series: days.map(\.fat)),
-            StatCardData(tag: "FIBRE", numericValue: avg(\.fibre).rounded(), grouped: false, unit: "g", percent: pct(avg(\.fibre), targets.fibre),
-                         caption: "avg/day · goal \(Int(targets.fibre)) g",
-                         colors: [Color(hex: 0xDDB98C), Color(hex: 0xC98A5E)], goal: targets.fibre, series: days.map(\.fibre)),
-            StatCardData(tag: "ON TARGET", numericValue: Double(adherence), grouped: false, unit: "%", percent: adherence,
-                         caption: "\(onTargetCount)/\(days.count) days · streak \(bestStreak)",
-                         colors: [Color(hex: 0xD1A67A), Color(hex: 0xB3664C)], goal: Double(targets.calories), series: calSeries),
-        ]
+        StatKind.allCases.map { kind in
+            StatCardData(
+                kind: kind,
+                value: headline(kind),
+                subtitle: subtitle(kind),
+                caption: goalCaption(kind),
+                goal: kind.goal(targets),
+                bars: statSeries(kind, period, store).bars
+            )
+        }
     }
 
     private var statsCarousel: some View {
-        StackedCardsCarousel(items: statCards, cardWidth: 260, cardHeight: 370) { card, isFront in
-            BigStatCard(tag: card.tag, value: card.numericValue, format: card.fmt, unit: card.unit,
-                        percent: card.percent, caption: card.caption, colors: card.colors, animate: isFront)
-                .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        StackedCardsCarousel(items: statCards, cardWidth: 268, cardHeight: 316) { card, isFront in
+            BigStatCard(title: card.kind.title, subtitle: card.subtitle, value: card.value,
+                        grouped: card.kind.grouped, unit: card.kind.unit, bars: card.bars,
+                        goal: card.goal, colors: card.kind.colors, animate: isFront)
+                .contentShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                 .onTapGesture { if isFront { HapticManager.shared.trigger(.light); selectedStat = card } }
         }
     }
@@ -302,88 +304,159 @@ struct HistoryView: View {
     }
 }
 
-// MARK: - Stat card model + detail
+// MARK: - Stat metric model
+
+/// The six metrics shown in the History carousel. Encapsulates title, unit,
+/// color, goal, and how to read the value off a `DayLog`, so the card and the
+/// detail view share one source of truth.
+enum StatKind: String, CaseIterable, Identifiable {
+    case calories, protein, carbs, fat, fibre, onTarget
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .calories: "Calories"; case .protein: "Protein"; case .carbs: "Carbs"
+        case .fat: "Fat"; case .fibre: "Fibre"; case .onTarget: "On Target"
+        }
+    }
+    var unit: String { switch self { case .calories: "kcal"; case .onTarget: "%"; default: "g" } }
+    var grouped: Bool { self == .calories }
+
+    var colors: [Color] {
+        let hex: [UInt] = switch self {
+        case .calories: [0xD1A67A, 0xB3664C]
+        case .protein:  [0xE6D0A8, 0xD1A67A]
+        case .carbs:    [0xD1A67A, 0xB3664C]
+        case .fat:      [0xE3D9C6, 0xCBB892]
+        case .fibre:    [0xDDB98C, 0xC98A5E]
+        case .onTarget: [0xD1A67A, 0xB3664C]
+        }
+        return hex.map { Color(hex: $0) }
+    }
+
+    func dayValue(_ d: DayLog) -> Double {
+        switch self {
+        case .calories, .onTarget: Double(d.calories)
+        case .protein: d.protein; case .carbs: d.carbs
+        case .fat: d.fat; case .fibre: d.fibre
+        }
+    }
+    func goal(_ t: MacroTargets) -> Double {
+        switch self {
+        case .calories, .onTarget: Double(t.calories)
+        case .protein: t.protein; case .carbs: t.carbs
+        case .fat: t.fat; case .fibre: t.fibre
+        }
+    }
+}
 
 private struct StatCardData: Identifiable {
     let id = UUID()
-    let tag: String
-    let numericValue: Double
-    let grouped: Bool          // thousands separator (calories)
-    let unit: String
-    let percent: Int
+    let kind: StatKind
+    let value: Double
+    let subtitle: String
     let caption: String
-    let colors: [Color]
     let goal: Double
-    let series: [Double]       // per-day values across the period
-
-    var display: String { fmt(numericValue) }
-    func fmt(_ v: Double) -> String { grouped ? Int(v).formatted() : "\(Int(v.rounded()))" }
+    let bars: [StatBar]
 }
 
-/// Tap a stat card → expand into its own per-day trend + low/avg/high.
-private struct StatDetailView: View {
-    let card: StatCardData
-    let targets: MacroTargets
-    @Environment(\.dismiss) private var dismiss
+private func mean(_ xs: [Double]) -> Double { xs.isEmpty ? 0 : xs.reduce(0, +) / Double(xs.count) }
 
-    private var grad: LinearGradient {
-        LinearGradient(colors: card.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+/// Per-period bars + average for a metric — shared by the card and its detail.
+/// Week → 7 days, Month → 30 days, Year → 12 monthly averages.
+@MainActor
+private func statSeries(_ kind: StatKind, _ period: HistoryView.Period, _ store: MockStore) -> (bars: [StatBar], avg: Double) {
+    let cal = Calendar.current
+    switch period {
+    case .week:
+        let days = store.history
+        let bars = days.enumerated().map { i, d in StatBar(index: i, label: d.weekdayLetter, value: kind.dayValue(d)) }
+        return (bars, mean(bars.map(\.value)))
+    case .month:
+        let days = Array(store.dailyLog.suffix(30))
+        let fmt = DateFormatter(); fmt.dateFormat = "d"
+        let bars = days.enumerated().map { i, d in StatBar(index: i, label: fmt.string(from: d.date), value: kind.dayValue(d)) }
+        return (bars, mean(bars.map(\.value)))
+    case .year:
+        let fmt = DateFormatter(); fmt.dateFormat = "LLLLL"   // single-letter month
+        var order: [Int] = [], sum: [Int: Double] = [:], cnt: [Int: Int] = [:], lab: [Int: String] = [:]
+        for d in store.dailyLog {
+            let key = cal.component(.year, from: d.date) * 12 + cal.component(.month, from: d.date)
+            if sum[key] == nil { order.append(key); lab[key] = fmt.string(from: d.date) }
+            sum[key, default: 0] += kind.dayValue(d); cnt[key, default: 0] += 1
+        }
+        let bars = order.enumerated().map { i, key in
+            StatBar(index: i, label: lab[key] ?? "", value: sum[key]! / Double(max(1, cnt[key]!)))
+        }
+        return (bars, mean(store.dailyLog.map(kind.dayValue)))
     }
-    private var maxY: Double { max(card.goal, card.series.max() ?? 0) * 1.12 }
-    private var barWidth: CGFloat { card.series.count > 40 ? 5 : (card.series.count > 12 ? 8 : 20) }
+}
+
+// MARK: - Stat detail (Apple Health style: title · W/M/Y · detailed chart)
+
+/// Tap a stat card → its own screen: bold title, a W/M/Y period switcher, and a
+/// detailed bar chart with a labelled y-axis, gridlines, and a goal line — plus
+/// low / avg / high for the period. Day view is intentionally omitted.
+private struct StatDetailView: View {
+    let kind: StatKind
+    let targets: MacroTargets
+    @Environment(MockStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var period: HistoryView.Period
+
+    init(kind: StatKind, initialPeriod: HistoryView.Period, targets: MacroTargets) {
+        self.kind = kind
+        self.targets = targets
+        _period = State(initialValue: initialPeriod)
+    }
+
+    private var grad: LinearGradient { LinearGradient(colors: kind.colors, startPoint: .top, endPoint: .bottom) }
+    private var series: (bars: [StatBar], avg: Double) { statSeries(kind, period, store) }
+    private var bars: [StatBar] { series.bars }
+    private var goal: Double { kind.goal(targets) }
+    private var maxY: Double { max(goal, bars.map(\.value).max() ?? 1) * 1.14 }
+    private var barWidth: CGFloat { bars.count <= 7 ? 22 : (bars.count <= 31 ? 7 : 16) }
+    private func fmt(_ v: Double) -> String { kind.grouped ? Int(v).formatted() : "\(Int(v.rounded()))" }
+
+    private var periodDays: [DayLog] {
+        switch period { case .week: store.history; case .month: Array(store.dailyLog.suffix(30)); case .year: store.dailyLog }
+    }
+    private var periodLabel: String {
+        switch period { case .week: "This week"; case .month: "Last 30 days"; case .year: "This year" }
+    }
+    private var value: Double {
+        if kind == .onTarget {
+            let d = periodDays
+            let on = d.filter { Double($0.calories) <= Double(targets.calories) * 1.05 }.count
+            return d.isEmpty ? 0 : Double(on) / Double(d.count) * 100
+        }
+        return series.avg
+    }
+    private var tickIndices: [Int] {
+        let n = bars.count
+        guard n > 4 else { return Array(0..<n) }
+        let step = max(1, (n - 1) / 3)
+        return stride(from: 0, through: n - 1, by: step).map { $0 }
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(card.tag)
-                            .font(.system(size: 13, weight: .bold)).tracking(1.2).foregroundStyle(Theme.textSecondary)
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(card.display)
-                                .font(.system(size: 64, weight: .heavy, design: .rounded))
-                                .foregroundStyle(grad).monospacedDigit().lineLimit(1).minimumScaleFactor(0.6)
-                            Text(card.unit).font(.system(size: 22, weight: .bold)).foregroundStyle(Theme.textTertiary)
-                        }
-                        Text(card.caption).font(.system(size: 13)).foregroundStyle(Theme.textTertiary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(kind.title)
+                            .font(.system(size: 34, weight: .bold))
+                            .foregroundStyle(Theme.textPrimary)
+                        Text(periodLabel)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Theme.textSecondary)
                     }
-
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("PER-DAY TREND").overlineStyle()
-                        Chart {
-                            ForEach(Array(card.series.enumerated()), id: \.offset) { i, v in
-                                BarMark(x: .value("i", i), y: .value("v", v), width: .fixed(barWidth))
-                                    .foregroundStyle(grad)
-                                    .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
-                            }
-                            RuleMark(y: .value("goal", card.goal))
-                                .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 4]))
-                                .foregroundStyle(Theme.textTertiary.opacity(0.6))
-                                .annotation(position: .top, alignment: .leading) {
-                                    Text("goal \(Int(card.goal))").font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
-                                }
-                        }
-                        .frame(height: 170)
-                        .chartYScale(domain: 0 ... maxY)
-                        .chartXAxis(.hidden)
-                        .chartYAxis {
-                            AxisMarks(values: [0, card.goal]) { value in
-                                AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4])).foregroundStyle(Theme.divider)
-                                if let d = value.as(Double.self), d > 0 {
-                                    AxisValueLabel { Text("\(Int(d))").font(.system(size: 11)).foregroundStyle(Theme.textTertiary) }
-                                }
-                            }
-                        }
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-
+                    periodPicker
+                    chartCard
                     HStack(spacing: 12) {
-                        miniStat("LOW", card.series.min() ?? 0)
-                        miniStat("AVG", card.numericValue)
-                        miniStat("HIGH", card.series.max() ?? 0)
+                        miniStat("LOW", bars.map(\.value).min() ?? 0)
+                        miniStat("AVG", series.avg)
+                        miniStat("HIGH", bars.map(\.value).max() ?? 0)
                     }
                 }
                 .padding(Metrics.pagePadding)
@@ -391,7 +464,6 @@ private struct StatDetailView: View {
             }
             .background(Theme.bg)
             .scrollContentBackground(.hidden)
-            .navigationTitle(card.tag.capitalized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -402,10 +474,93 @@ private struct StatDetailView: View {
         .presentationDragIndicator(.visible)
     }
 
+    // W / M / Y capsule switcher (Day intentionally omitted).
+    private var periodPicker: some View {
+        HStack(spacing: 4) {
+            ForEach(HistoryView.Period.allCases) { p in
+                let isOn = period == p
+                Button {
+                    HapticManager.shared.trigger(.selection)
+                    withAnimation(.snappy) { period = p }
+                } label: {
+                    Text(p.short)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(isOn ? Theme.textPrimary : Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(isOn ? Theme.surfaceRaised : .clear, in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(4)
+        .background(Theme.surface, in: Capsule())
+    }
+
+    private var chartCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(kind.title)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text(fmt(value))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(grad).monospacedDigit()
+                    .lineLimit(1).minimumScaleFactor(0.6)
+                    .contentTransition(.numericText())
+                Text(kind.unit).font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundStyle((kind.colors.first ?? .white).opacity(0.75))
+            }
+            .animation(.snappy, value: period)
+
+            Chart {
+                ForEach(bars) { bar in
+                    BarMark(x: .value("i", bar.index), y: .value("v", bar.value), width: .fixed(barWidth))
+                        .foregroundStyle(grad)
+                        .clipShape(Capsule())
+                }
+                RuleMark(y: .value("goal", goal))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 4]))
+                    .foregroundStyle(Theme.textTertiary.opacity(0.6))
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("goal \(kind.grouped ? Int(goal).formatted() : "\(Int(goal))")")
+                            .font(.system(size: 10)).foregroundStyle(Theme.textTertiary)
+                    }
+            }
+            .frame(height: 220)
+            .chartXScale(domain: -0.7 ... (Double(bars.count) - 0.3))
+            .chartYScale(domain: 0 ... maxY)
+            .chartYAxis {
+                AxisMarks(position: .trailing, values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 5])).foregroundStyle(Theme.divider)
+                    AxisValueLabel {
+                        if let d = value.as(Double.self) {
+                            Text(kind.grouped ? Int(d).formatted() : "\(Int(d))")
+                                .font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+                        }
+                    }
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: tickIndices) { value in
+                    AxisValueLabel {
+                        if let i = value.as(Int.self), let b = bars.first(where: { $0.index == i }) {
+                            Text(b.label).font(.system(size: 11)).foregroundStyle(Theme.textTertiary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
     private func miniStat(_ label: String, _ v: Double) -> some View {
         VStack(spacing: 4) {
             Text(label).font(.system(size: 10, weight: .bold)).tracking(1).foregroundStyle(Theme.textTertiary)
-            Text(card.fmt(v))
+            Text(fmt(v))
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.textPrimary).monospacedDigit()
         }
