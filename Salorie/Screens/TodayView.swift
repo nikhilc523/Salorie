@@ -136,48 +136,70 @@ struct TodayView: View {
         }
     }
 
-    /// One meal slot as a fit-to-width Notion table (ref: Body Metrics) — slot pill +
-    /// total, then a clearly-labelled Cal/Protein/Carbs table with thick row lines,
-    /// name column flexed so there's no horizontal scroll and no wasted gap.
+    /// One meal slot — minimal, Apple-clean. Plain slot name + a prominent total,
+    /// then food rows with the calorie number pulled out and macros as a quiet
+    /// subtitle. No column header, no OPEN badges, no macro dots, no colored pills.
     private func mealGroup(slot: MealSlot, entries: [MealEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: slot.symbol)
-                    .font(.system(size: 13))
-                    .foregroundStyle(slot.tagColor.fg)
-                TagPill(text: slot.rawValue, color: slot.tagColor)
-                Spacer()
-                Text("\(entries.reduce(0) { $0 + $1.calories }) cal")
                     .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(slot.tagColor.fg)
+                Text(slot.rawValue)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Text("\(entries.reduce(0) { $0 + $1.calories })")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                Text("cal")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.textTertiary)
             }
-            NotionTable(
-                columns: [
-                    NotionColumn(title: "Cal", width: 36, alignment: .trailing),
-                    NotionColumn(title: "Protein", width: 52, alignment: .trailing),
-                    NotionColumn(title: "Carbs", width: 46, alignment: .trailing),
-                ],
-                rows: entries.map { entry in
-                    NotionRow(
-                        icon: entry.food.symbol,
-                        tint: entry.food.tint,
-                        name: entry.food.name,
-                        ghost: entry.food.isOpen ? "OPEN" : nil,
-                        cells: [
-                            .number("\(entry.calories)"),
-                            .macro(.protein, "\(Int(entry.protein))g"),
-                            .macro(.carb, "\(Int(entry.carbs))g"),
-                        ],
-                        onTap: { selectedFood = entry.food }
-                    )
-                },
-                showCount: false,
-                newRowTitle: "Add food",
-                fitWidth: true,
-                thickDividers: true
-            )
+            .padding(.bottom, 12)
+
+            ForEach(entries) { entry in
+                mealRow(entry)
+                if entry.id != entries.last?.id {
+                    Rectangle().fill(Theme.divider).frame(height: 1)
+                }
+            }
         }
+    }
+
+    private func mealRow(_ entry: MealEntry) -> some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            selectedFood = entry.food
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: entry.food.symbol)
+                    .font(.system(size: 15))
+                    .foregroundStyle(entry.food.tint.fg)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(entry.food.name)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Theme.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Text("\(Int(entry.protein))g protein · \(Int(entry.carbs))g carbs")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textTertiary)
+                        .monospacedDigit()
+                }
+                Spacer(minLength: 8)
+                Text("\(entry.calories)")
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
 }
