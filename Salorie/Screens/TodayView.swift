@@ -11,11 +11,11 @@ struct TodayView: View {
     private var macroRings: [Ring] {
         [
             Ring(progress: store.progress(.calories), color: .calories,
-                 label: "Calories", valueText: "\(store.caloriesToday) / \(store.targets.calories)"),
+                 label: "Calories", valueText: "\(store.caloriesToday)/\(store.targets.calories)", unit: "CAL"),
             Ring(progress: store.progress(.protein), color: .protein,
-                 label: "Protein", valueText: "\(Int(store.proteinToday.rounded())) / \(Int(store.targets.protein))g"),
+                 label: "Protein", valueText: "\(Int(store.proteinToday.rounded()))/\(Int(store.targets.protein))", unit: "G"),
             Ring(progress: store.progress(.carb), color: .carb,
-                 label: "Carbs", valueText: "\(Int(store.carbsToday.rounded())) / \(Int(store.targets.carbs))g"),
+                 label: "Carbs", valueText: "\(Int(store.carbsToday.rounded()))/\(Int(store.targets.carbs))", unit: "G"),
         ]
     }
 
