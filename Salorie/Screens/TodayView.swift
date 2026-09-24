@@ -41,7 +41,7 @@ struct TodayView: View {
             }
             .background(Theme.bg)
             .scrollContentBackground(.hidden)
-            .navigationTitle("Today")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -88,7 +88,6 @@ struct TodayView: View {
         CalmCard {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("TODAY'S MACROS").overlineStyle()
                     Spacer()
                     StatPill(text: "\(caloriesLeft) kcal left", color: .brown)
                 }
@@ -96,9 +95,7 @@ struct TodayView: View {
                     ActivityRings(
                         rings: macroRings,
                         lineWidth: 12,
-                        spacing: 4,
-                        centerText: "\(store.caloriesToday)",
-                        centerSubtitle: "kcal"
+                        spacing: 4
                     )
                     .frame(width: 120, height: 120)
                     .contentShape(Circle())
