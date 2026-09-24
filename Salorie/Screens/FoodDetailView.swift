@@ -17,13 +17,23 @@ struct FoodDetailView: View {
         return Int((Double(calories) / Double(store.targets.calories) * 100).rounded())
     }
 
-    /// Each macro in this serving, as a share of the daily target.
-    private var shares: [MacroShare] {
-        [
-            MacroShare(label: "Carbs",   grams: food.carbs * servings,   target: store.targets.carbs,   colors: RingColor.carb.stops),
-            MacroShare(label: "Protein", grams: food.protein * servings, target: store.targets.protein, colors: RingColor.protein.stops),
-            MacroShare(label: "Fat",     grams: food.fat * servings,     target: store.targets.fat,     colors: Theme.macroFatStops),
-            MacroShare(label: "Fibre",   grams: food.fibre * servings,   target: store.targets.fibre,   colors: RingColor.fibre.stops),
+    /// The full macro breakdown for this serving — Apple Health numbers grid
+    /// (mirrors the day-detail Nutrition Details layout).
+    private var nutrientStats: [NutrientStat] {
+        func g(_ v: Double) -> String { "\(Int(v.rounded()))g" }
+        func mg(_ v: Double) -> String { "\(Int(v.rounded())) mg" }
+        func pct(_ v: Double, _ target: Double) -> String? {
+            target > 0 ? "\(Int((v / target * 100).rounded()))% of goal" : nil
+        }
+        return [
+            NutrientStat(label: "Carbs", value: g(food.carbs * servings), sub: pct(food.carbs * servings, store.targets.carbs)),
+            NutrientStat(label: "Protein", value: g(food.protein * servings), sub: pct(food.protein * servings, store.targets.protein)),
+            NutrientStat(label: "Total Fat", value: g(food.fat * servings), sub: pct(food.fat * servings, store.targets.fat)),
+            NutrientStat(label: "Dietary Fibre", value: g(food.fibre * servings), sub: pct(food.fibre * servings, store.targets.fibre)),
+            NutrientStat(label: "Sugars", value: g(food.sugars * servings), sub: nil),
+            NutrientStat(label: "Saturated Fat", value: g(food.saturatedFat * servings), sub: nil),
+            NutrientStat(label: "Sodium", value: mg(food.sodium * servings), sub: "of 2,300 mg"),
+            NutrientStat(label: "Cholesterol", value: mg(food.cholesterol * servings), sub: nil),
         ]
     }
 
@@ -105,46 +115,49 @@ struct FoodDetailView: View {
                     .foregroundStyle(Theme.textTertiary)
             }
 
-            VStack(spacing: 8) {
-                Text("SHARE OF DAILY GOAL").overlineStyle()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                VStack(spacing: 14) {
-                    ForEach(shares) { macroShareRow($0) }
+            nutritionGrid
+        }
+    }
+
+    // Two-column numbers grid with hairline row dividers (Apple Health layout).
+    private var nutritionGrid: some View {
+        let rows = stride(from: 0, to: nutrientStats.count, by: 2).map { i in
+            Array(nutrientStats[i..<min(i + 2, nutrientStats.count)])
+        }
+        return VStack(alignment: .leading, spacing: 0) {
+            Text("NUTRITION").overlineStyle()
+                .padding(.bottom, 4)
+            ForEach(Array(rows.enumerated()), id: \.offset) { idx, row in
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(row) { nutrientCell($0) }
+                    if row.count == 1 { Color.clear.frame(maxWidth: .infinity) }
+                }
+                .padding(.vertical, 14)
+                if idx < rows.count - 1 {
+                    Rectangle().fill(Theme.divider).frame(height: 1)
                 }
             }
         }
     }
 
-    private func macroShareRow(_ s: MacroShare) -> some View {
-        VStack(spacing: 7) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(LinearGradient(colors: s.colors, startPoint: .leading, endPoint: .trailing))
-                    .frame(width: 7, height: 7)
-                Text(s.label)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Theme.textSecondary)
-                Spacer(minLength: 8)
-                Text("\(Int(s.grams.rounded())) g")
-                    .font(.system(size: 14, weight: .semibold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary)
-                Text(s.percentText)
-                    .font(.system(size: 12, weight: .medium))
-                    .monospacedDigit()
+    private func nutrientCell(_ stat: NutrientStat) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(stat.label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+            Text(stat.value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.textPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            if let sub = stat.sub {
+                Text(sub)
+                    .font(.system(size: 12))
                     .foregroundStyle(Theme.textTertiary)
-                    .frame(width: 40, alignment: .trailing)
+                    .monospacedDigit()
             }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill((s.colors.first ?? .white).opacity(0.14))
-                    Capsule()
-                        .fill(LinearGradient(colors: s.colors, startPoint: .leading, endPoint: .trailing))
-                        .frame(width: max(4, geo.size.width * s.pct))
-                }
-            }
-            .frame(height: 6)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: Serving stepper
@@ -174,10 +187,12 @@ struct FoodDetailView: View {
         } label: {
             Image(systemName: icon)
                 .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(RingColor.carb.tint)                 // terracotta glyph
                 .frame(width: 38, height: 38)
+                .background(Circle().fill(RingColor.carb.tint.opacity(0.16)))
+                .overlay(Circle().stroke(RingColor.carb.tint.opacity(0.28), lineWidth: 1))
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .buttonStyle(.plain)
     }
 
     // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
@@ -242,35 +257,60 @@ struct FoodDetailView: View {
     // MARK: Add bar
 
     private var addBar: some View {
-        Button {
-            HapticManager.shared.trigger(.success)
-            store.addEntry(food, slot: slot, servings: servings)
-            dismiss()
-        } label: {
-            Text("Add \(servings.formatted(.number.precision(.fractionLength(0...1)))) serving to \(slot.rawValue)")
-                .font(.system(size: 16, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
+        HStack {
+            Spacer()
+            Button {
+                HapticManager.shared.trigger(.success)
+                store.addEntry(food, slot: slot, servings: servings)
+                dismiss()
+            } label: {
+                HStack(spacing: 7) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 15, weight: .bold))
+                    Text("Add \(servings.formatted(.number.precision(.fractionLength(0...1)))) to \(slot.rawValue)")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(AddPressStyle(tint: RingColor.carb.tint))
+            Spacer()
         }
-        .buttonStyle(.glassProminent)
-        .tint(Theme.accent)
-        .padding(.horizontal, Metrics.pagePadding)
-        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 22)
+        .padding(.bottom, 8)
+        .background(
+            LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg, Theme.bg],
+                           startPoint: .top, endPoint: .bottom)
+        )
     }
 }
 
-// MARK: - MacroShare
+// MARK: - Small view helpers
 
-/// One macro's contribution from this serving toward the daily target.
-struct MacroShare: Identifiable {
+/// One nutrient in the food-detail numbers grid.
+struct NutrientStat: Identifiable {
+    let id = UUID()
     let label: String
-    let grams: Double
-    let target: Double
-    let colors: [Color]
+    let value: String
+    let sub: String?
+}
 
-    var id: String { label }
-    var pct: Double { target > 0 ? min(grams / target, 1) : 0 }
-    var percentText: String { target > 0 ? "\(Int((grams / target * 100).rounded()))%" : "—" }
+/// Terracotta capsule CTA that springs on press.
+private struct AddPressStyle: ButtonStyle {
+    var tint: Color
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                Capsule().fill(
+                    LinearGradient(colors: [tint.opacity(0.92), tint], startPoint: .top, endPoint: .bottom)
+                )
+            )
+            .shadow(color: tint.opacity(configuration.isPressed ? 0.15 : 0.35), radius: 10, y: 4)
+            .scaleEffect(configuration.isPressed ? 0.93 : 1)
+            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: configuration.isPressed)
+    }
 }
 
 #Preview {
