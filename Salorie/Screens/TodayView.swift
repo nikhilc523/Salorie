@@ -116,6 +116,7 @@ struct TodayView: View {
 
                     RingLegend(items: macroRings)
                         .offset(y: -6)
+                        .padding(.leading, 14)
                 }
             }
         }
