@@ -70,6 +70,13 @@ enum SampleData {
              source: .usdaFoundation, isOpen: false,
              tags: [Tag(text: "Snacks", color: .green)],
              servingDescription: "1 cup (148 g)", calories: 84, carbs: 21, protein: 1, fat: 0, fibre: 4, sugars: 15, saturatedFat: 0, sodium: 1, cholesterol: 0),
+
+        // Demo item you can scan — encode "SALORIE-DEMO-01" (see the generated Code128 PNG).
+        Food(symbol: "takeoutbag.and.cup.and.straw.fill", tint: .orange, name: "Protein Bar (Demo)", brand: "Salorie",
+             source: .openFoodFacts, isOpen: false,
+             tags: [Tag(text: "Scanned", color: .blue, filled: true)],
+             servingDescription: "1 bar (60 g)", calories: 230, carbs: 24, protein: 20, fat: 8, fibre: 5, sugars: 6, saturatedFat: 3, sodium: 140, cholesterol: 5,
+             ingredients: ["Protein blend", "Almonds", "Dates", "Cocoa"], barcode: "SALORIE-DEMO-01"),
     ]
 
     // MARK: Custom meals (user-built composites of the foods above)
@@ -168,6 +175,66 @@ enum SampleData {
             out.append(DayLog(date: date, weekdayLetter: letters[(weekday - 1) % 7], entries: entries))
         }
         return out
+    }
+
+    // MARK: Sharing — friends (mock now, CloudKit CKShare later)
+
+    /// The 7 dates ending at `referenceDate`, with weekday letters, used to lay out
+    /// every friend's Last-7-Days strip on the same calendar.
+    static func last7Scaffold() -> [(date: Date, letter: String)] {
+        let cal = Calendar.current
+        let base = cal.startOfDay(for: referenceDate)
+        let letters = ["S", "M", "T", "W", "T", "F", "S"]
+        return (0..<7).map { i in
+            let date = cal.date(byAdding: .day, value: -(6 - i), to: base) ?? base
+            return (date, letters[(cal.component(.weekday, from: date) - 1) % 7])
+        }
+    }
+
+    /// A Last-7 strip with no shared data (all days nil) — for pending friends.
+    static func emptyLast7() -> [FriendDay] {
+        last7Scaffold().map { FriendDay(date: $0.date, weekdayLetter: $0.letter, progress: nil) }
+    }
+
+    /// A Last-7 strip driven by a per-day multiplier of the given goals.
+    private static func last7(goalCal: Int, goalProtein: Double, goalCarbs: Double, spread: [Double]) -> [FriendDay] {
+        zip(last7Scaffold(), spread).map { slot, k in
+            FriendDay(date: slot.date, weekdayLetter: slot.letter,
+                      progress: RingProgress(
+                          caloriesPct: k, proteinPct: min(k * 0.95, 1.2), carbsPct: min(k * 1.05, 1.3),
+                          consumedCal: Int(Double(goalCal) * k), goalCal: goalCal))
+        }
+    }
+
+    /// Friends other than "Me" (which the store builds from its own data):
+    /// one sharing full data, one pending (not shared), one at 0%.
+    static func otherFriends() -> [SharedFriend] {
+        let aaravGoal = 2000
+        let aarav = SharedFriend(
+            name: "Aarav", avatar: "figure.run", avatarTint: .green, appleID: "aarav.k@icloud.com",
+            hasShared: true,
+            today: RingProgress(caloriesPct: 0.86, proteinPct: 1.02, carbsPct: 0.74,
+                                consumedCal: 1720, goalCal: aaravGoal),
+            last7: last7(goalCal: aaravGoal, goalProtein: 130, goalCarbs: 220,
+                         spread: [0.7, 0.95, 0.82, 1.05, 0.6, 0.9, 0.86]))
+
+        let niharika = SharedFriend(
+            name: "Niharika", avatar: "pawprint.fill", avatarTint: .brown,
+            appleID: "51c9de96-2d5a-4035-8873-358088eaf06b@inbox.appleid.apple.com",
+            hasShared: false, today: nil, last7: emptyLast7())
+
+        let srishti = SharedFriend(
+            name: "Srishti", avatar: "hare.fill", avatarTint: .purple, appleID: "srishti@privaterelay.appleid.com",
+            hasShared: true,
+            today: RingProgress(caloriesPct: 0, proteinPct: 0, carbsPct: 0,
+                                consumedCal: 0, goalCal: 1800),
+            last7: last7Scaffold().map {
+                FriendDay(date: $0.date, weekdayLetter: $0.letter,
+                          progress: RingProgress(caloriesPct: 0, proteinPct: 0, carbsPct: 0,
+                                                 consumedCal: 0, goalCal: 1800))
+            })
+
+        return [aarav, niharika, srishti]
     }
 
     /// Fixed "today" so previews and screenshots are deterministic (matches ref screens).

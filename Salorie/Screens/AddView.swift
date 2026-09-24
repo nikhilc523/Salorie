@@ -9,6 +9,7 @@ struct AddView: View {
     @State private var selectedFood: Food?
     @State private var selectedMeal: Food?
     @State private var showBuilder = false
+    @State private var expandedSections: Set<String> = []   // sections showing all rows
 
     private var results: [Food] {
         guard !query.isEmpty else { return [] }
@@ -65,14 +66,14 @@ struct AddView: View {
                 searchField
 
                 if query.isEmpty {
-                    myMealsRail
-                    section("FREQUENT", Array(store.frequentFoods.filter { !$0.isCustomMeal }.prefix(5)))
-                    section("RECENT", Array(store.recentFoods.filter { !$0.isCustomMeal }.prefix(6)))
+                    myMealsSection
+                    section("FREQUENT", Array(store.frequentFoods.filter { !$0.isCustomMeal }.prefix(10)))
+                    section("RECENT", Array(store.recentFoods.filter { !$0.isCustomMeal }.prefix(10)))
                     section("FAVORITES", store.favorites)
                 } else if results.isEmpty {
                     emptyResults
                 } else {
-                    section("RESULTS", results)
+                    section("RESULTS", results, collapsible: false)
                 }
             }
             .padding(.horizontal, Metrics.pagePadding)
@@ -83,10 +84,10 @@ struct AddView: View {
         .scrollContentBackground(.hidden)
     }
 
-    // MARK: MY MEALS rail — gradient hero cards + create tile
+    // MARK: MY MEALS — a normal list (the hero cards live in My Items → Meals)
 
-    private var myMealsRail: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private var myMealsSection: some View {
+        VStack(alignment: .leading, spacing: 2) {
             HStack {
                 Text("MY MEALS").overlineStyle()
                 Spacer()
@@ -96,40 +97,71 @@ struct AddView: View {
                 } label: {
                     Label("Create", systemImage: "plus")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.accent)
+                        .foregroundStyle(Self.addTint)
                 }
                 .buttonStyle(.plain)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(store.customMeals) { meal in
-                        MealHeroCard(
-                            meal: meal,
-                            caloriesTarget: store.targets.calories,
-                            onTap: { open(meal) },
-                            onQuickAdd: { store.addEntry(meal, slot: defaultSlot) }
-                        )
-                    }
-                    CreateMealCard { showBuilder = true }
-                }
-                .padding(.horizontal, 1)
+            .padding(.bottom, 6)
+
+            if store.customMeals.isEmpty {
+                Text("No meals yet — tap Create to build one.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textTertiary)
+                    .padding(.vertical, 6)
+            } else {
+                rows("MY MEALS", store.customMeals)
             }
-            .scrollClipDisabled()
         }
     }
 
     @ViewBuilder
-    private func section(_ title: String, _ foods: [Food]) -> some View {
+    private func section(_ title: String, _ foods: [Food], collapsible: Bool = true) -> some View {
         if !foods.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).overlineStyle().padding(.bottom, 6)
-                ForEach(Array(foods.enumerated()), id: \.element.id) { i, food in
-                    if i > 0 { Divider().overlay(Theme.divider) }
-                    foodRow(food)
-                }
+                rows(title, foods, collapsible: collapsible)
             }
         }
     }
+
+    private func toggleSection(_ title: String) {
+        HapticManager.shared.trigger(.light)
+        withAnimation(.snappy(duration: 0.26)) {
+            if expandedSections.contains(title) { expandedSections.remove(title) }
+            else { expandedSections.insert(title) }
+        }
+    }
+
+    /// First 3 rows; the rest revealed on demand via a "Show N more" disclosure.
+    @ViewBuilder
+    private func rows(_ title: String, _ foods: [Food], collapsible: Bool = true) -> some View {
+        let expanded = expandedSections.contains(title)
+        let canCollapse = collapsible && foods.count > 3
+        let shown = (canCollapse && !expanded) ? Array(foods.prefix(3)) : foods
+        ForEach(Array(shown.enumerated()), id: \.element.id) { i, food in
+            if i > 0 { Divider().overlay(Theme.divider) }
+            foodRow(food)
+        }
+        if canCollapse {
+            Button { toggleSection(title) } label: {
+                HStack(spacing: 4) {
+                    Text(expanded ? "Show less" : "Show \(foods.count - 3) more")
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .rotationEffect(.degrees(expanded ? 180 : 0))
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Self.addTint)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// Warm quick-add tint from the palette (terracotta), matching the food-detail CTA.
+    private static let addTint = RingColor.carb.tint
 
     private func foodRow(_ food: Food) -> some View {
         HStack(spacing: 12) {
@@ -144,7 +176,9 @@ struct AddView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                Text("\(food.calories) cal · \(food.source.rawValue)")
+                Text(food.isCustomMeal
+                     ? "\(food.components.count) ingredients · \(food.calories) cal"
+                     : "\(food.calories) cal · \(food.source.rawValue)")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textTertiary)
                     .lineLimit(1)
@@ -158,9 +192,9 @@ struct AddView: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.accent)
+                    .foregroundStyle(Self.addTint)
                     .frame(width: 34, height: 34)
-                    .background(Theme.accent.opacity(0.16), in: Circle())
+                    .glassEffect(.regular, in: Circle())
             }
             .buttonStyle(.plain)
         }

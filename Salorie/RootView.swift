@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// Root native tab bar (Liquid Glass, automatic). Today · Add · My Items · History.
+/// Root native tab bar (Liquid Glass, automatic). Today · Add · My Items · Sharing.
 struct RootView: View {
     @State private var selection: AppTab = RootView.initialTab
 
-    enum AppTab: Hashable { case today, add, items, history }
+    enum AppTab: Hashable { case today, add, items, sharing }
 
     /// Screenshot/testing hook: `SALORIE_TAB=add` etc. selects the launch tab.
     static var initialTab: AppTab {
         switch ProcessInfo.processInfo.environment["SALORIE_TAB"] {
         case "add": return .add
         case "items": return .items
-        case "history": return .history
+        case "sharing": return .sharing
         default: return .today
         }
     }
@@ -27,8 +27,8 @@ struct RootView: View {
             Tab("My Items", systemImage: "bookmark.fill", value: AppTab.items) {
                 MyItemsView()
             }
-            Tab("History", systemImage: "clock.fill", value: AppTab.history) {
-                HistoryView()
+            Tab("Sharing", systemImage: "person.2.fill", value: AppTab.sharing) {
+                SharingView()
             }
         }
     }

@@ -12,6 +12,7 @@ final class MockStore {
     var history: [DayLog]          // curated last 7 days (Today / DayDetail week strips)
     var dailyLog: [DayLog]         // long run for History trends (Week / Month / Year)
     var targets: MacroTargets
+    var friends: [SharedFriend]    // Sharing tab: me + family/friends' rings
 
     /// Fixed display date to match reference screens deterministically.
     let today: Date = SampleData.referenceDate
@@ -23,6 +24,9 @@ final class MockStore {
         self.history = SampleData.history()
         self.dailyLog = SampleData.extendedHistory()
         self.targets = SampleData.targets
+        self.friends = []
+        // Me is built from this store's own day/history; friends are seeded.
+        self.friends = [meFriend] + SampleData.otherFriends()
     }
 
     // MARK: Derived — today's totals
@@ -65,6 +69,31 @@ final class MockStore {
         targets.calories > 0 ? Double(caloriesToday) / Double(targets.calories) : 0
     }
 
+    // MARK: Sharing — my own rings, exposed as a SharedFriend
+
+    /// Build a `RingProgress` (fractions of my targets) from raw day totals.
+    func ringProgress(calories: Int, protein: Double, carbs: Double) -> RingProgress {
+        RingProgress(
+            caloriesPct: targets.calories > 0 ? Double(calories) / Double(targets.calories) : 0,
+            proteinPct:  targets.protein  > 0 ? protein / targets.protein : 0,
+            carbsPct:    targets.carbs    > 0 ? carbs   / targets.carbs   : 0,
+            consumedCal: calories, goalCal: targets.calories
+        )
+    }
+
+    /// The current user as a `SharedFriend` — today from live totals, last 7 from history.
+    var meFriend: SharedFriend {
+        let last7 = history.map { day in
+            FriendDay(date: day.date, weekdayLetter: day.weekdayLetter,
+                      progress: ringProgress(calories: day.calories, protein: day.protein, carbs: day.carbs))
+        }
+        return SharedFriend(
+            name: "Me", avatar: "person.fill", avatarTint: .blue, appleID: "you@icloud.com", isMe: true, hasShared: true,
+            today: ringProgress(calories: caloriesToday, protein: proteinToday, carbs: carbsToday),
+            last7: last7
+        )
+    }
+
     // MARK: Grouping
 
     func entries(for slot: MealSlot) -> [MealEntry] {
@@ -73,6 +102,11 @@ final class MockStore {
 
     /// Single foods + custom meals, the full set the search picker draws from.
     var searchableFoods: [Food] { customMeals + foods }
+
+    /// Food matching a scanned barcode payload, if any.
+    func food(forBarcode code: String) -> Food? {
+        searchableFoods.first { $0.barcode == code }
+    }
 
     var favorites: [Food] { searchableFoods.filter(\.isFavorite) }
 

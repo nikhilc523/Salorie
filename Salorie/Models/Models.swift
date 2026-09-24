@@ -76,6 +76,7 @@ struct Food: Identifiable, Hashable, Codable, Sendable {
 
     var ingredients: [String] = []
     var isFavorite: Bool = false
+    var barcode: String? = nil          // scannable code (Code128/EAN/QR)
 
     // MARK: Custom meal (composite of single foods)
 
