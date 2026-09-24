@@ -6,6 +6,7 @@ struct TodayView: View {
     @State private var selectedFood: Food?
     @State private var showDayDetail = false
     @State private var dayIndex = 0
+    @State private var expandedSlots: Set<MealSlot> = []
 
     /// Hero rings — Calories (outer) · Protein (middle) · Carbs (inner). Fibre lives in detail, not the glance.
     private var macroRings: [Ring] {
@@ -125,50 +126,86 @@ struct TodayView: View {
     // MARK: Meals
 
     private var mealsSection: some View {
-        VStack(alignment: .leading, spacing: 26) {
+        VStack(alignment: .leading, spacing: 0) {
             Text("TODAY'S MEALS").overlineStyle()
+                .padding(.bottom, 6)
             ForEach(MealSlot.allCases) { slot in
-                let entries = store.entries(for: slot)
-                if !entries.isEmpty {
-                    mealGroup(slot: slot, entries: entries)
-                }
+                mealDisclosure(slot: slot, entries: store.entries(for: slot))
             }
         }
     }
 
-    /// One meal slot — minimal, Apple-clean. Plain slot name + a prominent total,
-    /// then food rows with the calorie number pulled out and macros as a quiet
-    /// subtitle. No column header, no OPEN badges, no macro dots, no colored pills.
-    private func mealGroup(slot: MealSlot, entries: [MealEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Image(systemName: slot.symbol)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(slot.tagColor.fg)
-                Text(slot.rawValue)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Spacer()
-                Text("\(entries.reduce(0) { $0 + $1.calories })")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textPrimary)
-                    .contentTransition(.numericText())
-                Text("cal")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Theme.textTertiary)
-            }
-            .padding(.bottom, 10)
-
-            // Thick line delimits the whole meal; items get quiet hairlines.
-            Rectangle().fill(Theme.tableLine).frame(height: 1)
-
-            ForEach(entries) { entry in
-                mealRow(entry)
-                if entry.id != entries.last?.id {
-                    Rectangle().fill(Theme.divider).frame(height: 1)
+    /// One meal as a minimal disclosure row — name + prominent total + a chevron.
+    /// Tapping expands the food list in place; collapsed by default. Rows are
+    /// separated by the thick line so the stack reads as one clean summary.
+    private func mealDisclosure(slot: MealSlot, entries: [MealEntry]) -> some View {
+        let isOpen = expandedSlots.contains(slot)
+        let total = entries.reduce(0) { $0 + $1.calories }
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                HapticManager.shared.trigger(.light)
+                withAnimation(.snappy(duration: 0.28)) {
+                    if isOpen { expandedSlots.remove(slot) } else { expandedSlots.insert(slot) }
                 }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Image(systemName: slot.symbol)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(slot.tagColor.fg)
+                    Text(slot.rawValue)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    if !entries.isEmpty {
+                        Text("\(entries.count)")
+                            .font(.system(size: 13, weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textTertiary)
+                    }
+                    Spacer()
+                    Text("\(total)")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(total > 0 ? Theme.textPrimary : Theme.textTertiary)
+                        .contentTransition(.numericText())
+                    Text("cal")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Theme.textTertiary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(Theme.textTertiary)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
+                        .padding(.leading, 2)
+                }
+                .padding(.vertical, 15)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
+            if isOpen {
+                Group {
+                    if entries.isEmpty {
+                        Text("Nothing logged yet")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.textTertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 12)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(entries) { entry in
+                                mealRow(entry)
+                                if entry.id != entries.last?.id {
+                                    Rectangle().fill(Theme.divider).frame(height: 1)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, 6)
+                .transition(.opacity)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Theme.tableLine).frame(height: 1)
         }
     }
 
