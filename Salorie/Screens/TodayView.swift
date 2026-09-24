@@ -195,7 +195,7 @@ struct TodayView: View {
                 }
                 Spacer(minLength: 8)
                 Text("\(entry.calories)")
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
             }
