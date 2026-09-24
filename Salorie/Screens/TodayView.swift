@@ -158,7 +158,10 @@ struct TodayView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Theme.textTertiary)
             }
-            .padding(.bottom, 12)
+            .padding(.bottom, 10)
+
+            // Thick line delimits the whole meal; items get quiet hairlines.
+            Rectangle().fill(Theme.tableLine).frame(height: 1)
 
             ForEach(entries) { entry in
                 mealRow(entry)
