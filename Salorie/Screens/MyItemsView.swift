@@ -7,6 +7,7 @@ struct MyItemsView: View {
     @State private var selectedFood: Food?
     @State private var selectedMeal: Food?
     @State private var showBuilder = false
+    @State private var showAdd = false
     @State private var tab = 0
 
     private var favorites: [Food] { store.searchableFoods.filter(\.isFavorite) }
@@ -56,6 +57,7 @@ struct MyItemsView: View {
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
             .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
             .sheet(isPresented: $showBuilder) { MealBuilderView() }
+            .sheet(isPresented: $showAdd) { AddView() }
             .onAppear {
                 switch ProcessInfo.processInfo.environment["SALORIE_ITEMS"] {
                 case "meals": tab = 1
@@ -97,10 +99,11 @@ struct MyItemsView: View {
             }
             Spacer()
             // No add on Favorites — you don't create directly into favorites.
+            // Meals → build a meal; Custom → the Add (search/scan) screen.
             if tab != 0 {
                 Button {
                     HapticManager.shared.trigger(.light)
-                    showBuilder = true
+                    if tab == 2 { showAdd = true } else { showBuilder = true }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .semibold))
