@@ -29,7 +29,6 @@ struct TodayView: View {
                     dateHeader
                     heroCard
                     macroStrip
-                    weekRingsCard
                     mealsSection.id("meals")
                 }
                 .padding(.horizontal, Metrics.pagePadding)
@@ -127,42 +126,6 @@ struct TodayView: View {
                               target: store.targets.fat,
                               colors: Theme.macroFatStops)
         }
-    }
-
-    // MARK: Week mini-rings
-
-    private var weekRingsCard: some View {
-        CalmCard {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("THIS WEEK").overlineStyle()
-                HStack(spacing: 0) {
-                    ForEach(Array(store.history.enumerated()), id: \.element.id) { i, day in
-                        Button {
-                            HapticManager.shared.trigger(.selection)
-                            dayIndex = i
-                            showDayDetail = true
-                        } label: {
-                            VStack(spacing: 8) {
-                                MiniDayRing(rings: rings(for: day))
-                                Text(day.weekdayLetter)
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundStyle(Theme.textTertiary)
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
-
-    private func rings(for day: DayLog) -> [Ring] {
-        [
-            Ring(progress: Double(day.calories) / Double(store.targets.calories), color: .calories, label: "Calories", valueText: ""),
-            Ring(progress: day.protein / store.targets.protein, color: .protein, label: "Protein", valueText: ""),
-            Ring(progress: day.carbs / store.targets.carbs, color: .carb, label: "Carbs", valueText: ""),
-        ]
     }
 
     // MARK: Meals
