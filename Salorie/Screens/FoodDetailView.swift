@@ -332,12 +332,6 @@ struct FoodDetailView: View {
         selectedMeasureID = m.id
     }
 
-    /// "= 247 g" hint for non-gram measures, so the exact weight is always visible.
-    private var gramsText: String {
-        guard let m = selectedMeasure, let sg = food.servingGrams, sg > 0, m.kind != .grams else { return "" }
-        return "= \(Int((quantity * m.gramsPerUnit).rounded())) g"
-    }
-
     // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
 
 
@@ -425,21 +419,14 @@ struct FoodDetailView: View {
     private var controlsPill: some View {
         HStack(spacing: 8) {
             mealTrigger
-                .layoutPriority(0)          // meal name yields first if space is tight
+                .fixedSize()                // meal name always reads in full
+                .layoutPriority(1)
             Spacer(minLength: 8)
-            HStack(spacing: 6) {            // serving group is pinned — never truncates
+            HStack(spacing: 6) {            // serving group; measure yields first if tight
                 numberSquare
                 measureTrigger
-                if !gramsText.isEmpty {
-                    Text(gramsText)
-                        .font(.system(size: 13, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textTertiary)
-                        .lineLimit(1)
-                }
             }
-            .fixedSize()
-            .layoutPriority(1)
+            .layoutPriority(0)
         }
         .padding(.horizontal, 13)
         .frame(height: 54)
