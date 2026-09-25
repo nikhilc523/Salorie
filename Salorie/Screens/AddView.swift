@@ -9,6 +9,7 @@ struct AddView: View {
 
     @State private var query: String
     @State private var slot: MealSlot
+    @State private var slotMenuOpen = false
     @State private var tab: Int              // 0 History · 1 Meals · 2 Favorites · 3 Foods
     @State private var results: [Food] = []
     @State private var searching = false
@@ -78,6 +79,7 @@ struct AddView: View {
             .sheet(isPresented: $showScan) { scanSheet }
             .task(id: query) { await runSearch(query) }
             .onAppear(perform: applyScreenshotHooks)
+            .mealSlotMenu(isOpen: $slotMenuOpen, slot: $slot)
         }
     }
 
@@ -89,32 +91,11 @@ struct AddView: View {
                 .font(.screenTitle)
                 .foregroundStyle(Theme.textPrimary)
             Spacer()
-            slotMenu
+            // The one control that removes the "which meal?" ambiguity — every "+" logs here.
+            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
         }
         .padding(.horizontal, Metrics.pagePadding)
         .padding(.top, 6)
-    }
-
-    /// The one control that removes the "which meal?" ambiguity — every "+" logs here.
-    private var slotMenu: some View {
-        Menu {
-            Picker("Meal", selection: $slot) {
-                ForEach(MealSlot.allCases) { s in
-                    Label(s.rawValue, systemImage: s.symbol).tag(s)
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: slot.symbol).font(.system(size: 13, weight: .semibold))
-                Text(slot.rawValue).font(.system(size: 15, weight: .semibold))
-                Image(systemName: "chevron.down").font(.system(size: 11, weight: .bold))
-            }
-            .foregroundStyle(Self.addTint)
-            .padding(.horizontal, 14)
-            .frame(height: 38)
-            .background(Theme.surface, in: Capsule())
-            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
-        }
     }
 
     // MARK: Search field
@@ -385,6 +366,7 @@ struct AddView: View {
     private func applyScreenshotHooks() {
         let env = ProcessInfo.processInfo.environment
         if env["SALORIE_SCAN"] == "1" { showScan = true }
+        if env["SALORIE_SLOTMENU"] == "1" { slotMenuOpen = true }
         switch env["SALORIE_MEAL"] {
         case "detail": selectedMeal = store.customMeals.first
         case "builder": showBuilder = true

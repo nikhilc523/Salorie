@@ -54,6 +54,7 @@
 		D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 636AFA992B9822700C009B9F /* Assets.xcassets */; };
 		D88473186908FD8D21B6083E /* SharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */; };
 		DD70CC662CC9CB4F8E02411F /* RemoteFoodTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0594246B143E5AECC1E12C1F /* RemoteFoodTests.swift */; };
+		DEB658A2817857CC5A07ED69 /* MealSlotDropdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E8C1901C1A7989D23CAA914 /* MealSlotDropdown.swift */; };
 		E12BAB007D5E2143BE788BE2 /* ExtendedNutrientsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84136E56251F472DCCC4871 /* ExtendedNutrientsTests.swift */; };
 		E32B7C3D6A68A33712A6B38D /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 603EE755CF3378DFFC8D3931 /* BarcodeScannerView.swift */; };
 		E570E392D438D6388B40010B /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */; };
@@ -104,6 +105,7 @@
 		7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedCardsCarousel.swift; sourceTree = "<group>"; };
 		7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientSplitTests.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
+		8E8C1901C1A7989D23CAA914 /* MealSlotDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealSlotDropdown.swift; sourceTree = "<group>"; };
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealHeroCard.swift; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 			children = (
 				5B8EEBF451C46BCC97662740 /* Cards.swift */,
 				9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */,
+				8E8C1901C1A7989D23CAA914 /* MealSlotDropdown.swift */,
 				4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */,
 				A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */,
 				D63E0ED90EE41BBE3D238551 /* Pills.swift */,
@@ -390,6 +393,7 @@
 				B99033C99767A6CB6C3A8BA3 /* MealBuilderView.swift in Sources */,
 				E570E392D438D6388B40010B /* MealDetailView.swift in Sources */,
 				087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */,
+				DEB658A2817857CC5A07ED69 /* MealSlotDropdown.swift in Sources */,
 				B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */,
 				D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */,
 				43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */,

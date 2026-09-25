@@ -9,6 +9,7 @@ struct FoodDetailView: View {
 
     let food: Food
     @State private var slot: MealSlot = .breakfast
+    @State private var slotMenuOpen = false
     @State private var quantity: Double = 1
     @State private var portions: [FoodPortion] = []
     @State private var measures: [Measure] = []
@@ -57,7 +58,7 @@ struct FoodDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header
-                    slotPicker             // which meal — the thing people care about, up top
+                    slotSection            // which meal — the thing people care about, up top
                     amountControl          // how much…
                     macroBreakdown         // …then nutrition updates live below
                     details
@@ -73,6 +74,7 @@ struct FoodDetailView: View {
                 portions = await store.portions(for: food)
                 measures = buildMeasures()
                 if selectedMeasureID == nil { selectedMeasureID = measures.first?.id }
+                if ProcessInfo.processInfo.environment["SALORIE_SLOTMENU"] == "1" { slotMenuOpen = true }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -93,6 +95,7 @@ struct FoodDetailView: View {
             .navigationDestination(isPresented: $showNutrients) {
                 NutrientDetailView(food: food, servings: servings)
             }
+            .mealSlotMenu(isOpen: $slotMenuOpen, slot: $slot)
         }
         .presentationDragIndicator(.visible)
     }
@@ -324,35 +327,10 @@ struct FoodDetailView: View {
 
     // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
 
-    private var slotPicker: some View {
+    private var slotSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ADD TO MEAL").overlineStyle()
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(MealSlot.allCases) { s in
-                        let isOn = slot == s
-                        Button {
-                            HapticManager.shared.trigger(.selection)
-                            withAnimation(.snappy) { slot = s }
-                        } label: {
-                            Label(s.rawValue, systemImage: s.symbol)
-                                .font(.system(size: 14, weight: .medium))
-                                .lineLimit(1)
-                                .fixedSize()
-                                .foregroundStyle(isOn ? Color(hex: 0x000000) : Theme.textSecondary)
-                                .padding(.horizontal, 14).padding(.vertical, 9)
-                                .background(
-                                    Capsule().fill(isOn ? Theme.textPrimary : Theme.surface)
-                                )
-                                .overlay(
-                                    Capsule().stroke(Theme.cardStroke, lineWidth: isOn ? 0 : 1)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 1)
-            }
+            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
         }
     }
 
