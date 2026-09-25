@@ -231,24 +231,31 @@ struct FoodDetailView: View {
     // MARK: Meal + amount — one compact line (calories is the hero below)
 
     private var mealAmountRow: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 10) {
             MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
             Spacer(minLength: 8)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            // Number + measure sit on ONE shared underline — reads as a single editable
+            // "amount" field. Terracotta is the sole accent (the underline); text stays
+            // neutral so nothing competes.
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 quantityField
                 measureMenu
-                if !gramsText.isEmpty {
-                    Text(gramsText)
-                        .font(.system(size: 15, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textTertiary)
-                }
+            }
+            .padding(.bottom, 5)
+            .overlay(alignment: .bottom) {
+                Capsule().fill(RingColor.carb.tint).frame(height: 2)
+            }
+            if !gramsText.isEmpty {
+                Text(gramsText)
+                    .font(.system(size: 15, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
             }
         }
     }
 
-    /// Editable quantity — an underlined number (form-field affordance) so it's clearly
-    /// tappable. Same size as the measure so the amount reads as one unit.
+    /// Editable quantity — tap to type. White, neutral; the shared underline below is
+    /// the editable cue.
     private var quantityField: some View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
@@ -258,11 +265,6 @@ struct FoodDetailView: View {
             .foregroundStyle(Theme.textPrimary)
             .tint(RingColor.carb.tint)
             .fixedSize()
-            .padding(.horizontal, 4)
-            .padding(.bottom, 4)
-            .overlay(alignment: .bottom) {
-                Capsule().fill(RingColor.carb.tint).frame(height: 2)   // underline = editable
-            }
     }
 
     /// Measure dropdown — Serving · household portions · 100 g · Grams · Ounces.
@@ -285,11 +287,12 @@ struct FoodDetailView: View {
             HStack(spacing: 5) {
                 Text(selectedMeasure?.label ?? "Serving")
                     .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.textSecondary)
             }
-            .foregroundStyle(RingColor.carb.tint)   // same terracotta as the underline, no pill
-            .padding(.vertical, 4)
             .contentShape(Rectangle())
         }
     }
