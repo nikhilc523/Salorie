@@ -132,8 +132,8 @@ struct GRDBFoodCatalog: FoodCatalog {
         return Food(
             symbol: symbol,
             tint: tint,
-            name: row["name"] ?? "Unknown",
-            brand: row["brand"],
+            name: (row["name"] ?? "Unknown").titleCasedIfShouting,
+            brand: (row["brand"] as String?)?.titleCasedIfShouting,
             source: source,
             servingDescription: row["serving_text"] ?? "100 g",
             calories: Int((scaled("kcal_100")).rounded()),

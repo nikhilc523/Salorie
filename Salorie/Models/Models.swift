@@ -1,5 +1,19 @@
 import SwiftUI
 
+// MARK: - Display casing
+
+extension String {
+    /// De-shout ALL-CAPS catalog text — "COOKED SHRIMP RING" → "Cooked Shrimp Ring",
+    /// "1% LOWFAT MILK" → "1% Lowfat Milk" — while leaving anything that already has
+    /// lowercase letters untouched, so intentional casing (brand names, our sample
+    /// data) is respected.
+    var titleCasedIfShouting: String {
+        guard rangeOfCharacter(from: .lowercaseLetters) == nil,
+              rangeOfCharacter(from: .uppercaseLetters) != nil else { return self }
+        return capitalized(with: .current)
+    }
+}
+
 // MARK: - Food source
 
 /// Origin of a food record. Drives the colored SourceBadge on every row.

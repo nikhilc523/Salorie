@@ -237,9 +237,9 @@ struct FoodDetailView: View {
                 Spacer(minLength: 8)
                 if !gramsText.isEmpty {
                     Text(gramsText)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 15, weight: .semibold))
                         .monospacedDigit()
-                        .foregroundStyle(Theme.textTertiary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
             .padding(.top, 2)

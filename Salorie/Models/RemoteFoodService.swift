@@ -126,7 +126,7 @@ struct RemoteFoodService: RemoteFoodLookup {
         ).scaled(by: factor)
         let gtin = GRDBFoodCatalog.normalizeGTIN14(p.barcode) ?? p.barcode
         return Food(
-            symbol: symbol, tint: tint, name: p.name, brand: p.brand, source: p.source,
+            symbol: symbol, tint: tint, name: p.name.titleCasedIfShouting, brand: p.brand?.titleCasedIfShouting, source: p.source,
             servingDescription: p.servingText?.nilIfBlank ?? "\(Int(sg.rounded())) g",
             calories: Int((s(p.kcal)).rounded()),
             carbs: s(p.carbs), protein: s(p.protein), fat: s(p.fat), fibre: s(p.fibre),

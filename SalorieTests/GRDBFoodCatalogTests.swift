@@ -75,7 +75,7 @@ import GRDB
         #expect(bread?.extended.caffeine == 5)        // 10/100g × 50g
         #expect(bread?.extended.novaGroup == 4)       // qualitative, not scaled
         #expect(bread?.extended.nutriScore == "C")
-        #expect(bread?.brand == "ACME")
+        #expect(bread?.brand == "Acme")   // ALL-CAPS catalog brand de-shouted for display
     }
 
     @Test func barcodeNormalizesAndResolves() async throws {

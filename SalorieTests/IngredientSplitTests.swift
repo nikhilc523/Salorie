@@ -25,3 +25,23 @@ import Testing
         #expect(FoodDetailView.splitIngredients("Avocado") == ["Avocado"])
     }
 }
+
+/// De-shouting ALL-CAPS catalog names/brands while respecting intentional casing.
+@Suite struct DisplayCasingTests {
+    @Test func lowercasesShoutingText() {
+        #expect("COOKED SHRIMP RING".titleCasedIfShouting == "Cooked Shrimp Ring")
+        #expect("1% LOWFAT MILK".titleCasedIfShouting == "1% Lowfat Milk")
+        #expect("DRIFTWOOD".titleCasedIfShouting == "Driftwood")
+    }
+
+    @Test func leavesIntentionalCasingUntouched() {
+        #expect("Greek Yogurt, Plain".titleCasedIfShouting == "Greek Yogurt, Plain")
+        #expect("Fage".titleCasedIfShouting == "Fage")
+        #expect("iPhone".titleCasedIfShouting == "iPhone")
+    }
+
+    @Test func handlesNonAlphaGracefully() {
+        #expect("100%".titleCasedIfShouting == "100%")
+        #expect("".titleCasedIfShouting == "")
+    }
+}

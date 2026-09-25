@@ -39,7 +39,7 @@ import Foundation
 
     @Test func parsesUSDAPayloadMatchingGTIN() {
         let f = RemoteFoodService.parseUSDA(Data(usdaJSON.utf8), requestedBarcode: "233841823921")
-        #expect(f?.name == "CHICKEN BREAST")
+        #expect(f?.name == "Chicken Breast")   // ALL-CAPS USDA name de-shouted for display
         #expect(f?.source == .usdaBranded)
         #expect(f?.calories == 120)                      // 107 × 112/100
         #expect(Int((f?.protein ?? 0).rounded()) == 25)  // 22 × 1.12
