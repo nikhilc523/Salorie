@@ -143,25 +143,28 @@ struct AddView: View {
     // MARK: Quick actions — scan / new meal / quick add (icons, not a second half-screen)
 
     private var quickActions: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             quickTile("Scan", "barcode.viewfinder") { HapticManager.shared.trigger(.light); showScan = true }
-            quickTile("New Meal", "square.stack.3d.up.fill") { HapticManager.shared.trigger(.light); showBuilder = true }
+            quickTile("New Meal", "fork.knife") { HapticManager.shared.trigger(.light); showBuilder = true }
             quickTile("Quick Add", "square.and.pencil") { HapticManager.shared.trigger(.light); showManualFood = true }
         }
     }
 
+    /// Compact pill: a small icon beside its label — low, wide, and quiet, so the
+    /// actions read as a toolbar rather than three big buttons competing with the list.
     private func quickTile(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 7) {
-                Image(systemName: icon).font(.system(size: 20, weight: .semibold))
-                Text(label).font(.system(size: 13, weight: .semibold))
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 14, weight: .semibold))
+                Text(label).font(.system(size: 13, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.85)
             }
             .foregroundStyle(Self.addTint)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.vertical, 11)
+            .glassEffect(.regular, in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
     // MARK: Content — search results or the selected browse tab
