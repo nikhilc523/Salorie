@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct SalorieApp: App {
-    @State private var store = MockStore()
+    @State private var store = MockStore(persistence: .shared)
 
     var body: some Scene {
         WindowGroup {

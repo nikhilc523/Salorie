@@ -1,5 +1,6 @@
 import SwiftUI
 import Observation
+import SwiftData
 
 /// Single source of truth for the UI phase. `@Observable` so views update automatically.
 /// Later this is replaced by the real (SwiftData/GRDB) store with identical surface.
@@ -14,18 +15,54 @@ final class MockStore {
     var targets: MacroTargets
     var friends: [SharedFriend]    // Sharing tab: me + family/friends' rings
 
+    /// The read-only catalog behind search + barcode. Swap `SampleFoodCatalog`
+    /// for the GRDB/SQLite store in P2 with no other change here.
+    private let catalog: FoodCatalog
+    /// Live lookup (OFF → USDA) for barcodes not in the bundled catalog.
+    private let remote: RemoteFoodLookup
+    /// Persistent cache of remotely-resolved foods, so a miss resolves once.
+    private let cache: BarcodeCache
+    /// SwiftData store for user data (entries / meals / saved foods / targets).
+    /// `nil` in previews & tests → pure in-memory demo (the original behavior).
+    private let persistence: PersistenceController?
+
     /// Fixed display date to match reference screens deterministically.
     let today: Date = SampleData.referenceDate
 
-    init() {
-        self.foods = SampleData.foods
-        self.customMeals = SampleData.customMeals()
-        self.todayEntries = SampleData.todayEntries()
+    /// Real bundled catalog when present (466k+ foods), else the in-memory sample
+    /// (previews / missing DB). Swapping happened here — no view changes.
+    static var defaultCatalog: FoodCatalog {
+        GRDBFoodCatalog() ?? SampleFoodCatalog(foods: SampleData.foods)
+    }
+
+    init(catalog: FoodCatalog = MockStore.defaultCatalog,
+         remote: RemoteFoodLookup = RemoteFoodService(),
+         cache: BarcodeCache = BarcodeCache(),
+         persistence: PersistenceController? = nil) {
+        self.catalog = catalog
+        self.remote = remote
+        self.cache = cache
+        self.persistence = persistence
+        // Read-only demo data — rebuilt from SampleData every launch, never persisted.
         self.history = SampleData.history()
         self.dailyLog = SampleData.extendedHistory()
+        // User data — loaded from SwiftData when persistence is present (seeded from
+        // SampleData on first launch), else the in-memory demo (previews / tests).
+        self.foods = []
+        self.customMeals = []
+        self.todayEntries = []
         self.targets = SampleData.targets
         self.friends = []
-        // Me is built from this store's own day/history; friends are seeded.
+
+        if let persistence {
+            loadOrSeed(persistence.context)
+        } else {
+            self.foods = SampleData.foods
+            self.customMeals = SampleData.customMeals()
+            self.todayEntries = SampleData.todayEntries()
+        }
+
+        // Me is built from this store's own day/history + friends are seeded.
         self.friends = [meFriend] + SampleData.otherFriends()
     }
 
@@ -100,12 +137,49 @@ final class MockStore {
         todayEntries.filter { $0.slot == slot }
     }
 
-    /// Single foods + custom meals, the full set the search picker draws from.
+    /// Single foods + custom meals, the full set favorites/My Items draw from.
     var searchableFoods: [Food] { customMeals + foods }
 
-    /// Food matching a scanned barcode payload, if any.
-    func food(forBarcode code: String) -> Food? {
-        searchableFoods.first { $0.barcode == code }
+    /// Text search: your custom meals (shown first) merged with catalog hits.
+    /// Async because the real catalog is a database query.
+    func search(_ query: String) async -> [Food] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        let meals = customMeals.filter { $0.name.localizedCaseInsensitiveContains(q) }
+        let catalogHits = await catalog.search(q)
+        return meals + catalogHits
+    }
+
+    /// Resolve a scanned barcode: bundled catalog → local cache → live OFF/USDA
+    /// (cached on success). Returns nil only if nothing anywhere has it.
+    func food(forBarcode code: String) async -> Food? {
+        if let local = await catalog.food(forBarcode: code) { return local }
+        let gtin = GRDBFoodCatalog.normalizeGTIN14(code) ?? code
+        if let cached = cache.food(for: gtin) { return cached }
+        if let fetched = await remote.lookup(barcode: code) {
+            cache.insert(fetched)
+            return fetched
+        }
+        return nil
+    }
+
+    /// Household measures (cup, slice, …) for a food's serving picker.
+    func portions(for food: Food) async -> [FoodPortion] {
+        guard let id = food.catalogID else { return [] }
+        return await catalog.portions(forID: id)
+    }
+
+    /// Persist a hand-entered custom food. It joins "My Items" (Custom tab) and, if
+    /// it has a barcode, is cached so a future scan of the same product resolves
+    /// instantly. Idempotent by id (re-saving replaces the existing row).
+    func saveCustomFood(_ food: Food) {
+        if food.barcode != nil { cache.insert(food) }
+        if let idx = foods.firstIndex(where: { $0.id == food.id }) {
+            foods[idx] = food
+        } else {
+            foods.insert(food, at: 0)   // newest custom food on top of the Custom tab
+        }
+        persistFoods()
     }
 
     var favorites: [Food] { searchableFoods.filter(\.isFavorite) }
@@ -135,19 +209,24 @@ final class MockStore {
     // MARK: Mutation (UI-phase only)
 
     func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String = "Now") {
-        todayEntries.append(MealEntry(food: food, slot: slot, servings: servings, time: time))
+        let entry = MealEntry(food: food, slot: slot, servings: servings, time: time)
+        todayEntries.append(entry)
+        persistInsertEntry(entry)
     }
 
     func toggleFavorite(_ food: Food) {
         if let idx = customMeals.firstIndex(where: { $0.id == food.id }) {
             customMeals[idx].isFavorite.toggle()
+            persistMeals()
         } else if let idx = foods.firstIndex(where: { $0.id == food.id }) {
             foods[idx].isFavorite.toggle()
+            persistFoods()
         }
     }
 
     func removeEntry(_ entry: MealEntry) {
         todayEntries.removeAll { $0.id == entry.id }
+        persistDeleteEntry(entry.id)
     }
 
     // MARK: Custom meals
@@ -168,9 +247,136 @@ final class MockStore {
         } else {
             customMeals.insert(meal, at: 0)
         }
+        persistMeals()
     }
 
     func deleteMeal(_ meal: Food) {
         customMeals.removeAll { $0.id == meal.id }
+        persistMeals()
+    }
+
+    // MARK: - SwiftData persistence (no-ops when persistence == nil)
+
+    /// JSON coders reused across every read/write of a value snapshot.
+    private static let encoder = JSONEncoder()
+    private static let decoder = JSONDecoder()
+
+    /// Load user data from SwiftData, seeding it from `SampleData` on first launch.
+    /// Honors `SALORIE_RESET=1` (wipe + reseed) for deterministic screenshots/UI tests.
+    private func loadOrSeed(_ ctx: ModelContext) {
+        let reset = ProcessInfo.processInfo.environment["SALORIE_RESET"] == "1"
+        if reset { wipe(ctx) }
+
+        let isEmpty = (try? ctx.fetchCount(FetchDescriptor<StoredFood>())) ?? 0 == 0
+            && (try? ctx.fetchCount(FetchDescriptor<StoredMeal>())) ?? 0 == 0
+            && (try? ctx.fetchCount(FetchDescriptor<StoredEntry>())) ?? 0 == 0
+            && (try? ctx.fetchCount(FetchDescriptor<StoredTargets>())) ?? 0 == 0
+        if isEmpty { seed(ctx) }
+
+        foods = fetchFoods(ctx)
+        customMeals = fetchMeals(ctx)
+        todayEntries = fetchEntries(ctx)
+        if let t = fetchTargets(ctx) { targets = t }
+    }
+
+    /// Write the whole seed set once. Entry order is preserved via monotonic `loggedAt`.
+    private func seed(_ ctx: ModelContext) {
+        for (i, food) in SampleData.foods.enumerated() {
+            if let json = try? Self.encoder.encode(food) {
+                ctx.insert(StoredFood(foodID: food.id, json: json, sortIndex: i))
+            }
+        }
+        for (i, meal) in SampleData.customMeals().enumerated() {
+            if let json = try? Self.encoder.encode(meal) {
+                ctx.insert(StoredMeal(mealID: meal.id, json: json, sortIndex: i))
+            }
+        }
+        let base = SampleData.referenceDate
+        for (i, entry) in SampleData.todayEntries().enumerated() {
+            if let json = try? Self.encoder.encode(entry.food) {
+                ctx.insert(StoredEntry(entryID: entry.id, foodJSON: json,
+                                       slotRaw: entry.slot.rawValue, servings: entry.servings,
+                                       time: entry.time, loggedAt: base.addingTimeInterval(Double(i))))
+            }
+        }
+        let t = SampleData.targets
+        ctx.insert(StoredTargets(calories: t.calories, carbs: t.carbs, protein: t.protein,
+                                 fibre: t.fibre, fat: t.fat))
+        try? ctx.save()
+    }
+
+    private func wipe(_ ctx: ModelContext) {
+        try? ctx.delete(model: StoredFood.self)
+        try? ctx.delete(model: StoredMeal.self)
+        try? ctx.delete(model: StoredEntry.self)
+        try? ctx.delete(model: StoredTargets.self)
+        try? ctx.save()
+    }
+
+    // MARK: Fetch
+
+    private func fetchFoods(_ ctx: ModelContext) -> [Food] {
+        let rows = (try? ctx.fetch(FetchDescriptor<StoredFood>(sortBy: [SortDescriptor(\.sortIndex)]))) ?? []
+        return rows.compactMap { try? Self.decoder.decode(Food.self, from: $0.json) }
+    }
+
+    private func fetchMeals(_ ctx: ModelContext) -> [Food] {
+        let rows = (try? ctx.fetch(FetchDescriptor<StoredMeal>(sortBy: [SortDescriptor(\.sortIndex)]))) ?? []
+        return rows.compactMap { try? Self.decoder.decode(Food.self, from: $0.json) }
+    }
+
+    private func fetchEntries(_ ctx: ModelContext) -> [MealEntry] {
+        let rows = (try? ctx.fetch(FetchDescriptor<StoredEntry>(sortBy: [SortDescriptor(\.loggedAt)]))) ?? []
+        return rows.compactMap { row in
+            guard let food = try? Self.decoder.decode(Food.self, from: row.foodJSON),
+                  let slot = MealSlot(rawValue: row.slotRaw) else { return nil }
+            return MealEntry(id: row.entryID, food: food, slot: slot,
+                             servings: row.servings, time: row.time)
+        }
+    }
+
+    private func fetchTargets(_ ctx: ModelContext) -> MacroTargets? {
+        guard let row = (try? ctx.fetch(FetchDescriptor<StoredTargets>()))?.first else { return nil }
+        return MacroTargets(calories: row.calories, carbs: row.carbs, protein: row.protein,
+                            fibre: row.fibre, fat: row.fat)
+    }
+
+    // MARK: Write-through
+    //
+    // `foods` and `customMeals` are small and bounded, so each mutation rewrites the
+    // whole collection — the load order (`sortIndex`) then always matches the array,
+    // with no min/max bookkeeping. Entries can grow unboundedly, so they're written
+    // incrementally (insert on log, delete on remove).
+
+    private func persistFoods() {
+        guard let ctx = persistence?.context else { return }
+        try? ctx.delete(model: StoredFood.self)
+        for (i, food) in foods.enumerated() where (try? Self.encoder.encode(food)) != nil {
+            ctx.insert(StoredFood(foodID: food.id, json: try! Self.encoder.encode(food), sortIndex: i))
+        }
+        try? ctx.save()
+    }
+
+    private func persistMeals() {
+        guard let ctx = persistence?.context else { return }
+        try? ctx.delete(model: StoredMeal.self)
+        for (i, meal) in customMeals.enumerated() where (try? Self.encoder.encode(meal)) != nil {
+            ctx.insert(StoredMeal(mealID: meal.id, json: try! Self.encoder.encode(meal), sortIndex: i))
+        }
+        try? ctx.save()
+    }
+
+    private func persistInsertEntry(_ entry: MealEntry) {
+        guard let ctx = persistence?.context,
+              let json = try? Self.encoder.encode(entry.food) else { return }
+        ctx.insert(StoredEntry(entryID: entry.id, foodJSON: json, slotRaw: entry.slot.rawValue,
+                               servings: entry.servings, time: entry.time, loggedAt: Date()))
+        try? ctx.save()
+    }
+
+    private func persistDeleteEntry(_ id: UUID) {
+        guard let ctx = persistence?.context else { return }
+        try? ctx.delete(model: StoredEntry.self, where: #Predicate { $0.entryID == id })
+        try? ctx.save()
     }
 }

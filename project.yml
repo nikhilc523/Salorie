@@ -4,6 +4,21 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
+packages:
+  GRDB:
+    url: https://github.com/groue/GRDB.swift
+    from: "7.0.0"
+schemes:
+  Salorie:
+    build:
+      targets:
+        Salorie: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SalorieTests
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -20,6 +35,8 @@ targets:
     deploymentTarget: "26.0"
     sources:
       - path: Salorie
+    dependencies:
+      - package: GRDB
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.salorie.app
@@ -32,3 +49,15 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
+  SalorieTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: SalorieTests
+    dependencies:
+      - target: Salorie
+      - package: GRDB
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES

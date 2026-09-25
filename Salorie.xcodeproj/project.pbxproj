@@ -3,51 +3,86 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0409369AE34F734E7C927DBD /* AskAIBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9077EC65AFBC6E2B553A411F /* AskAIBar.swift */; };
 		04444891B7E698C9C927DA16 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975EE432B600E36E3C95416F /* TodayView.swift */; };
 		0550BF60589630E3BA27E68A /* IngredientPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 098894E12940365049E6D37F /* IngredientPickerView.swift */; };
 		087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */; };
+		1FEC21311919848DD9EFE95C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8A0DE5C8B820F77E3CB671E4 /* GRDB */; };
 		2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */; };
+		3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */; };
 		427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */; };
 		437D4278654764E40E07300A /* AddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047C6E4F516485EBBFC753F0 /* AddView.swift */; };
 		43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */; };
+		453B289A3286CB626038E9B1 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 85ECA25BAEA5D8583588DBF9 /* GRDB */; };
+		488E2714F29084AD44099BF4 /* NutritionLabelParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */; };
 		4B0453D86F29216379AE5F39 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B012781019B5FE6E6A6921A /* Theme.swift */; };
 		4C7707132DAAFC4DA4F90B1C /* StackedCardsCarousel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */; };
 		5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */; };
+		56B661456D285D00FB2AD814 /* FoodCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7466A965D2F0733D23670020 /* FoodCatalog.swift */; };
+		5A3F74092479E24587345675 /* LabelScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */; };
+		7AE749C2C4AB76CC9F881DAD /* GRDBFoodCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */; };
 		7BD988031CCCEE7B7EE3BA45 /* StatDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */; };
+		7CF859A51DEE849F32F864E4 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B9F6B20723261BA38380813 /* Persistence.swift */; };
+		848545928D4071F5104D9AD0 /* MeasureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5099C09F7FC588E37734EF /* MeasureTests.swift */; };
 		8605A835CD704EC094E381C0 /* Rings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEF1A9763C1A527C2901A50 /* Rings.swift */; };
 		9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796CC2D90F52CABD600C2327 /* ScanView.swift */; };
+		A104915F623D78B3570AA975 /* NutrientDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */; };
 		A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */; };
 		A6BF42728F8065981F40476B /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8EEBF451C46BCC97662740 /* Cards.swift */; };
 		AC7BDAF4DD778FA219AF0C6C /* FriendDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */; };
+		AED2167AA44106B689585392 /* BarcodeCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E53BAEF02BD8F7F83022C5 /* BarcodeCache.swift */; };
 		AF653DFF152A256E38791299 /* Pills.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63E0ED90EE41BBE3D238551 /* Pills.swift */; };
+		B11BC84E69EBE48BDE7D3D72 /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */; };
+		B202210D8871E3402C91ED4D /* salorie_foods.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = BE35E489440951BF31FF35D8 /* salorie_foods.sqlite */; };
 		B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 538D84F27FD95FE00E9125A1 /* MockStore.swift */; };
 		B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0F1310D8556FE2BBFE59AD /* Haptics.swift */; };
 		B99033C99767A6CB6C3A8BA3 /* MealBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */; };
 		BEA1438614E6CD724C560E7E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */; };
 		C400483A86E87EE8122880F0 /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2434F8183B6029C1DB2CE164 /* Sharing.swift */; };
+		CE5B52B222C509AD134BD08D /* GRDBFoodCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */; };
+		CE7BDE3F57A0C5E5D6242049 /* ManualFoodEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */; };
+		D02DBBC0FBDD414F3A763B2F /* NutritionLabelParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 254B6D0F990B6FD1FDE84324 /* NutritionLabelParser.swift */; };
 		D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A63FB642B0D3D9F924FEA51F /* Models.swift */; };
 		D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BE5EC538F57268098B92887 /* RootView.swift */; };
 		D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 099C6743813AEF400BB92808 /* FoodDetailView.swift */; };
 		D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 636AFA992B9822700C009B9F /* Assets.xcassets */; };
 		D88473186908FD8D21B6083E /* SharingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */; };
+		DD70CC662CC9CB4F8E02411F /* RemoteFoodTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0594246B143E5AECC1E12C1F /* RemoteFoodTests.swift */; };
+		E12BAB007D5E2143BE788BE2 /* ExtendedNutrientsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E84136E56251F472DCCC4871 /* ExtendedNutrientsTests.swift */; };
 		E32B7C3D6A68A33712A6B38D /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 603EE755CF3378DFFC8D3931 /* BarcodeScannerView.swift */; };
 		E570E392D438D6388B40010B /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */; };
+		E5CC4CF572C6C339B33B83B2 /* RemoteFoodService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E566169CCC23E10C5B4A55B7 /* RemoteFoodService.swift */; };
 		F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		19C6C8FF913204379E36048E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0B221767A0629A56A4514FA9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9996AB496B3996F707E07B40;
+			remoteInfo = Salorie;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		047C6E4F516485EBBFC753F0 /* AddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddView.swift; sourceTree = "<group>"; };
+		0594246B143E5AECC1E12C1F /* RemoteFoodTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFoodTests.swift; sourceTree = "<group>"; };
 		098894E12940365049E6D37F /* IngredientPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientPickerView.swift; sourceTree = "<group>"; };
 		099C6743813AEF400BB92808 /* FoodDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailView.swift; sourceTree = "<group>"; };
+		0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
+		1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientDetailView.swift; sourceTree = "<group>"; };
 		2434F8183B6029C1DB2CE164 /* Sharing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sharing.swift; sourceTree = "<group>"; };
+		254B6D0F990B6FD1FDE84324 /* NutritionLabelParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLabelParser.swift; sourceTree = "<group>"; };
 		2B012781019B5FE6E6A6921A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		2B0F1310D8556FE2BBFE59AD /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		2B9F6B20723261BA38380813 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		2F20EE4833BBAD3BA0072AE9 /* SalorieTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SalorieTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalorieApp.swift; sourceTree = "<group>"; };
+		30E53BAEF02BD8F7F83022C5 /* BarcodeCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeCache.swift; sourceTree = "<group>"; };
 		48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendDetailView.swift; sourceTree = "<group>"; };
 		4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionHeader.swift; sourceTree = "<group>"; };
 		52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealBuilderView.swift; sourceTree = "<group>"; };
@@ -55,31 +90,59 @@
 		5B8EEBF451C46BCC97662740 /* Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cards.swift; sourceTree = "<group>"; };
 		603EE755CF3378DFFC8D3931 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
 		636AFA992B9822700C009B9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualFoodEntryView.swift; sourceTree = "<group>"; };
+		717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBFoodCatalogTests.swift; sourceTree = "<group>"; };
+		7466A965D2F0733D23670020 /* FoodCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalog.swift; sourceTree = "<group>"; };
 		796CC2D90F52CABD600C2327 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatDetailView.swift; sourceTree = "<group>"; };
 		7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedCardsCarousel.swift; sourceTree = "<group>"; };
 		8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyItemsView.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
-		9077EC65AFBC6E2B553A411F /* AskAIBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskAIBar.swift; sourceTree = "<group>"; };
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealHeroCard.swift; sourceTree = "<group>"; };
 		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
 		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		AD5099C09F7FC588E37734EF /* MeasureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureTests.swift; sourceTree = "<group>"; };
+		BE35E489440951BF31FF35D8 /* salorie_foods.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = salorie_foods.sqlite; sourceTree = "<group>"; };
+		C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelScannerView.swift; sourceTree = "<group>"; };
 		C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingView.swift; sourceTree = "<group>"; };
-		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogTests.swift; sourceTree = "<group>"; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
+		D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLabelParserTests.swift; sourceTree = "<group>"; };
+		D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBFoodCatalog.swift; sourceTree = "<group>"; };
 		DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
+		E566169CCC23E10C5B4A55B7 /* RemoteFoodService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFoodService.swift; sourceTree = "<group>"; };
+		E84136E56251F472DCCC4871 /* ExtendedNutrientsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtendedNutrientsTests.swift; sourceTree = "<group>"; };
 		F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
 		F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayDetailView.swift; sourceTree = "<group>"; };
 		FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		1FB0A1CF46D1037BC104134F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				453B289A3286CB626038E9B1 /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2D5592471F7B7A3FB4D39FD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1FEC21311919848DD9EFE95C /* GRDB in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
 		3CD85306E91B914BFE2CD23F /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				9077EC65AFBC6E2B553A411F /* AskAIBar.swift */,
 				5B8EEBF451C46BCC97662740 /* Cards.swift */,
 				9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */,
 				4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */,
@@ -95,6 +158,7 @@
 			isa = PBXGroup;
 			children = (
 				CA9411D8D3663B06F86DA968 /* Salorie */,
+				FFACE026DA6355276B895BDF /* SalorieTests */,
 				765C0F5F7EB6D0296FF412BC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -114,6 +178,7 @@
 			isa = PBXGroup;
 			children = (
 				D168D26A98FC94E8ED0987C6 /* Salorie.app */,
+				2F20EE4833BBAD3BA0072AE9 /* SalorieTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -127,9 +192,12 @@
 				099C6743813AEF400BB92808 /* FoodDetailView.swift */,
 				48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */,
 				098894E12940365049E6D37F /* IngredientPickerView.swift */,
+				C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */,
+				6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */,
 				52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */,
 				DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */,
 				8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */,
+				1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */,
 				796CC2D90F52CABD600C2327 /* ScanView.swift */,
 				C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */,
 				7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */,
@@ -146,6 +214,7 @@
 				2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */,
 				724155568F9E5867A9903F3C /* DesignSystem */,
 				D323DD6EB467A8E419EC1834 /* Models */,
+				EDB78443E97302282418CD30 /* Resources */,
 				C6F76448C7EBC52A5425EB0C /* Screens */,
 			);
 			path = Salorie;
@@ -154,12 +223,40 @@
 		D323DD6EB467A8E419EC1834 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				30E53BAEF02BD8F7F83022C5 /* BarcodeCache.swift */,
+				7466A965D2F0733D23670020 /* FoodCatalog.swift */,
+				D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */,
 				538D84F27FD95FE00E9125A1 /* MockStore.swift */,
 				A63FB642B0D3D9F924FEA51F /* Models.swift */,
+				254B6D0F990B6FD1FDE84324 /* NutritionLabelParser.swift */,
+				2B9F6B20723261BA38380813 /* Persistence.swift */,
+				E566169CCC23E10C5B4A55B7 /* RemoteFoodService.swift */,
 				F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */,
 				2434F8183B6029C1DB2CE164 /* Sharing.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		EDB78443E97302282418CD30 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BE35E489440951BF31FF35D8 /* salorie_foods.sqlite */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		FFACE026DA6355276B895BDF /* SalorieTests */ = {
+			isa = PBXGroup;
+			children = (
+				E84136E56251F472DCCC4871 /* ExtendedNutrientsTests.swift */,
+				CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */,
+				717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */,
+				AD5099C09F7FC588E37734EF /* MeasureTests.swift */,
+				D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */,
+				0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */,
+				0594246B143E5AECC1E12C1F /* RemoteFoodTests.swift */,
+			);
+			path = SalorieTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -171,6 +268,7 @@
 			buildPhases = (
 				7330E205B6723ABEA6D508A9 /* Sources */,
 				EBAA1512FB790165728E9DB2 /* Resources */,
+				1FB0A1CF46D1037BC104134F /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -178,10 +276,31 @@
 			);
 			name = Salorie;
 			packageProductDependencies = (
+				85ECA25BAEA5D8583588DBF9 /* GRDB */,
 			);
 			productName = Salorie;
 			productReference = D168D26A98FC94E8ED0987C6 /* Salorie.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BEB0546AAF2636F892CB2871 /* SalorieTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B6C127F6A3AE571A7EAF47B5 /* Build configuration list for PBXNativeTarget "SalorieTests" */;
+			buildPhases = (
+				7B4EE29FDCC158BF1D31ED06 /* Sources */,
+				F2D5592471F7B7A3FB4D39FD /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E78E17D6CB3E556FD30793F8 /* PBXTargetDependency */,
+			);
+			name = SalorieTests;
+			packageProductDependencies = (
+				8A0DE5C8B820F77E3CB671E4 /* GRDB */,
+			);
+			productName = SalorieTests;
+			productReference = 2F20EE4833BBAD3BA0072AE9 /* SalorieTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -193,6 +312,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9996AB496B3996F707E07B40 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					BEB0546AAF2636F892CB2871 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -207,10 +331,15 @@
 			);
 			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				9996AB496B3996F707E07B40 /* Salorie */,
+				BEB0546AAF2636F892CB2871 /* SalorieTests */,
 			);
 		};
 /* End PBXProject section */
@@ -221,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */,
+				B202210D8871E3402C91ED4D /* salorie_foods.sqlite in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,14 +362,18 @@
 			buildActionMask = 2147483647;
 			files = (
 				437D4278654764E40E07300A /* AddView.swift in Sources */,
-				0409369AE34F734E7C927DBD /* AskAIBar.swift in Sources */,
+				AED2167AA44106B689585392 /* BarcodeCache.swift in Sources */,
 				E32B7C3D6A68A33712A6B38D /* BarcodeScannerView.swift in Sources */,
 				A6BF42728F8065981F40476B /* Cards.swift in Sources */,
 				F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */,
+				56B661456D285D00FB2AD814 /* FoodCatalog.swift in Sources */,
 				D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */,
 				AC7BDAF4DD778FA219AF0C6C /* FriendDetailView.swift in Sources */,
+				7AE749C2C4AB76CC9F881DAD /* GRDBFoodCatalog.swift in Sources */,
 				B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */,
 				0550BF60589630E3BA27E68A /* IngredientPickerView.swift in Sources */,
+				5A3F74092479E24587345675 /* LabelScannerView.swift in Sources */,
+				CE7BDE3F57A0C5E5D6242049 /* ManualFoodEntryView.swift in Sources */,
 				B99033C99767A6CB6C3A8BA3 /* MealBuilderView.swift in Sources */,
 				E570E392D438D6388B40010B /* MealDetailView.swift in Sources */,
 				087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */,
@@ -248,7 +382,11 @@
 				2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */,
 				43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */,
 				5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */,
+				A104915F623D78B3570AA975 /* NutrientDetailView.swift in Sources */,
+				D02DBBC0FBDD414F3A763B2F /* NutritionLabelParser.swift in Sources */,
+				7CF859A51DEE849F32F864E4 /* Persistence.swift in Sources */,
 				AF653DFF152A256E38791299 /* Pills.swift in Sources */,
+				E5CC4CF572C6C339B33B83B2 /* RemoteFoodService.swift in Sources */,
 				8605A835CD704EC094E381C0 /* Rings.swift in Sources */,
 				D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */,
 				427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */,
@@ -264,7 +402,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7B4EE29FDCC158BF1D31ED06 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E12BAB007D5E2143BE788BE2 /* ExtendedNutrientsTests.swift in Sources */,
+				3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */,
+				CE5B52B222C509AD134BD08D /* GRDBFoodCatalogTests.swift in Sources */,
+				848545928D4071F5104D9AD0 /* MeasureTests.swift in Sources */,
+				488E2714F29084AD44099BF4 /* NutritionLabelParserTests.swift in Sources */,
+				B11BC84E69EBE48BDE7D3D72 /* PersistenceTests.swift in Sources */,
+				DD70CC662CC9CB4F8E02411F /* RemoteFoodTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E78E17D6CB3E556FD30793F8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9996AB496B3996F707E07B40 /* Salorie */;
+			targetProxy = 19C6C8FF913204379E36048E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		18D531574D4675E056D32158 /* Release */ = {
@@ -273,7 +433,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -353,6 +512,24 @@
 			};
 			name = Release;
 		};
+		63F2C56DFA0B07F0844682BB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.salorie.SalorieTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Salorie.app/Salorie";
+			};
+			name = Debug;
+		};
 		8A57B47565787F4A4030FBE8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -428,7 +605,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AP7RK323K3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Salorie uses the camera to scan barcodes and food labels.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -445,6 +621,24 @@
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
+		};
+		F7251C3FA95B2AB7A3C3F9A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.salorie.SalorieTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Salorie.app/Salorie";
+			};
+			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
@@ -467,7 +661,40 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		B6C127F6A3AE571A7EAF47B5 /* Build configuration list for PBXNativeTarget "SalorieTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				63F2C56DFA0B07F0844682BB /* Debug */,
+				F7251C3FA95B2AB7A3C3F9A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		85ECA25BAEA5D8583588DBF9 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+		8A0DE5C8B820F77E3CB671E4 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0B221767A0629A56A4514FA9 /* Project object */;
 }

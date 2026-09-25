@@ -19,7 +19,9 @@ struct ScanView: View {
     @State private var manualCode = ""
     @State private var notFoundCode: String?
     @State private var torchOn = false
-    @State private var showBuilder = false
+    @State private var showManualFood = false
+    @State private var pendingCode = ""   // barcode being added by hand
+    @State private var looking = false   // network lookup (OFF/USDA) in flight
 
     private let scanTint = RingColor.carb.tint      // warm terracotta (palette, no blue)
 
@@ -34,12 +36,14 @@ struct ScanView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.bg)
         .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
-        .sheet(isPresented: $showBuilder) { MealBuilderView() }
+        .sheet(isPresented: $showManualFood) {
+            ManualFoodEntryView(prefillBarcode: pendingCode)
+        }
         .alert("No match for that code", isPresented: .constant(notFoundCode != nil)) {
-            Button("Add Manually") { notFoundCode = nil; showBuilder = true }
+            Button("Add Manually") { pendingCode = notFoundCode ?? ""; notFoundCode = nil; showManualFood = true }
             Button("Cancel", role: .cancel) { notFoundCode = nil }
         } message: {
-            Text("\(notFoundCode ?? "") isn't in your catalog yet. Build it by hand or try another.")
+            Text("\(notFoundCode ?? "") isn't in the catalog or Open Food Facts. Add it by hand — you can scan its nutrition label.")
         }
         .alert("Enter barcode", isPresented: $showManualEntry) {
             TextField("Barcode number", text: $manualCode)
@@ -68,12 +72,26 @@ struct ScanView: View {
             }
 
             reticle
+            if looking { lookingOverlay }
         }
         .frame(height: 340)
         .padding(.horizontal, Metrics.pagePadding)
         .compositingGroup()
         .shadow(color: .black.opacity(0.4), radius: 10, y: 6)
         .onDisappear { setTorch(false) }
+    }
+
+    /// Shown while resolving a barcode via the live OFF/USDA fallback.
+    private var lookingOverlay: some View {
+        HStack(spacing: 9) {
+            ProgressView().tint(scanTint)
+            Text("Looking up…")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 11)
+        .glassEffect(.regular, in: Capsule())
+        .transition(.opacity)
     }
 
     private var torchButton: some View {
@@ -171,7 +189,7 @@ struct ScanView: View {
     private var actions: some View {
         HStack(spacing: 12) {
             Button {
-                handleScan("SALORIE-DEMO-01")
+                handleScan("883572133501")   // real UPC-A → GTIN-14 in the bundled catalog
             } label: {
                 Label("Simulate Scan", systemImage: "barcode")
                     .font(.system(size: 15, weight: .semibold))
@@ -208,25 +226,33 @@ struct ScanView: View {
             await MainActor.run { cameraAuthorized = granted }
         }
         // Screenshot/testing hook: auto-fire a scan.
+        if ProcessInfo.processInfo.environment["SALORIE_MANUAL"] == "1" {
+            pendingCode = "0000000000000"; showManualFood = true
+        }
         if ProcessInfo.processInfo.environment["SALORIE_SCAN_HIT"] == "1" {
-            handleScan("SALORIE-DEMO-01")
+            // Default resolves in the bundled catalog; SALORIE_SCAN_CODE overrides
+            // (e.g. a barcode only the live OFF/USDA fallback can resolve).
+            handleScan(ProcessInfo.processInfo.environment["SALORIE_SCAN_CODE"] ?? "883572133501")
         }
     }
 
     private func handleScan(_ payload: String) {
         let code = payload.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !code.isEmpty else { return }
-        if let food = store.food(forBarcode: code) {
-            HapticManager.shared.trigger(.success)
-            setTorch(false)
-            withAnimation(.snappy(duration: 0.18)) { flash = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+        guard !code.isEmpty, !looking else { return }
+        Task {
+            looking = true
+            defer { looking = false }
+            if let food = await store.food(forBarcode: code) {
+                HapticManager.shared.trigger(.success)
+                setTorch(false)
+                withAnimation(.snappy(duration: 0.18)) { flash = true }
+                try? await Task.sleep(for: .milliseconds(220))
                 withAnimation(.snappy) { flash = false }
                 selectedFood = food
+            } else {
+                HapticManager.shared.trigger(.warning)
+                notFoundCode = code
             }
-        } else {
-            HapticManager.shared.trigger(.warning)
-            notFoundCode = code
         }
     }
 }

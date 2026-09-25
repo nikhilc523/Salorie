@@ -10,18 +10,23 @@ enum SampleData {
              source: .usdaBranded, isOpen: false,
              tags: [Tag(text: "Homemade", color: .blue, filled: true), Tag(text: "Protein", color: .green)],
              servingDescription: "170 g (1 container)", calories: 100, carbs: 6, protein: 18, fat: 0, fibre: 0, sugars: 7, saturatedFat: 0, sodium: 65, cholesterol: 10,
+             extended: ExtendedNutrients(potassium: 240, calcium: 200, magnesium: 20, vitaminB12: 1.3, nutriScore: "B", novaGroup: 1),
              ingredients: ["Pasteurized skimmed milk", "Live active yogurt cultures"], isFavorite: true),
 
         Food(symbol: "leaf.fill", tint: .green, name: "Avocado, Raw", brand: nil,
              source: .usdaFoundation, isOpen: true,
              tags: [Tag(text: "Good", color: .brown), Tag(text: "Satisfying", color: .pink)],
              servingDescription: "1 medium (150 g)", calories: 240, carbs: 13, protein: 3, fat: 22, fibre: 10, sugars: 1, saturatedFat: 3, sodium: 10, cholesterol: 0,
+             extended: ExtendedNutrients(potassium: 727, calcium: 18, iron: 0.8, vitaminD: 0, magnesium: 44,
+                                         monounsaturatedFat: 14.7, polyunsaturatedFat: 2.7, omega3: 0.2,
+                                         vitaminC: 15, vitaminB12: 0, folate: 122),
              ingredients: ["Avocado"]),
 
         Food(symbol: "fork.knife", tint: .orange, name: "Grilled Chicken Breast", brand: nil,
              source: .srLegacy, isOpen: false,
              tags: [Tag(text: "Protein", color: .green), Tag(text: "Lean", color: .blue)],
              servingDescription: "100 g", calories: 165, carbs: 0, protein: 31, fat: 4, fibre: 0, sugars: 0, saturatedFat: 1, sodium: 74, cholesterol: 85,
+             extended: ExtendedNutrients(potassium: 256, iron: 1.0, magnesium: 29, zinc: 1.0, vitaminB12: 0.3),
              ingredients: ["Chicken breast"], isFavorite: true),
 
         Food(symbol: "takeoutbag.and.cup.and.straw.fill", tint: .yellow, name: "Sourdough Bread", brand: "Boudin",
@@ -39,7 +44,8 @@ enum SampleData {
         Food(symbol: "leaf.fill", tint: .yellow, name: "Banana, Raw", brand: nil,
              source: .usdaFoundation, isOpen: false,
              tags: [Tag(text: "Snacks", color: .green)],
-             servingDescription: "1 medium (118 g)", calories: 105, carbs: 27, protein: 1, fat: 0, fibre: 3, sugars: 14, saturatedFat: 0, sodium: 1, cholesterol: 0),
+             servingDescription: "1 medium (118 g)", calories: 105, carbs: 27, protein: 1, fat: 0, fibre: 3, sugars: 14, saturatedFat: 0, sodium: 1, cholesterol: 0,
+             extended: ExtendedNutrients(potassium: 422, calcium: 6, iron: 0.3, magnesium: 32, vitaminC: 10, folate: 24)),
 
         Food(symbol: "circle.fill", tint: .yellow, name: "Egg, Large", brand: nil,
              source: .srLegacy, isOpen: false,
@@ -64,7 +70,8 @@ enum SampleData {
         Food(symbol: "square.grid.2x2.fill", tint: .brown, name: "Dark Chocolate 85%", brand: "Lindt",
              source: .openFoodFacts, isOpen: false,
              tags: [Tag(text: "Satisfying", color: .pink), Tag(text: "Processed", color: .gray)],
-             servingDescription: "2 squares (20 g)", calories: 120, carbs: 8, protein: 2, fat: 10, fibre: 3, sugars: 3, saturatedFat: 5, sodium: 4, cholesterol: 2),
+             servingDescription: "2 squares (20 g)", calories: 120, carbs: 8, protein: 2, fat: 10, fibre: 3, sugars: 3, saturatedFat: 5, sodium: 4, cholesterol: 2,
+             extended: ExtendedNutrients(potassium: 143, iron: 2.4, caffeine: 16, magnesium: 46, nutriScore: "E", novaGroup: 4)),
 
         Food(symbol: "circle.fill", tint: .purple, name: "Blueberries, Raw", brand: nil,
              source: .usdaFoundation, isOpen: false,
@@ -76,6 +83,7 @@ enum SampleData {
              source: .openFoodFacts, isOpen: false,
              tags: [Tag(text: "Scanned", color: .blue, filled: true)],
              servingDescription: "1 bar (60 g)", calories: 230, carbs: 24, protein: 20, fat: 8, fibre: 5, sugars: 6, saturatedFat: 3, sodium: 140, cholesterol: 5,
+             extended: ExtendedNutrients(potassium: 180, calcium: 120, iron: 3.2, caffeine: 5, nutriScore: "C", novaGroup: 4),
              ingredients: ["Protein blend", "Almonds", "Dates", "Cocoa"], barcode: "SALORIE-DEMO-01"),
     ]
 

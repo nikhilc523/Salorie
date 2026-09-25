@@ -50,10 +50,12 @@ struct TodayView: View {
                     Button {
                         // Calendar button unwired — day detail now opens by tapping the rings.
                         // TODO: assign new behavior (pending direction).
-                    } label: { Image(systemName: "calendar") }
+                    } label: {
+                        Image(systemName: "calendar")
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
             }
-            .safeAreaInset(edge: .bottom) { AskAIBar() }
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
             .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
             .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
@@ -159,8 +161,9 @@ struct TodayView: View {
             } label: {
                 HStack(alignment: .center, spacing: 8) {
                     Image(systemName: slot.symbol)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(slot.tagColor.fg)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(RingColor.protein.tint)   // caramel — warm palette, no wash-out
+                        .frame(width: 20)
                     Text(slot.rawValue)
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Theme.textPrimary)

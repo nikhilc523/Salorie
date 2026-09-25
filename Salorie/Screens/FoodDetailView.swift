@@ -8,8 +8,23 @@ struct FoodDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     let food: Food
-    @State private var servings: Double = 1
     @State private var slot: MealSlot = .breakfast
+    @State private var quantity: Double = 1
+    @State private var portions: [FoodPortion] = []
+    @State private var measures: [Measure] = []
+    @State private var selectedMeasureID: Measure.ID?
+    // Screenshot/testing hook: SALORIE_NUTRIENTS=1 pushes the full nutrition screen.
+    @State private var showNutrients =
+        ProcessInfo.processInfo.environment["SALORIE_NUTRIENTS"] == "1"
+
+    private var selectedMeasure: Measure? { measures.first { $0.id == selectedMeasureID } }
+
+    /// The multiplier applied to the food's per-serving snapshot. For weight-based
+    /// measures it's `grams eaten / grams per serving`; for a plain serving it's the
+    /// quantity. This is what gets logged and what scales the displayed nutrients.
+    private var servings: Double {
+        selectedMeasure?.servings(quantity: quantity, servingGrams: food.servingGrams) ?? quantity
+    }
 
     private var calories: Int { Int((Double(food.calories) * servings).rounded()) }
     private var caloriePct: Int {
@@ -42,8 +57,8 @@ struct FoodDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header
-                    macroBreakdown
-                    servingStepper
+                    amountControl          // pick how much first…
+                    macroBreakdown         // …then nutrition updates live below
                     slotPicker
                     details
                     if !food.ingredients.isEmpty { ingredients }
@@ -53,6 +68,12 @@ struct FoodDetailView: View {
             }
             .background(Theme.bg)
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
+            .task {
+                portions = await store.portions(for: food)
+                measures = buildMeasures()
+                if selectedMeasureID == nil { selectedMeasureID = measures.first?.id }
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -69,6 +90,9 @@ struct FoodDetailView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) { addBar }
+            .navigationDestination(isPresented: $showNutrients) {
+                NutrientDetailView(food: food, servings: servings)
+            }
         }
         .presentationDragIndicator(.visible)
     }
@@ -116,17 +140,57 @@ struct FoodDetailView: View {
             }
 
             nutritionGrid
+            moreNutrientsLink
         }
     }
 
-    // Two-column numbers grid with hairline row dividers (Apple Health layout).
-    private var nutritionGrid: some View {
-        let rows = stride(from: 0, to: nutrientStats.count, by: 2).map { i in
-            Array(nutrientStats[i..<min(i + 2, nutrientStats.count)])
+    /// A single quiet row that pushes the full Nutrition Facts screen. Only shown
+    /// when the food actually carries data beyond the core grid.
+    @ViewBuilder private var moreNutrientsLink: some View {
+        if food.extended.hasAny {
+            VStack(spacing: 0) {
+                Rectangle().fill(Theme.divider).frame(height: 1)
+                Button {
+                    HapticManager.shared.trigger(.light)
+                    showNutrients = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("More nutrients")
+                            .font(.system(size: 15, weight: .semibold))
+                        if food.extended.caffeine != nil {
+                            Text("· incl. caffeine")
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundStyle(Theme.textTertiary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Theme.textTertiary)
+                    }
+                    .foregroundStyle(RingColor.carb.tint)
+                    .padding(.vertical, 16)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
-        return VStack(alignment: .leading, spacing: 0) {
+    }
+
+    // Core two-column numbers grid (Apple Health layout).
+    private var nutritionGrid: some View {
+        VStack(alignment: .leading, spacing: 0) {
             Text("NUTRITION").overlineStyle()
                 .padding(.bottom, 4)
+            numbersGrid(nutrientStats)
+        }
+    }
+
+    /// Two-column grid with hairline row dividers (Apple Health layout).
+    private func numbersGrid(_ stats: [NutrientStat]) -> some View {
+        let rows = stride(from: 0, to: stats.count, by: 2).map { i in
+            Array(stats[i..<min(i + 2, stats.count)])
+        }
+        return VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { idx, row in
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(row) { nutrientCell($0) }
@@ -160,24 +224,116 @@ struct FoodDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Serving stepper
+    // MARK: Amount (measure picker + quantity — supports grams / oz / portions)
 
-    private var servingStepper: some View {
-        HStack {
-            Text("Servings").font(.sectionTitle).foregroundStyle(Theme.textPrimary)
-            Spacer()
-            HStack(spacing: 18) {
-                stepButton("minus") { servings = max(0.5, servings - 0.5) }
-                Text(servings.formatted(.number.precision(.fractionLength(0...1))))
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .frame(minWidth: 40)
-                    .foregroundStyle(Theme.textPrimary)
-                    .contentTransition(.numericText())
-                stepButton("plus") { servings += 0.5 }
+    private var amountControl: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("AMOUNT").overlineStyle()
+
+            // Measure chips: Serving · household measures · 100 g · Grams · Ounces.
+            if measures.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(measures) { measureChip($0) }
+                    }
+                    .padding(.horizontal, 1)
+                }
             }
+
+            // Quantity: numeric field (type an exact weight) + steppers.
+            HStack(spacing: 14) {
+                stepButton("minus") { adjust(-1) }
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    TextField("", value: $quantity, format: .number.precision(.fractionLength(0...2)))
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.center)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textPrimary)
+                        .frame(minWidth: 74)
+                        .fixedSize()
+                    Text(unitSuffix)
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                stepButton("plus") { adjust(1) }
+                Spacer()
+                if !gramsText.isEmpty {
+                    Text(gramsText)
+                        .font(.system(size: 13, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textTertiary)
+                }
+            }
+            .padding(.top, 2)
         }
-        .padding(.vertical, 4)
+    }
+
+    private func measureChip(_ m: Measure) -> some View {
+        let on = m.id == selectedMeasureID
+        return Button {
+            HapticManager.shared.trigger(.selection)
+            withAnimation(.snappy) { select(m) }
+        } label: {
+            Text(m.label)
+                .font(.system(size: 14, weight: .medium))
+                .lineLimit(1).fixedSize()
+                .foregroundStyle(on ? Color(hex: 0x000000) : Theme.textSecondary)
+                .padding(.horizontal, 14).padding(.vertical, 9)
+                .background(Capsule().fill(on ? Theme.textPrimary : Theme.surface))
+                .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: on ? 0 : 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// Available measures for this food. Weight options (100 g / Grams / Ounces)
+    /// only appear when we know the serving's gram weight.
+    private func buildMeasures() -> [Measure] {
+        guard let sg = food.servingGrams, sg > 0 else {
+            return [Measure(label: "Serving", gramsPerUnit: 1, kind: .serving, step: 0.5)]
+        }
+        var out: [Measure] = [Measure(label: "Serving", gramsPerUnit: sg, kind: .serving, step: 0.5)]
+        for p in portions where p.grams > 0 {
+            out.append(Measure(label: p.label, gramsPerUnit: p.grams, kind: .household, step: 0.5))
+        }
+        out.append(Measure(label: "100 g", gramsPerUnit: 100, kind: .hundred, step: 0.5))
+        out.append(Measure(label: "Grams", gramsPerUnit: 1, kind: .grams, step: 10))
+        out.append(Measure(label: "Ounces", gramsPerUnit: 28.3495, kind: .ounces, step: 1))
+        return out
+    }
+
+    /// Switch measure while preserving the grams eaten (acts like a unit converter).
+    private func select(_ m: Measure) {
+        guard m.id != selectedMeasureID else { return }
+        if let sg = food.servingGrams, sg > 0, let cur = selectedMeasure {
+            let grams = quantity * cur.gramsPerUnit
+            let q = grams / m.gramsPerUnit
+            quantity = m.kind == .grams ? q.rounded() : (q * 100).rounded() / 100
+        }
+        selectedMeasureID = m.id
+    }
+
+    private func adjust(_ sign: Double) {
+        let step = selectedMeasure?.step ?? 0.5
+        withAnimation(.snappy) {
+            quantity = max(step, ((quantity + sign * step) * 100).rounded() / 100)
+        }
+    }
+
+    private var unitSuffix: String {
+        switch selectedMeasure?.kind {
+        case .grams:  return "g"
+        case .ounces: return "oz"
+        case .hundred: return "× 100 g"
+        case .household: return "×"
+        default: return quantity == 1 ? "serving" : "servings"
+        }
+    }
+
+    /// "= 247 g" hint for non-gram measures, so the exact weight is always visible.
+    private var gramsText: String {
+        guard let m = selectedMeasure, let sg = food.servingGrams, sg > 0, m.kind != .grams else { return "" }
+        return "= \(Int((quantity * m.gramsPerUnit).rounded())) g"
     }
 
     private func stepButton(_ icon: String, action: @escaping () -> Void) -> some View {
@@ -267,14 +423,18 @@ struct FoodDetailView: View {
                 HStack(spacing: 7) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 15, weight: .bold))
-                    Text("Add \(servings.formatted(.number.precision(.fractionLength(0...1)))) to \(slot.rawValue)")
+                    Text("Add \(calories) cal to \(slot.rawValue)")
                         .font(.system(size: 15, weight: .semibold))
+                        .contentTransition(.numericText())
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
+                // Clear Liquid Glass (matches the "+" add buttons): neutral frosted
+                // material, warm copper content — no color fill.
+                .foregroundStyle(RingColor.carb.tint)
+                .padding(.horizontal, 26)
+                .padding(.vertical, 15)
+                .glassEffect(.regular.interactive(), in: Capsule())
             }
-            .buttonStyle(AddPressStyle(tint: RingColor.carb.tint))
+            .buttonStyle(.plain)
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -289,28 +449,31 @@ struct FoodDetailView: View {
 
 // MARK: - Small view helpers
 
+/// A serving measure the user can pick in the food detail (a plain serving, a
+/// household portion, 100 g, or a direct weight in g / oz). `gramsPerUnit` is the
+/// grams for one unit; `step` is the +/- increment for that measure.
+struct Measure: Identifiable, Hashable {
+    enum Kind: Hashable { case serving, household, hundred, grams, ounces }
+    let id = UUID()
+    let label: String
+    let gramsPerUnit: Double
+    let kind: Kind
+    let step: Double
+
+    /// Multiplier on the food's per-serving snapshot for the given quantity.
+    /// Weight-aware when the serving's gram weight is known.
+    func servings(quantity: Double, servingGrams: Double?) -> Double {
+        if let sg = servingGrams, sg > 0 { return quantity * gramsPerUnit / sg }
+        return quantity
+    }
+}
+
 /// One nutrient in the food-detail numbers grid.
 struct NutrientStat: Identifiable {
     let id = UUID()
     let label: String
     let value: String
     let sub: String?
-}
-
-/// Terracotta capsule CTA that springs on press.
-private struct AddPressStyle: ButtonStyle {
-    var tint: Color
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                Capsule().fill(
-                    LinearGradient(colors: [tint.opacity(0.92), tint], startPoint: .top, endPoint: .bottom)
-                )
-            )
-            .shadow(color: tint.opacity(configuration.isPressed ? 0.15 : 0.35), radius: 10, y: 4)
-            .scaleEffect(configuration.isPressed ? 0.93 : 1)
-            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: configuration.isPressed)
-    }
 }
 
 #Preview {

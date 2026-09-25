@@ -324,10 +324,13 @@ struct MealDetailView: View {
                     Image(systemName: "plus.circle.fill").font(.system(size: 15, weight: .bold))
                     Text("Log to \(slot.rawValue)").font(.system(size: 15, weight: .semibold))
                 }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 22).padding(.vertical, 12)
+                // Clear Liquid Glass (matches the "+" add buttons): neutral frosted
+                // material, warm copper content — no color fill.
+                .foregroundStyle(RingColor.carb.tint)
+                .padding(.horizontal, 26).padding(.vertical, 15)
+                .glassEffect(.regular.interactive(), in: Capsule())
             }
-            .buttonStyle(MealAddPressStyle(tint: RingColor.carb.tint))
+            .buttonStyle(.plain)
             Spacer()
         }
         .frame(maxWidth: .infinity)
@@ -336,22 +339,6 @@ struct MealDetailView: View {
             LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg, Theme.bg],
                            startPoint: .top, endPoint: .bottom)
         )
-    }
-}
-
-/// Terracotta capsule CTA that springs on press (shared look with FoodDetail).
-private struct MealAddPressStyle: ButtonStyle {
-    var tint: Color
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                Capsule().fill(
-                    LinearGradient(colors: [tint.opacity(0.92), tint], startPoint: .top, endPoint: .bottom)
-                )
-            )
-            .shadow(color: tint.opacity(configuration.isPressed ? 0.15 : 0.35), radius: 10, y: 4)
-            .scaleEffect(configuration.isPressed ? 0.93 : 1)
-            .animation(.spring(response: 0.32, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
 

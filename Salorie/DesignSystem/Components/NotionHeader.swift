@@ -131,9 +131,12 @@ struct NotionPageHeader: View {
 struct SegmentedTabs: View {
     let items: [String]
     @Binding var selection: Int
+    /// When true, tabs share the width equally (each underline spans its segment).
+    /// Left-hugging otherwise. Use for 2-way strips like Search / Scan.
+    var equalWidths: Bool = false
 
     var body: some View {
-        HStack(spacing: 20) {
+        HStack(spacing: equalWidths ? 0 : 20) {
             ForEach(Array(items.enumerated()), id: \.offset) { idx, title in
                 Button {
                     HapticManager.shared.trigger(.selection)
@@ -147,11 +150,12 @@ struct SegmentedTabs: View {
                             .fill(selection == idx ? Theme.textPrimary : .clear)
                             .frame(height: 2)
                     }
-                    .fixedSize()
+                    .frame(maxWidth: equalWidths ? .infinity : nil)
+                    .fixedSize(horizontal: !equalWidths, vertical: false)
                 }
                 .buttonStyle(.plain)
             }
-            Spacer(minLength: 0)
+            if !equalWidths { Spacer(minLength: 0) }
         }
         .overlay(alignment: .bottom) {
             Rectangle().fill(Theme.divider).frame(height: Metrics.hairline)

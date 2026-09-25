@@ -5,15 +5,26 @@ import SwiftUI
 struct AddView: View {
     @Environment(MockStore.self) private var store
     @State private var tab = ProcessInfo.processInfo.environment["SALORIE_SCAN"] == "1" ? 1 : 0
-    @State private var query = ""
+    @State private var query = ProcessInfo.processInfo.environment["SALORIE_QUERY"] ?? ""
     @State private var selectedFood: Food?
     @State private var selectedMeal: Food?
     @State private var showBuilder = false
     @State private var expandedSections: Set<String> = []   // sections showing all rows
+    @State private var results: [Food] = []
+    @State private var searching = false
 
-    private var results: [Food] {
-        guard !query.isEmpty else { return [] }
-        return store.searchableFoods.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    /// Debounced search against the store's async catalog. `.task(id: query)`
+    /// cancels the in-flight run on each keystroke, so the sleep debounces cleanly.
+    private func runSearch(_ raw: String) async {
+        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { results = []; searching = false; return }
+        searching = true
+        try? await Task.sleep(for: .milliseconds(200))
+        if Task.isCancelled { return }
+        let hits = await store.search(q)
+        if Task.isCancelled { return }
+        results = hits
+        searching = false
     }
 
     /// One-tap adds land in the meal that fits the time of day.
@@ -29,14 +40,18 @@ struct AddView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                SegmentedTabs(items: ["Search", "Scan"], selection: $tab)
+                header
                     .padding(.horizontal, Metrics.pagePadding)
-                    .padding(.top, 8)
+                    .padding(.top, 4)
+
+                SegmentedTabs(items: ["Search", "Scan"], selection: $tab, equalWidths: true)
+                    .padding(.horizontal, Metrics.pagePadding)
+                    .padding(.top, 14)
 
                 if tab == 0 { searchTab } else { ScanView() }
             }
             .background(Theme.bg)
-            .navigationTitle("Add Food")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
             .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
@@ -48,8 +63,25 @@ struct AddView: View {
                 case "builder": showBuilder = true
                 default: break
                 }
+                // Screenshot hook: open a real catalog food's detail by barcode.
+                if let code = ProcessInfo.processInfo.environment["SALORIE_OPEN_BARCODE"] {
+                    Task { selectedFood = await store.food(forBarcode: code) }
+                }
             }
         }
+    }
+
+    /// Bold screen heading matching the other tabs (My Items / Sharing).
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("Add Food")
+                .font(.screenTitle)
+                .foregroundStyle(Theme.textPrimary)
+            Text("Search or scan to log a food")
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Custom meals open the meal detail; single foods open the food detail.
@@ -71,7 +103,7 @@ struct AddView: View {
                     section("RECENT", Array(store.recentFoods.filter { !$0.isCustomMeal }.prefix(10)))
                     section("FAVORITES", store.favorites)
                 } else if results.isEmpty {
-                    emptyResults
+                    if !searching { emptyResults }   // stay quiet during the debounce
                 } else {
                     section("RESULTS", results, collapsible: false)
                 }
@@ -82,6 +114,7 @@ struct AddView: View {
         }
         .background(Theme.bg)
         .scrollContentBackground(.hidden)
+        .task(id: query) { await runSearch(query) }
     }
 
     // MARK: MY MEALS — a normal list (the hero cards live in My Items → Meals)
@@ -163,6 +196,18 @@ struct AddView: View {
     /// Warm quick-add tint from the palette (terracotta), matching the food-detail CTA.
     private static let addTint = RingColor.carb.tint
 
+    /// Row subtitle — leads with the **brand** so brand searches are legible
+    /// (e.g. "Minute Maid · 5 cal · OFF"), falls back to source for generics.
+    private func rowSubtitle(_ food: Food) -> String {
+        if food.isCustomMeal {
+            return "\(food.components.count) ingredients · \(food.calories) cal"
+        }
+        let parts = [food.brand, "\(food.calories) cal", food.source.short]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+        return parts.joined(separator: " · ")
+    }
+
     private func foodRow(_ food: Food) -> some View {
         HStack(spacing: 12) {
             Image(systemName: food.symbol)
@@ -176,9 +221,7 @@ struct AddView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                Text(food.isCustomMeal
-                     ? "\(food.components.count) ingredients · \(food.calories) cal"
-                     : "\(food.calories) cal · \(food.source.rawValue)")
+                Text(rowSubtitle(food))
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.textTertiary)
                     .lineLimit(1)

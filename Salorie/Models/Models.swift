@@ -52,6 +52,75 @@ enum FoodKind: String, Hashable, Codable {
     case custom
 }
 
+// MARK: - Extended nutrients (progressive disclosure)
+
+/// Everything beyond the core macro grid. Every field is **optional** on purpose:
+/// `nil` means "the data source didn't have this value" and the UI hides the row —
+/// no fake zeros. Populated from USDA lab data (rich) or a product label (sparse).
+///
+/// Numeric fields are per `Food.servingDescription`, so they scale with servings
+/// exactly like the core macros. Qualitative fields (Nutri-Score / NOVA) are label
+/// properties of the product and never scale.
+struct ExtendedNutrients: Hashable, Codable, Sendable {
+    // Tier A — reliably present across USDA + most labels
+    var potassium: Double?          // mg
+    var transFat: Double?           // g
+    var addedSugars: Double?        // g
+    var calcium: Double?            // mg
+    var iron: Double?               // mg
+    var vitaminD: Double?           // µg
+    // Tier B — mostly USDA generics (lab-analyzed whole foods)
+    var caffeine: Double?           // mg
+    var magnesium: Double?          // mg
+    var zinc: Double?               // mg
+    var monounsaturatedFat: Double? // g
+    var polyunsaturatedFat: Double? // g
+    var omega3: Double?             // g
+    var vitaminC: Double?           // mg
+    var vitaminA: Double?           // µg RAE
+    var vitaminB12: Double?         // µg
+    var folate: Double?             // µg DFE
+    // Tier C — qualitative product properties (Open Food Facts). Not scaled.
+    var nutriScore: String?         // "A"…"E"
+    var novaGroup: Int?             // 1…4 (processing level)
+
+    /// Every numeric (scalable) field, in one place so scale/sum stay DRY.
+    /// Computed (not stored) so it needs no `Sendable` keypath storage under Swift 6.
+    static var numericKeyPaths: [WritableKeyPath<ExtendedNutrients, Double?>] {
+        [\.potassium, \.transFat, \.addedSugars, \.calcium, \.iron, \.vitaminD,
+         \.caffeine, \.magnesium, \.zinc, \.monounsaturatedFat, \.polyunsaturatedFat,
+         \.omega3, \.vitaminC, \.vitaminA, \.vitaminB12, \.folate]
+    }
+
+    /// True if any value at all is present — drives whether "Show more" appears.
+    var hasAny: Bool {
+        nutriScore != nil || novaGroup != nil
+            || Self.numericKeyPaths.contains { self[keyPath: $0] != nil }
+    }
+
+    /// Scale numeric fields by a serving multiplier; qualitative fields pass through.
+    func scaled(by s: Double) -> ExtendedNutrients {
+        guard s != 1 else { return self }
+        var out = self
+        for kp in Self.numericKeyPaths where out[keyPath: kp] != nil {
+            out[keyPath: kp]! *= s
+        }
+        return out
+    }
+
+    /// Sum many rows (for a composite meal). A field stays `nil` only if *no*
+    /// contributor had it; otherwise missing contributors count as 0. Qualitative
+    /// fields don't sum, so a composite meal has no Nutri-Score/NOVA.
+    static func sum(_ items: [ExtendedNutrients]) -> ExtendedNutrients {
+        var out = ExtendedNutrients()
+        for kp in numericKeyPaths {
+            let values = items.compactMap { $0[keyPath: kp] }
+            out[keyPath: kp] = values.isEmpty ? nil : values.reduce(0, +)
+        }
+        return out
+    }
+}
+
 struct Food: Identifiable, Hashable, Codable, Sendable {
     var id = UUID()
     var symbol: String        // SF Symbol leading glyph
@@ -74,9 +143,20 @@ struct Food: Identifiable, Hashable, Codable, Sendable {
     var sodium: Double = 0        // mg
     var cholesterol: Double = 0   // mg
 
+    /// Optional deep nutrients revealed by "Show more" in the detail view.
+    var extended: ExtendedNutrients = ExtendedNutrients()
+
     var ingredients: [String] = []
     var isFavorite: Bool = false
     var barcode: String? = nil          // scannable code (Code128/EAN/QR)
+
+    /// Catalog row id ("usda:…" / "off:…") for fetching household portions. nil for
+    /// sample/custom foods.
+    var catalogID: String? = nil
+    /// Grams represented by this food's per-serving macro snapshot (the label
+    /// serving). Enables gram/oz logging — e.g. a variable-weight Costco breast.
+    /// nil when unknown (custom meals, sample data).
+    var servingGrams: Double? = nil
 
     // MARK: Custom meal (composite of single foods)
 
@@ -140,6 +220,7 @@ extension Food {
         saturatedFat = components.reduce(0) { $0 + $1.saturatedFat }
         sodium       = components.reduce(0) { $0 + $1.sodium }
         cholesterol  = components.reduce(0) { $0 + $1.cholesterol }
+        extended     = ExtendedNutrients.sum(components.map { $0.food.extended.scaled(by: $0.servings) })
         ingredients  = components.map(\.food.name)
         let n = components.count
         servingDescription = "\(n) item\(n == 1 ? "" : "s")"
@@ -156,12 +237,15 @@ enum MealSlot: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Monochrome time-of-day glyphs (breakfast→dinner) + a carrot for snacks.
+    /// Filled for legibility, rendered in one neutral tone (see TodayView) — no
+    /// rainbow tints, so they sit quietly on the warm-black theme.
     var symbol: String {
         switch self {
         case .breakfast: return "sunrise.fill"
         case .lunch:     return "sun.max.fill"
         case .dinner:    return "moon.stars.fill"
-        case .snacks:    return "leaf.fill"
+        case .snacks:    return "carrot.fill"
         }
     }
 
@@ -176,7 +260,7 @@ enum MealSlot: String, CaseIterable, Identifiable {
 }
 
 struct MealEntry: Identifiable, Hashable {
-    let id = UUID()
+    var id = UUID()
     var food: Food
     var slot: MealSlot
     var servings: Double
