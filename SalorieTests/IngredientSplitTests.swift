@@ -24,6 +24,16 @@ import Testing
     @Test func singleIngredientPassesThrough() {
         #expect(FoodDetailView.splitIngredients("Avocado") == ["Avocado"])
     }
+
+    @Test func splitsOnSemicolonsToo() {
+        let out = FoodDetailView.splitIngredients("Corn syrup; water; salt")
+        #expect(out == ["Corn syrup", "water", "salt"])
+    }
+
+    @Test func mixedSeparatorsRespectParens() {
+        let out = FoodDetailView.splitIngredients("Sugar; cocoa (alkali, lecithin); salt")
+        #expect(out == ["Sugar", "cocoa (alkali, lecithin)", "salt"])
+    }
 }
 
 /// De-shouting ALL-CAPS catalog names/brands while respecting intentional casing.

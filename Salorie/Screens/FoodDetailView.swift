@@ -351,23 +351,20 @@ struct FoodDetailView: View {
     }
 
     private var ingredients: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("INGREDIENTS").overlineStyle().padding(.bottom, 4)
-            ForEach(Array(ingredientList.enumerated()), id: \.offset) { i, item in
-                HStack(spacing: 12) {
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 5))
-                        .foregroundStyle(Theme.textTertiary)
-                        .frame(width: 18)
-                    Text(item)
-                        .font(.system(size: 15))
-                        .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .frame(minHeight: 40)
-                if i < ingredientList.count - 1 {
-                    Divider().overlay(Theme.divider)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("INGREDIENTS").overlineStyle()
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(ingredientList.enumerated()), id: \.offset) { _, item in
+                    HStack(alignment: .firstTextBaseline, spacing: 9) {
+                        Text("•")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.textTertiary)
+                        Text(item)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
                 }
             }
         }
@@ -377,7 +374,7 @@ struct FoodDetailView: View {
     /// only, so a compound ingredient like "Milk chocolate (sugar, cocoa butter)"
     /// stays on one row instead of shattering inside its parentheses.
     private var ingredientList: [String] {
-        food.ingredients.flatMap(Self.splitIngredients).filter { !$0.isEmpty }
+        food.ingredients.flatMap(Self.splitIngredients).map(\.titleCasedIfShouting).filter { !$0.isEmpty }
     }
 
     nonisolated static func splitIngredients(_ s: String) -> [String] {
@@ -388,8 +385,12 @@ struct FoodDetailView: View {
             switch ch {
             case "(", "[": depth += 1; current.append(ch)
             case ")", "]": depth = max(0, depth - 1); current.append(ch)
-            case "," where depth == 0:
-                out.append(current.trimmingCharacters(in: .whitespaces)); current = ""
+            case ",", ";":                        // both are used as label separators
+                if depth == 0 {
+                    out.append(current.trimmingCharacters(in: .whitespaces)); current = ""
+                } else {
+                    current.append(ch)
+                }
             default: current.append(ch)
             }
         }
