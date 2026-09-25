@@ -10,6 +10,7 @@ struct FoodDetailView: View {
     let food: Food
     @State private var slot: MealSlot = .breakfast
     @State private var measureMenuOpen = false
+    @State private var editingAmount = false
     @FocusState private var amountFocused: Bool
     @State private var quantity: Double = 1
     @State private var portions: [FoodPortion] = []
@@ -74,6 +75,7 @@ struct FoodDetailView: View {
                 measures = buildMeasures()
                 if selectedMeasureID == nil { selectedMeasureID = measures.first?.id }
                 if ProcessInfo.processInfo.environment["SALORIE_MEASUREMENU"] == "1" { measureMenuOpen = true }
+                if ProcessInfo.processInfo.environment["SALORIE_AMOUNTEDIT"] == "1" { editingAmount = true }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -103,6 +105,7 @@ struct FoodDetailView: View {
                     withAnimation(.snappy) { select(m) }
                 }
             }
+            .overlay { amountEditorOverlay }
         }
         .presentationDragIndicator(.visible)
     }
@@ -265,7 +268,7 @@ struct FoodDetailView: View {
         HStack(spacing: 0) {
             stepButton("minus", enabled: canDecrement) { step(-1) }
             HStack(spacing: 6) {
-                quantityField                       // tap to type a custom value
+                amountTapTarget                     // tap the number to bloom the editor
                 DropdownTrigger(isOpen: $measureMenuOpen) {
                     HStack(spacing: 5) {
                         Text(amountValue.unit)
@@ -297,42 +300,29 @@ struct FoodDetailView: View {
         .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
     }
 
-    /// The quantity as a tap-to-edit field. Styled as a warm terracotta input chip
-    /// (tinted fill + hairline border + caret) so it clearly reads as "type here",
-    /// while `−` / `+` still nudge it. Number only — the unit sits beside it.
-    private var quantityField: some View {
-        TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.center)
-            .font(.system(size: 18, weight: .bold, design: .rounded))
-            .monospacedDigit()
-            .foregroundStyle(Theme.textPrimary)
-            .tint(RingColor.carb.tint)
-            .focused($amountFocused)
-            .fixedSize()
-            .padding(.horizontal, 9)
-            .frame(minHeight: 32)
-            .background(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(RingColor.carb.tint.opacity(amountFocused ? 0.22 : 0.13))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(RingColor.carb.tint.opacity(amountFocused ? 0.9 : 0.45),
-                            lineWidth: amountFocused ? 1.5 : 1)
-            )
-            .animation(.snappy(duration: 0.2), value: amountFocused)
-            .onChange(of: amountFocused) { _, focused in
-                if !focused, quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
-            }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { amountFocused = false }
-                        .font(.system(size: 16, weight: .semibold))
-                        .tint(RingColor.carb.tint)
+    /// Compact quantity read-out in the bar. Just the number with a quiet terracotta
+    /// underline hinting it's tappable; tapping blooms the enlarged editor overlay.
+    private var amountTapTarget: some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.76)) { editingAmount = true }
+        } label: {
+            Text(amountValue.num)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(Theme.textPrimary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .opacity(editingAmount ? 0 : 1)          // hand-off to the blooming editor
+                .overlay(alignment: .bottom) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(RingColor.carb.tint.opacity(0.55))
+                        .frame(height: 2)
+                        .offset(y: 5)
                 }
-            }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(BouncyPress())
+        .accessibilityLabel("Amount \(amountValue.num) \(amountValue.unit). Tap to enter a custom value.")
     }
 
     /// A circular `−`/`+` stepper. The glyph bounces on each change for tactile feedback.
@@ -434,8 +424,113 @@ struct FoodDetailView: View {
         selectedMeasureID = m.id
     }
 
-    // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
+    // MARK: Amount editor (blooming "hologram" overlay)
 
+    /// Full-screen editor that blooms open when the amount is tapped: a dim/blurred
+    /// scrim plus a floating glass card holding a large, focused number field. It
+    /// scales-and-fades in from the bar (hologram feel) and collapses back on Done.
+    @ViewBuilder private var amountEditorOverlay: some View {
+        if editingAmount {
+            ZStack {
+                Rectangle()
+                    .fill(.black.opacity(0.55))
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture { closeAmountEditor() }
+                    .transition(.opacity)
+
+                amountEditorCard
+                    .transition(.hologram)
+            }
+            .onAppear { amountFocused = true }
+        }
+    }
+
+    private var amountEditorCard: some View {
+        VStack(spacing: 18) {
+            Text("Enter amount")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.textTertiary)
+                .textCase(.uppercase)
+                .tracking(1)
+
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textPrimary)
+                    .tint(RingColor.carb.tint)
+                    .focused($amountFocused)
+                    .fixedSize()
+                Text(amountValue.unit)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+
+            Text("\(calories) kcal")
+                .font(.system(size: 15, weight: .medium))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textTertiary)
+                .contentTransition(.numericText())
+
+            // Big steppers for coarse nudges without leaving the editor.
+            HStack(spacing: 16) {
+                bigStep("minus", enabled: canDecrement) { step(-1) }
+                bigStep("plus", enabled: true) { step(1) }
+            }
+            .padding(.top, 2)
+
+            Button { closeAmountEditor() } label: {
+                Text("Done")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(
+                        LinearGradient(colors: [RingColor.carb.tint, RingColor.carb.tint.opacity(0.82)],
+                                       startPoint: .top, endPoint: .bottom),
+                        in: Capsule()
+                    )
+            }
+            .buttonStyle(BouncyPress())
+        }
+        .padding(24)
+        .frame(maxWidth: 300)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(RingColor.carb.tint.opacity(0.5), lineWidth: 1)
+        )
+        .shadow(color: RingColor.carb.tint.opacity(0.35), radius: 30, y: 10)
+        .padding(.horizontal, 24)
+    }
+
+    /// A larger circular stepper used inside the editor card.
+    private func bigStep(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            withAnimation(.snappy(duration: 0.25)) { action() }
+        } label: {
+            Image(systemName: system)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(enabled ? RingColor.carb.tint : Theme.textTertiary.opacity(0.5))
+                .frame(width: 54, height: 54)
+                .background(Circle().fill(RingColor.carb.tint.opacity(0.14)))
+                .symbolEffect(.bounce, value: quantity)
+        }
+        .buttonStyle(BouncyPress())
+        .disabled(!enabled)
+    }
+
+    private func closeAmountEditor() {
+        amountFocused = false
+        if quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
+        HapticManager.shared.trigger(.light)
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.8)) { editingAmount = false }
+    }
 
     // MARK: Details (cardless)
 
@@ -525,6 +620,32 @@ private struct BouncyPress: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.88 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.55), value: configuration.isPressed)
+    }
+}
+
+// MARK: - Hologram transition
+
+/// A "hologram" entrance: the view materialises by scaling up from small, fading in,
+/// resolving out of a blur, and tilting flat toward the viewer. Used for the amount
+/// editor so tapping the number feels like it projects open, and folds back on close.
+private struct HologramModifier: ViewModifier {
+    var p: Double   // 0 = hidden/projected, 1 = fully present
+    var animatableData: Double {
+        get { p }
+        set { p = newValue }
+    }
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(0.68 + 0.32 * p, anchor: .bottom)
+            .opacity(p)
+            .blur(radius: (1 - p) * 14)
+            .rotation3DEffect(.degrees((1 - p) * -22), axis: (x: 1, y: 0, z: 0), anchor: .bottom)
+    }
+}
+
+extension AnyTransition {
+    static var hologram: AnyTransition {
+        .modifier(active: HologramModifier(p: 0), identity: HologramModifier(p: 1))
     }
 }
 
