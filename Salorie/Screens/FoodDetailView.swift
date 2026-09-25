@@ -255,25 +255,24 @@ struct FoodDetailView: View {
         }
     }
 
-    /// Editable quantity in a small, light oatmeal square — tap to type.
+    /// Editable quantity in a light cream chip with a dark number — reads clearly as an
+    /// input against the black theme. Tap to type.
     private var numberSquare: some View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
             .font(.system(size: 16, weight: .bold, design: .rounded))
             .monospacedDigit()
-            .foregroundStyle(Theme.textPrimary)
-            .tint(RingColor.protein.tint)                 // caramel caret (not red)
+            .foregroundStyle(Color(hex: 0x241E18))        // dark espresso number on cream
+            .tint(RingColor.carb.tint)                    // terracotta caret
             .fixedSize()
             .padding(.horizontal, 10)
             .frame(minWidth: 40, minHeight: 40)
             .background(
-                LinearGradient(colors: [RingColor.calories.tint.opacity(0.18), RingColor.calories.tint.opacity(0.06)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing),
+                LinearGradient(colors: [RingColor.calories.tint, RingColor.calories.tint.opacity(0.86)],
+                               startPoint: .top, endPoint: .bottom),
                 in: RoundedRectangle(cornerRadius: 11, style: .continuous)
             )
-            .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .stroke(RingColor.calories.tint.opacity(0.18), lineWidth: 1))
     }
 
     /// Measure picker — white label + terracotta chevron; opens the same custom glass
