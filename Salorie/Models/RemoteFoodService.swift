@@ -164,6 +164,26 @@ enum RemoteConfig {
         let baked = ""   // ← paste your free data.gov key here for on-device USDA fallback
         return baked.isEmpty ? nil : baked
     }
+
+    /// Location of the catalog **manifest** JSON (plan §10 — hosted DB delivery). When
+    /// set, the app checks it in the background and downloads a newer `salorie_foods.sqlite`
+    /// from the host (Cloudflare R2 / Background Assets) without an App Store release.
+    /// `nil` (default) ⇒ bundled-only, fully offline, no network on launch.
+    /// Override at runtime with the `SALORIE_CATALOG_MANIFEST` env var (handy for testing).
+    static var catalogManifestURL: URL? {
+        if let e = ProcessInfo.processInfo.environment["SALORIE_CATALOG_MANIFEST"], let u = URL(string: e) { return u }
+        let baked = ""   // ← e.g. "https://cdn.salorie.app/catalog/manifest.json"
+        return baked.isEmpty ? nil : URL(string: baked)
+    }
+
+    /// CloudKit container backing SwiftData user-data sync (plan §10). `nil` (default)
+    /// ⇒ local-only persistence (no iCloud, no entitlement needed). Set to the real
+    /// container id to turn on cross-device sync of logs / meals / favorites.
+    static var cloudKitContainerID: String? {
+        if let e = ProcessInfo.processInfo.environment["SALORIE_CLOUDKIT_CONTAINER"], !e.isEmpty { return e }
+        let baked = ""   // ← e.g. "iCloud.com.salorie.app"  (requires the iCloud capability)
+        return baked.isEmpty ? nil : baked
+    }
 }
 
 private extension String {

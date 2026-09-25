@@ -6,9 +6,15 @@ import SwiftData
 // P5 keeps the whole UI speaking in value types (`Food` / `MealEntry` / …). Rather
 // than re-modelling every nested type (ExtendedNutrients, Tag, TagColor, meal
 // components) as SwiftData relationships, each row stores the **Codable snapshot**
-// of the value it persists. This is the same "denormalized snapshot" principle the
-// backend plan uses for logged history: the row is a frozen copy, so a food logged
-// today never changes if its catalog entry later does.
+// of the value it persists — the same "denormalized snapshot" principle the backend
+// plan uses for logged history: the row is a frozen copy, so a food logged today
+// never changes if its catalog entry later does.
+//
+// P6 makes these models **CloudKit-compatible** (plan §10, optional sync): no unique
+// constraints (CloudKit can't enforce them) and every stored attribute carries a
+// default value (CloudKit must be able to populate one). That's harmless for the
+// local-only default and lets `cloudKitDatabase: .private(...)` mirror the store to a
+// user's private iCloud DB with no further model changes.
 //
 // Only genuinely mutable *user* data lives here — logged entries, custom meals,
 // saved/custom foods (which also carry the favorite flag), and macro targets. The
@@ -19,10 +25,9 @@ import SwiftData
 /// the favorite flag inside its JSON, so toggling a star survives relaunch.
 @Model
 final class StoredFood {
-    #Unique<StoredFood>([\.foodID])
-    var foodID: UUID
-    var json: Data          // encoded `Food`
-    var sortIndex: Int
+    var foodID: UUID = UUID()
+    var json: Data = Data()          // encoded `Food`
+    var sortIndex: Int = 0
 
     init(foodID: UUID, json: Data, sortIndex: Int) {
         self.foodID = foodID
@@ -34,10 +39,9 @@ final class StoredFood {
 /// A user-built composite meal (`Food` with `kind == .custom`).
 @Model
 final class StoredMeal {
-    #Unique<StoredMeal>([\.mealID])
-    var mealID: UUID
-    var json: Data          // encoded custom `Food`
-    var sortIndex: Int
+    var mealID: UUID = UUID()
+    var json: Data = Data()          // encoded custom `Food`
+    var sortIndex: Int = 0
 
     init(mealID: UUID, json: Data, sortIndex: Int) {
         self.mealID = mealID
@@ -50,13 +54,12 @@ final class StoredMeal {
 /// servings, and display time are plain columns. `loggedAt` gives a stable order.
 @Model
 final class StoredEntry {
-    #Unique<StoredEntry>([\.entryID])
-    var entryID: UUID
-    var foodJSON: Data      // encoded `Food` snapshot
-    var slotRaw: String
-    var servings: Double
-    var time: String
-    var loggedAt: Date
+    var entryID: UUID = UUID()
+    var foodJSON: Data = Data()      // encoded `Food` snapshot
+    var slotRaw: String = ""
+    var servings: Double = 0
+    var time: String = ""
+    var loggedAt: Date = Date.distantPast
 
     init(entryID: UUID, foodJSON: Data, slotRaw: String, servings: Double, time: String, loggedAt: Date) {
         self.entryID = entryID
@@ -71,11 +74,11 @@ final class StoredEntry {
 /// The user's macro goals (single row).
 @Model
 final class StoredTargets {
-    var calories: Int
-    var carbs: Double
-    var protein: Double
-    var fibre: Double
-    var fat: Double
+    var calories: Int = 0
+    var carbs: Double = 0
+    var protein: Double = 0
+    var fibre: Double = 0
+    var fat: Double = 0
 
     init(calories: Int, carbs: Double, protein: Double, fibre: Double, fat: Double) {
         self.calories = calories
@@ -91,28 +94,58 @@ final class StoredTargets {
 /// Owns the on-device `ModelContainer` for user data. `MockStore` reads and writes
 /// through `context` on the main actor — no view touches SwiftData directly, so the
 /// whole app keeps its `@Environment(MockStore.self)` surface unchanged.
+///
+/// Container selection is a resilient 3-tier fallback (plan §10):
+/// 1. **CloudKit** private DB — only when `RemoteConfig.cloudKitContainerID` is set
+///    *and* the iCloud entitlement/account are available (init throws otherwise → next tier).
+/// 2. **Local file** (`.none`) — the default; identical to the P5 store, same on-disk
+///    URL, so existing data is preserved and later adopted by CloudKit if enabled.
+/// 3. **In-memory** — last-resort so the app never crashes over persistence.
 @MainActor
 final class PersistenceController {
     static let shared = PersistenceController()
 
     let container: ModelContainer
     var context: ModelContext { container.mainContext }
+    /// True when the store is CloudKit-backed (surfaced for diagnostics / settings UI).
+    let isCloudKitEnabled: Bool
 
-    /// The schema for every user-data model. Kept in one place so tests can spin up
-    /// an in-memory container with the exact same shape.
+    /// The schema for every user-data model. Kept in one place so tests can spin up an
+    /// in-memory container with the exact same shape.
     static let schema = Schema([
         StoredFood.self, StoredMeal.self, StoredEntry.self, StoredTargets.self,
     ])
 
-    init(inMemory: Bool = false) {
-        let config = ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: inMemory)
-        do {
-            container = try ModelContainer(for: Self.schema, configurations: [config])
-        } catch {
-            // Never crash the app over a persistence failure (e.g. an incompatible
-            // store during development): fall back to an ephemeral in-memory store.
-            let fallback = ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: true)
-            container = try! ModelContainer(for: Self.schema, configurations: [fallback])
+    init(inMemory: Bool = false, cloudKitContainerID: String? = RemoteConfig.cloudKitContainerID) {
+        if inMemory {
+            container = try! ModelContainer(
+                for: Self.schema,
+                configurations: [ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: true)])
+            isCloudKitEnabled = false
+            return
         }
+        // Tier 1 — CloudKit private DB (same on-disk store URL so local data migrates up).
+        if let ck = cloudKitContainerID,
+           let c = try? ModelContainer(
+               for: Self.schema,
+               configurations: [ModelConfiguration(schema: Self.schema, cloudKitDatabase: .private(ck))]) {
+            container = c
+            isCloudKitEnabled = true
+            return
+        }
+        // Tier 2 — local file, no sync (the P5 default; explicit `.none` so `.automatic`
+        // never silently tries CloudKit via an unrelated entitlement).
+        if let c = try? ModelContainer(
+            for: Self.schema,
+            configurations: [ModelConfiguration(schema: Self.schema, cloudKitDatabase: .none)]) {
+            container = c
+            isCloudKitEnabled = false
+            return
+        }
+        // Tier 3 — ephemeral, so a persistence failure never crashes the app.
+        container = try! ModelContainer(
+            for: Self.schema,
+            configurations: [ModelConfiguration(schema: Self.schema, isStoredInMemoryOnly: true)])
+        isCloudKitEnabled = false
     }
 }

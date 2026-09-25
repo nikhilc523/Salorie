@@ -29,10 +29,14 @@ final class MockStore {
     /// Fixed display date to match reference screens deterministically.
     let today: Date = SampleData.referenceDate
 
-    /// Real bundled catalog when present (466k+ foods), else the in-memory sample
-    /// (previews / missing DB). Swapping happened here — no view changes.
+    /// The best available real catalog — a downloaded build (plan §10) if one is
+    /// installed, else the bundled seed (466k+ foods), else the in-memory sample
+    /// (previews / missing DB). A corrupt download falls through to the next candidate.
     static var defaultCatalog: FoodCatalog {
-        GRDBFoodCatalog() ?? SampleFoodCatalog(foods: SampleData.foods)
+        for url in CatalogInstaller.shared.candidateDatabaseURLs() {
+            if let catalog = GRDBFoodCatalog(fileURL: url) { return catalog }
+        }
+        return SampleFoodCatalog(foods: SampleData.foods)
     }
 
     init(catalog: FoodCatalog = MockStore.defaultCatalog,

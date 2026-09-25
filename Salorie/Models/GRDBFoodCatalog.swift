@@ -16,14 +16,20 @@ struct GRDBFoodCatalog: FoodCatalog {
     /// Inject a queue directly (used by tests with an in-memory DB).
     init(dbQueue: DatabaseQueue) { self.dbQueue = dbQueue }
 
-    /// Open the bundled read-only catalog. Fails (→ nil) if it isn't in the bundle,
-    /// so callers can fall back to `SampleFoodCatalog`.
-    init?(bundledResource name: String = "salorie_foods", ext: String = "sqlite") {
-        guard let url = Bundle.main.url(forResource: name, withExtension: ext) else { return nil }
+    /// Open a read-only catalog at an explicit path (a downloaded build or the bundled
+    /// seed). Fails (→ nil) if the file is missing or unreadable, so callers can fall
+    /// through to the next candidate and ultimately `SampleFoodCatalog`.
+    init?(fileURL: URL) {
         var config = Configuration()
         config.readonly = true
-        guard let queue = try? DatabaseQueue(path: url.path, configuration: config) else { return nil }
+        guard let queue = try? DatabaseQueue(path: fileURL.path, configuration: config) else { return nil }
         self.dbQueue = queue
+    }
+
+    /// Open the bundled read-only catalog. Fails (→ nil) if it isn't in the bundle.
+    init?(bundledResource name: String = "salorie_foods", ext: String = "sqlite") {
+        guard let url = Bundle.main.url(forResource: name, withExtension: ext) else { return nil }
+        self.init(fileURL: url)
     }
 
     // MARK: FoodCatalog
