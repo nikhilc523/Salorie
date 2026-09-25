@@ -56,11 +56,10 @@ struct FoodDetailView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 22) {
                     header
-                    slotSection            // which meal — the thing people care about, up top
-                    amountControl          // how much…
-                    macroBreakdown         // …then nutrition updates live below
+                    mealAmountRow          // meal + amount on one compact line
+                    macroBreakdown         // calories is the hero, right below
                     details
                     if !food.ingredients.isEmpty { ingredients }
                 }
@@ -229,49 +228,46 @@ struct FoodDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Amount (measure picker + quantity — supports grams / oz / portions)
+    // MARK: Meal + amount — one compact line (calories is the hero below)
 
-    private var amountControl: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("AMOUNT").overlineStyle()
-
-            // Type the quantity, pick the measure from a dropdown — no steppers.
-            HStack(alignment: .center, spacing: 14) {
+    private var mealAmountRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
+                Spacer(minLength: 8)
                 quantityField
                 measureMenu
-                Spacer(minLength: 8)
-                if !gramsText.isEmpty {
-                    Text(gramsText)
-                        .font(.system(size: 17, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textSecondary)
-                }
             }
-            .padding(.top, 2)
+            if !gramsText.isEmpty {
+                Text(gramsText)
+                    .font(.system(size: 12, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.textTertiary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
     }
 
-    /// Editable quantity — a big underlined number (form-field affordance) so it's
-    /// obviously tappable. No pill, no steppers.
+    /// Editable quantity — a small underlined number (form-field affordance) so it's
+    /// clearly tappable, kept compact since calories is the hero.
     private var quantityField: some View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
-            .multilineTextAlignment(.leading)
-            .font(.system(size: 30, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.center)
+            .font(.system(size: 17, weight: .bold, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Theme.textPrimary)
-            .tint(RingColor.carb.tint)                       // terracotta caret
-            .frame(width: 88, alignment: .leading)
-            .padding(.bottom, 6)
-            .overlay(alignment: .bottomLeading) {
-                Capsule()
-                    .fill(RingColor.carb.tint)
-                    .frame(width: 88, height: 2.5)           // underline = editable cue
+            .tint(RingColor.carb.tint)
+            .fixedSize()
+            .padding(.horizontal, 4)
+            .padding(.bottom, 4)
+            .overlay(alignment: .bottom) {
+                Capsule().fill(RingColor.carb.tint).frame(height: 2)   // underline = editable
             }
     }
 
     /// Measure dropdown — Serving · household portions · 100 g · Grams · Ounces.
-    /// A warm terracotta pill; switching animates and converts the quantity.
+    /// A compact warm terracotta pill; switching animates and converts the quantity.
     private var measureMenu: some View {
         Menu {
             ForEach(measures) { m in
@@ -287,15 +283,15 @@ struct FoodDetailView: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Text(selectedMeasure?.label ?? "Serving")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
-                Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold))
+                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
             }
             .foregroundStyle(RingColor.carb.tint)
-            .padding(.horizontal, 16)
-            .frame(height: 40)
+            .padding(.horizontal, 12)
+            .frame(height: 32)
             .background(RingColor.carb.tint.opacity(0.14), in: Capsule())
         }
     }
@@ -335,12 +331,6 @@ struct FoodDetailView: View {
 
     // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
 
-    private var slotSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("ADD TO MEAL").overlineStyle()
-            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
-        }
-    }
 
     // MARK: Details (cardless)
 

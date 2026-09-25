@@ -23,24 +23,37 @@ struct MealSlotDropdown: View {
             HStack(spacing: 8) {
                 Image(systemName: slot.symbol)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(slot.tagColor.fg)
+                    .foregroundStyle(mealSlotColor(slot))
                 Text(slot.rawValue)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .contentTransition(.numericText())
                 Image(systemName: "chevron.down")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(mealSlotColor(slot).opacity(0.9))
                     .rotationEffect(.degrees(isOpen ? 180 : 0))
             }
-            .padding(.horizontal, 16)
-            .frame(height: 42)
-            .glassEffect(.regular.interactive(), in: Capsule())
-            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))   // definition on black
+            .padding(.horizontal, 14)
+            .frame(height: 40)
+            .glassEffect(.regular.tint(mealSlotColor(slot).opacity(0.28)).interactive(), in: Capsule())
+            .overlay(Capsule().stroke(mealSlotColor(slot).opacity(0.4), lineWidth: 1))
         }
         .buttonStyle(.plain)
         // Publish the trigger's frame so the host can anchor the card under it.
         .anchorPreference(key: MealSlotAnchorKey.self, value: .bounds) { $0 }
+    }
+}
+
+// MARK: - Meal colours
+
+/// Natural, distinct colour per meal — used for the trigger tint, icons, and the
+/// selected-row highlight so the pull-down reads as one colour-coded system.
+func mealSlotColor(_ s: MealSlot) -> Color {
+    switch s {
+    case .breakfast: return TagColor.orange.fg   // sunrise
+    case .lunch:     return TagColor.yellow.fg   // midday sun
+    case .dinner:    return TagColor.purple.fg   // night
+    case .snacks:    return TagColor.green.fg    // veg
     }
 }
 
@@ -126,7 +139,7 @@ private struct MealSlotMenuCard: View {
             HStack(spacing: 12) {
                 Image(systemName: s.symbol)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(s.tagColor.fg)
+                    .foregroundStyle(mealSlotColor(s))
                     .frame(width: 26)
                 Text(s.rawValue)
                     .font(.system(size: 15, weight: selected ? .semibold : .medium))
@@ -134,14 +147,14 @@ private struct MealSlotMenuCard: View {
                 Spacer(minLength: 8)
                 Image(systemName: "checkmark")
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(RingColor.carb.tint)
+                    .foregroundStyle(mealSlotColor(s))
                     .opacity(selected ? 1 : 0)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(selected ? RingColor.carb.tint.opacity(0.14) : .clear)
+                    .fill(selected ? mealSlotColor(s).opacity(0.15) : .clear)
                     .padding(.horizontal, 6)
             )
             .contentShape(Rectangle())
