@@ -270,12 +270,12 @@ struct FoodDetailView: View {
             .padding(.horizontal, 16)
             .frame(minWidth: 46, minHeight: 46)
             .background(
-                LinearGradient(colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
-                               startPoint: .top, endPoint: .bottom),
+                LinearGradient(colors: [RingColor.carb.tint.opacity(0.30), RingColor.carb.tint.opacity(0.12)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing),
                 in: RoundedRectangle(cornerRadius: 13, style: .continuous)
             )
             .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1))
+                .stroke(RingColor.carb.tint.opacity(0.35), lineWidth: 1))
     }
 
     /// Measure picker — white label + terracotta chevron; opens the same custom glass
