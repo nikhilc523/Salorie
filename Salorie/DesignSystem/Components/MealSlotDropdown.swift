@@ -36,6 +36,7 @@ struct MealSlotDropdown: View {
             .padding(.horizontal, 16)
             .frame(height: 42)
             .glassEffect(.regular.interactive(), in: Capsule())
+            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))   // definition on black
         }
         .buttonStyle(.plain)
         // Publish the trigger's frame so the host can anchor the card under it.

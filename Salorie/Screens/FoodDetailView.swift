@@ -115,10 +115,12 @@ struct FoodDetailView: View {
             if let brand = food.brand {
                 Text(brand).font(.system(size: 15)).foregroundStyle(Theme.textSecondary)
             }
-            HStack(spacing: 6) {
-                SourceBadge(source: food.source)
-                if food.isOpen { GhostBadge("OPEN") }
-                ForEach(food.tags) { TagPill($0) }
+            // Source lives in the Details section below — only surface OPEN / tags here.
+            if food.isOpen || !food.tags.isEmpty {
+                HStack(spacing: 6) {
+                    if food.isOpen { GhostBadge("OPEN") }
+                    ForEach(food.tags) { TagPill($0) }
+                }
             }
         }
     }
@@ -234,13 +236,13 @@ struct FoodDetailView: View {
             Text("AMOUNT").overlineStyle()
 
             // Type the quantity, pick the measure from a dropdown — no steppers.
-            HStack(spacing: 12) {
+            HStack(alignment: .center, spacing: 14) {
                 quantityField
                 measureMenu
                 Spacer(minLength: 8)
                 if !gramsText.isEmpty {
                     Text(gramsText)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Theme.textSecondary)
                 }
@@ -249,17 +251,23 @@ struct FoodDetailView: View {
         }
     }
 
-    /// Editable quantity — tap to type an exact amount. No +/- adjustment. Small white
-    /// pill (the old selected-chip look) so the number reads as the key value.
+    /// Editable quantity — a big underlined number (form-field affordance) so it's
+    /// obviously tappable. No pill, no steppers.
     private var quantityField: some View {
-        TextField("", value: $quantity, format: .number.precision(.fractionLength(0...2)))
+        TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
-            .multilineTextAlignment(.center)
-            .font(.system(size: 17, weight: .bold, design: .rounded))
+            .multilineTextAlignment(.leading)
+            .font(.system(size: 30, weight: .bold, design: .rounded))
             .monospacedDigit()
-            .foregroundStyle(Color(hex: 0x000000))
-            .frame(width: 76, height: 40)
-            .background(Theme.textPrimary, in: Capsule())
+            .foregroundStyle(Theme.textPrimary)
+            .tint(RingColor.carb.tint)                       // terracotta caret
+            .frame(width: 88, alignment: .leading)
+            .padding(.bottom, 6)
+            .overlay(alignment: .bottomLeading) {
+                Capsule()
+                    .fill(RingColor.carb.tint)
+                    .frame(width: 88, height: 2.5)           // underline = editable cue
+            }
     }
 
     /// Measure dropdown — Serving · household portions · 100 g · Grams · Ounces.
