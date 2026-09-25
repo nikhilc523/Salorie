@@ -64,7 +64,7 @@ struct NutrientDetailView: View {
 
     private var highlights: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("GOOD SOURCE OF").overlineStyle()
+            heading("Good source of")
             FlowLayout(spacing: 8) {
                 ForEach(goodSources.prefix(8)) { row in
                     HStack(spacing: 6) {
@@ -89,12 +89,34 @@ struct NutrientDetailView: View {
     // MARK: Quality badges (Open Food Facts)
 
     private var badges: some View {
-        HStack(spacing: 8) {
-            if let ns = ext.nutriScore { nutriScorePill(ns) }
-            if let nova = ext.novaGroup { novaPill(nova) }
-            Spacer(minLength: 0)
+        FlowLayout(spacing: 8) {
+            if let ns = ext.nutriScore {
+                HStack(spacing: 6) {
+                    nutriScorePill(ns)
+                    InfoButton(title: "Nutri-Score",
+                               message: "A front-of-pack rating from A (healthiest) to E. It balances nutrients to favour — fibre, protein, fruit & veg — against ones to limit: calories, sugar, saturated fat and salt.")
+                }
+            }
+            if let nova = ext.novaGroup {
+                HStack(spacing: 6) {
+                    novaPill(nova)
+                    InfoButton(title: "NOVA group",
+                               message: "How processed a food is, from 1 (unprocessed or minimally processed) to 4 (ultra-processed). Lower is generally better.")
+                }
+            }
         }
     }
+
+    /// Caramel section heading for clear separation between groups.
+    private func heading(_ title: String) -> some View {
+        Text(title)
+            .font(.overline)
+            .textCase(.uppercase)
+            .tracking(0.9)
+            .foregroundStyle(NutrientDetailView.headingColor)
+    }
+
+    static let headingColor = RingColor.protein.tint   // caramel
 
     private func nutriScorePill(_ s: String) -> some View {
         let color: TagColor = switch s.uppercased() {
@@ -183,7 +205,7 @@ struct NutrientDetailView: View {
 
     private func sectionView(_ section: NutrientSection) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(section.title).overlineStyle().padding(.bottom, 4)
+            heading(section.title).padding(.bottom, 4)
             ForEach(Array(section.rows.enumerated()), id: \.element.id) { idx, row in
                 rowView(row).padding(.vertical, 13)
                 if idx < section.rows.count - 1 {
@@ -262,6 +284,41 @@ struct NutrientSection: Identifiable {
     let id = UUID()
     let title: String
     let rows: [NutrientRow]
+}
+
+// MARK: - InfoButton
+
+/// A small ⓘ that pops an explanatory note next to a label (Nutri-Score, NOVA, …).
+struct InfoButton: View {
+    let title: String
+    let message: String
+    @State private var show = false
+
+    var body: some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            show = true
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.textTertiary)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $show) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(title)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text(message)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
+            .frame(width: 264)
+            .presentationCompactAdaptation(.popover)
+        }
+    }
 }
 
 // MARK: - FlowLayout
