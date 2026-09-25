@@ -231,30 +231,29 @@ struct FoodDetailView: View {
     // MARK: Meal + amount — one compact line (calories is the hero below)
 
     private var mealAmountRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
-                Spacer(minLength: 8)
+        HStack(alignment: .center, spacing: 8) {
+            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
+            Spacer(minLength: 8)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 quantityField
                 measureMenu
-            }
-            if !gramsText.isEmpty {
-                Text(gramsText)
-                    .font(.system(size: 12, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                if !gramsText.isEmpty {
+                    Text(gramsText)
+                        .font(.system(size: 15, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textTertiary)
+                }
             }
         }
     }
 
-    /// Editable quantity — a small underlined number (form-field affordance) so it's
-    /// clearly tappable, kept compact since calories is the hero.
+    /// Editable quantity — an underlined number (form-field affordance) so it's clearly
+    /// tappable. Same size as the measure so the amount reads as one unit.
     private var quantityField: some View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
-            .font(.system(size: 17, weight: .bold, design: .rounded))
+            .font(.system(size: 18, weight: .bold, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Theme.textPrimary)
             .tint(RingColor.carb.tint)
@@ -285,14 +284,13 @@ struct FoodDetailView: View {
         } label: {
             HStack(spacing: 5) {
                 Text(selectedMeasure?.label ?? "Serving")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .lineLimit(1)
-                Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+                Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold))
             }
-            .foregroundStyle(RingColor.carb.tint)
-            .padding(.horizontal, 12)
-            .frame(height: 32)
-            .background(RingColor.carb.tint.opacity(0.14), in: Capsule())
+            .foregroundStyle(RingColor.carb.tint)   // same terracotta as the underline, no pill
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
         }
     }
 
