@@ -59,7 +59,6 @@ struct FoodDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     header
-                    mealAmountRow          // meal + amount on one compact line
                     macroBreakdown         // calories is the hero, right below
                     details
                     if !food.ingredients.isEmpty { ingredients }
@@ -238,20 +237,27 @@ struct FoodDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Meal + amount — one compact line (calories is the hero below)
+    // MARK: Bottom controls — meal picker + serving, in one glass bar
 
-    private var mealAmountRow: some View {
-        HStack(alignment: .center, spacing: 8) {
-            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
-            Spacer(minLength: 6)
-            numberSquare
-            measureTrigger
-            if !gramsText.isEmpty {
-                Text(gramsText)
-                    .font(.system(size: 15, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.textSecondary)
+    /// A bare (glass-less) meal trigger, sized to live *inside* the shared controls
+    /// pill in `addBar` rather than carrying its own capsule.
+    private var mealTrigger: some View {
+        DropdownTrigger(isOpen: $slotMenuOpen) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(mealSlotColor(slot))
+                    .frame(width: 7, height: 7)
+                Text(slot.rawValue)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .contentTransition(.numericText())
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(mealSlotColor(slot).opacity(0.9))
+                    .rotationEffect(.degrees(slotMenuOpen ? 180 : 0))
             }
+            .contentShape(Rectangle())
         }
     }
 
@@ -401,37 +407,71 @@ struct FoodDetailView: View {
     // MARK: Add bar
 
     private var addBar: some View {
-        HStack {
-            Spacer()
-            Button {
-                HapticManager.shared.trigger(.success)
-                store.addEntry(food, slot: slot, servings: servings)
-                dismiss()
-            } label: {
-                HStack(spacing: 7) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 15, weight: .bold))
-                    Text("Add \(calories) cal to \(slot.rawValue)")
-                        .font(.system(size: 15, weight: .semibold))
-                        .contentTransition(.numericText())
-                }
-                // Clear Liquid Glass (matches the "+" add buttons): neutral frosted
-                // material, warm copper content — no color fill.
-                .foregroundStyle(RingColor.carb.tint)
-                .padding(.horizontal, 26)
-                .padding(.vertical, 15)
-                .glassEffect(.regular.interactive(), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            Spacer()
+        HStack(spacing: 12) {
+            controlsPill
+            addButton
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Metrics.pagePadding)
         .padding(.top, 22)
         .padding(.bottom, 8)
         .background(
             LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg, Theme.bg],
                            startPoint: .top, endPoint: .bottom)
         )
+    }
+
+    /// Left half of the bar: the meal picker and the serving controls, sharing one
+    /// glass capsule — meal reads on the leading edge, amount on the trailing edge.
+    private var controlsPill: some View {
+        HStack(spacing: 8) {
+            mealTrigger
+                .layoutPriority(0)          // meal name yields first if space is tight
+            Spacer(minLength: 8)
+            HStack(spacing: 6) {            // serving group is pinned — never truncates
+                numberSquare
+                measureTrigger
+                if !gramsText.isEmpty {
+                    Text(gramsText)
+                        .font(.system(size: 13, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textTertiary)
+                        .lineLimit(1)
+                }
+            }
+            .fixedSize()
+            .layoutPriority(1)
+        }
+        .padding(.horizontal, 13)
+        .frame(height: 54)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    /// Right half: the detached CTA. Warm terracotta-tinted glass so it reads as the
+    /// one action — the meal name already lives in the pill, so the label stays short.
+    private var addButton: some View {
+        Button {
+            HapticManager.shared.trigger(.success)
+            store.addEntry(food, slot: slot, servings: servings)
+            dismiss()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "plus")
+                    .font(.system(size: 15, weight: .bold))
+                Text("\(calories)")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .fixedSize()
+            }
+            .foregroundStyle(RingColor.carb.tint)
+            .padding(.horizontal, 17)
+            .frame(height: 54)
+            .glassEffect(.regular.tint(RingColor.carb.tint.opacity(0.22)).interactive(), in: Capsule())
+            .overlay(Capsule().stroke(RingColor.carb.tint.opacity(0.45), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 }
 

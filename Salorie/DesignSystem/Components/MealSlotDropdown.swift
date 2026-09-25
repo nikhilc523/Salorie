@@ -41,7 +41,9 @@ struct DropdownTrigger<Label: View>: View {
 
 extension View {
     /// Host a floating glass dropdown card for a `DropdownTrigger`. Apply on the screen's
-    /// outermost container so the scrim can cover the whole screen.
+    /// outermost container so the scrim can cover the whole screen. The card drops below
+    /// the trigger by default, and flips *above* it when the trigger sits low on screen
+    /// (e.g. a bottom action bar) so it never spills off the bottom edge.
     func glassMenu(isOpen: Binding<Bool>,
                    items: [GlassMenuItem],
                    selectedID: String,
@@ -51,28 +53,63 @@ extension View {
         overlayPreferenceValue(DropdownAnchorKey.self) { anchor in
             GeometryReader { geo in
                 if isOpen.wrappedValue, let anchor {
-                    let rect = geo[anchor]
-                    let menuWidth = max(width, rect.width)
-                    let rawX = rect.midX > geo.size.width / 2 ? rect.maxX - menuWidth : rect.minX
-                    let x = min(max(12, rawX), geo.size.width - menuWidth - 12)
-
-                    ZStack(alignment: .topLeading) {
-                        Color.black.opacity(0.14)
-                            .ignoresSafeArea()
-                            .contentShape(Rectangle())
-                            .onTapGesture { closeMenu(isOpen) }
-                            .transition(.opacity)
-
-                        GlassMenuCard(items: items, selectedID: selectedID, accent: accent) { id in
-                            onSelect(id)
-                            closeMenu(isOpen)
-                        }
-                        .frame(width: menuWidth)
-                        .offset(x: x, y: rect.maxY + 8)
-                        .transition(.scale(scale: 0.92, anchor: .top).combined(with: .opacity))
-                    }
+                    GlassMenuHost(rect: geo[anchor],
+                                  container: geo.size,
+                                  items: items,
+                                  selectedID: selectedID,
+                                  accent: accent,
+                                  width: width,
+                                  isOpen: isOpen,
+                                  onSelect: onSelect)
                 }
             }
+        }
+    }
+}
+
+/// Positions a `GlassMenuCard` beneath (or above) its trigger, measuring the card's
+/// height so the upward flip lands flush against the trigger's top edge.
+private struct GlassMenuHost: View {
+    let rect: CGRect
+    let container: CGSize
+    let items: [GlassMenuItem]
+    let selectedID: String
+    let accent: Color
+    let width: CGFloat
+    @Binding var isOpen: Bool
+    let onSelect: (String) -> Void
+
+    @State private var cardHeight: CGFloat = 0
+
+    var body: some View {
+        let menuWidth = max(width, rect.width)
+        let rawX = rect.midX > container.width / 2 ? rect.maxX - menuWidth : rect.minX
+        let x = min(max(12, rawX), container.width - menuWidth - 12)
+
+        // Flip up when a downward card wouldn't fit above the bottom safe margin.
+        let flipUp = rect.maxY + 8 + cardHeight > container.height - 12
+        let y = flipUp ? rect.minY - 8 - cardHeight : rect.maxY + 8
+
+        ZStack(alignment: .topLeading) {
+            Color.black.opacity(0.14)
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture { closeMenu($isOpen) }
+                .transition(.opacity)
+
+            GlassMenuCard(items: items, selectedID: selectedID, accent: accent) { id in
+                onSelect(id)
+                closeMenu($isOpen)
+            }
+            .frame(width: menuWidth)
+            .background(
+                GeometryReader { g in
+                    Color.clear.onAppear { cardHeight = g.size.height }
+                        .onChange(of: g.size.height) { _, h in cardHeight = h }
+                }
+            )
+            .offset(x: x, y: y)
+            .transition(.scale(scale: 0.92, anchor: flipUp ? .bottom : .top).combined(with: .opacity))
         }
     }
 }
