@@ -248,9 +248,9 @@ struct FoodDetailView: View {
             measureTrigger
             if !gramsText.isEmpty {
                 Text(gramsText)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .monospacedDigit()
-                    .foregroundStyle(Theme.textTertiary)
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
     }
@@ -261,13 +261,13 @@ struct FoodDetailView: View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
-            .font(.system(size: 16, weight: .bold, design: .rounded))
+            .font(.system(size: 15, weight: .bold, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Color(hex: 0x241E18))        // dark espresso number on cream
             .tint(RingColor.carb.tint)                    // terracotta caret
             .fixedSize()
-            .padding(.horizontal, 10)
-            .frame(minWidth: 40, minHeight: 40)
+            .padding(.horizontal, 9)
+            .frame(minWidth: 34, minHeight: 34)
             .background(
                 LinearGradient(colors: [RingColor.calories.tint, RingColor.calories.tint.opacity(0.86)],
                                startPoint: .top, endPoint: .bottom),
@@ -281,7 +281,7 @@ struct FoodDetailView: View {
         DropdownTrigger(isOpen: $measureMenuOpen) {
             HStack(spacing: 5) {
                 Text(selectedMeasure?.label ?? "Serving")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
