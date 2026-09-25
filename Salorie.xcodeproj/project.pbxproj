@@ -11,7 +11,6 @@
 		0550BF60589630E3BA27E68A /* IngredientPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 098894E12940365049E6D37F /* IngredientPickerView.swift */; };
 		087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */; };
 		1FEC21311919848DD9EFE95C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8A0DE5C8B820F77E3CB671E4 /* GRDB */; };
-		2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */; };
 		2EF75F316AE5C266B4D322F1 /* CatalogInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F875A4359B7528965B5F269 /* CatalogInstaller.swift */; };
 		39E3123F04390E319188DF58 /* CatalogDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A1FB552762B5C36F7AF646 /* CatalogDownloadManager.swift */; };
 		3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */; };
@@ -102,7 +101,6 @@
 		7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatDetailView.swift; sourceTree = "<group>"; };
 		7AB10BD692D05CBB0054109A /* Salorie.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Salorie.entitlements; sourceTree = "<group>"; };
 		7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedCardsCarousel.swift; sourceTree = "<group>"; };
-		8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyItemsView.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -204,7 +202,6 @@
 				6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */,
 				52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */,
 				DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */,
-				8D2FA1BCD8BB4A4846F06061 /* MyItemsView.swift */,
 				1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */,
 				796CC2D90F52CABD600C2327 /* ScanView.swift */,
 				C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */,
@@ -394,7 +391,6 @@
 				087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */,
 				B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */,
 				D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */,
-				2DE6C510AAA14F1563948F9D /* MyItemsView.swift in Sources */,
 				43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */,
 				5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */,
 				A104915F623D78B3570AA975 /* NutrientDetailView.swift in Sources */,

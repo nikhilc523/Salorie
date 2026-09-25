@@ -145,7 +145,7 @@ struct SegmentedTabs: View {
                     VStack(spacing: 8) {
                         Text(title)
                             .font(.system(size: 15, weight: selection == idx ? .semibold : .regular))
-                            .foregroundStyle(selection == idx ? Theme.textPrimary : Theme.textSecondary)
+                            .foregroundStyle(selection == idx ? Theme.textPrimary : Theme.textTertiary)
                         Rectangle()
                             .fill(selection == idx ? Theme.textPrimary : .clear)
                             .frame(height: 2)

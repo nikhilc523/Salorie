@@ -1,34 +1,44 @@
 import SwiftUI
 
-/// Add food. Search / Scan strip. With no query, auto-populates the fastest re-log
-/// candidates — Frequent, Recent, Favorites — so logging is one tap and no re-scan.
+/// The single place to log food. One screen — search, quick actions (scan / new meal /
+/// quick add), and browsable tabs (History · Meals · Favorites · Foods). Every "+"
+/// logs a **known** portion into the meal you pick up top, so a one-tap add is never a
+/// guess; tapping a row opens the detail to fine-tune the amount first.
 struct AddView: View {
     @Environment(MockStore.self) private var store
-    @State private var tab = ProcessInfo.processInfo.environment["SALORIE_SCAN"] == "1" ? 1 : 0
-    @State private var query = ProcessInfo.processInfo.environment["SALORIE_QUERY"] ?? ""
-    @State private var selectedFood: Food?
-    @State private var selectedMeal: Food?
-    @State private var showBuilder = false
-    @State private var expandedSections: Set<String> = []   // sections showing all rows
+
+    @State private var query: String
+    @State private var slot: MealSlot
+    @State private var tab: Int              // 0 History · 1 Meals · 2 Favorites · 3 Foods
     @State private var results: [Food] = []
     @State private var searching = false
+    @State private var selectedFood: Food?
+    @State private var selectedMeal: Food?
+    @State private var showScan = false
+    @State private var showBuilder = false
+    @State private var showManualFood = false
 
-    /// Debounced search against the store's async catalog. `.task(id: query)`
-    /// cancels the in-flight run on each keystroke, so the sleep debounces cleanly.
-    private func runSearch(_ raw: String) async {
-        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { results = []; searching = false; return }
-        searching = true
-        try? await Task.sleep(for: .milliseconds(200))
-        if Task.isCancelled { return }
-        let hits = await store.search(q)
-        if Task.isCancelled { return }
-        results = hits
-        searching = false
+    private static let tabs = ["History", "Meals", "Favorites", "Foods"]
+    /// Warm quick-add tint from the palette (terracotta), matching the food-detail CTA.
+    static let addTint = RingColor.carb.tint
+
+    init() {
+        let env = ProcessInfo.processInfo.environment
+        _query = State(initialValue: env["SALORIE_QUERY"] ?? "")
+        _slot = State(initialValue: AddView.timeSlot())
+        // Screenshot hooks: land on a specific browse tab.
+        let initialTab: Int
+        switch env["SALORIE_ITEMS"] ?? env["SALORIE_TAB_ADD"] {
+        case "meals": initialTab = 1
+        case "favorites": initialTab = 2
+        case "foods", "custom": initialTab = 3
+        default: initialTab = 0
+        }
+        _tab = State(initialValue: initialTab)
     }
 
-    /// One-tap adds land in the meal that fits the time of day.
-    private var defaultSlot: MealSlot {
+    /// The meal that fits the current time of day — the sensible default target.
+    private static func timeSlot() -> MealSlot {
         switch Calendar.current.component(.hour, from: Date()) {
         case 5..<11:  return .breakfast
         case 11..<15: return .lunch
@@ -37,18 +47,26 @@ struct AddView: View {
         }
     }
 
+    // MARK: Body
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 header
+                searchField
                     .padding(.horizontal, Metrics.pagePadding)
-                    .padding(.top, 4)
+                    .padding(.top, 16)
 
-                SegmentedTabs(items: ["Search", "Scan"], selection: $tab, equalWidths: true)
-                    .padding(.horizontal, Metrics.pagePadding)
-                    .padding(.top, 14)
+                if query.isEmpty {
+                    quickActions
+                        .padding(.horizontal, Metrics.pagePadding)
+                        .padding(.top, 16)
+                    SegmentedTabs(items: Self.tabs, selection: $tab)
+                        .padding(.horizontal, Metrics.pagePadding)
+                        .padding(.top, 24)
+                }
 
-                if tab == 0 { searchTab } else { ScanView() }
+                content
             }
             .background(Theme.bg)
             .navigationTitle("")
@@ -56,211 +74,49 @@ struct AddView: View {
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
             .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
             .sheet(isPresented: $showBuilder) { MealBuilderView() }
-            .onAppear {
-                // Screenshot/testing hooks: SALORIE_MEAL=detail|builder.
-                switch ProcessInfo.processInfo.environment["SALORIE_MEAL"] {
-                case "detail": selectedMeal = store.customMeals.first
-                case "builder": showBuilder = true
-                default: break
-                }
-                // Screenshot hook: open a real catalog food's detail by barcode.
-                if let code = ProcessInfo.processInfo.environment["SALORIE_OPEN_BARCODE"] {
-                    Task { selectedFood = await store.food(forBarcode: code) }
-                }
-            }
+            .sheet(isPresented: $showManualFood) { ManualFoodEntryView(initialSlot: slot) }
+            .sheet(isPresented: $showScan) { scanSheet }
+            .task(id: query) { await runSearch(query) }
+            .onAppear(perform: applyScreenshotHooks)
         }
     }
 
-    /// Bold screen heading matching the other tabs (My Items / Sharing).
+    // MARK: Header — title + meal-slot target
+
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .center) {
             Text("Add Food")
                 .font(.screenTitle)
                 .foregroundStyle(Theme.textPrimary)
-            Text("Search or scan to log a food")
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.textSecondary)
+            Spacer()
+            slotMenu
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Metrics.pagePadding)
+        .padding(.top, 6)
     }
 
-    /// Custom meals open the meal detail; single foods open the food detail.
-    private func open(_ food: Food) {
-        HapticManager.shared.trigger(.light)
-        if food.isCustomMeal { selectedMeal = food } else { selectedFood = food }
-    }
-
-    // MARK: Search + auto-populated lists
-
-    private var searchTab: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                searchField
-
-                if query.isEmpty {
-                    myMealsSection
-                    section("FREQUENT", Array(store.frequentFoods.filter { !$0.isCustomMeal }.prefix(10)))
-                    section("RECENT", Array(store.recentFoods.filter { !$0.isCustomMeal }.prefix(10)))
-                    section("FAVORITES", store.favorites)
-                } else if results.isEmpty {
-                    if !searching { emptyResults }   // stay quiet during the debounce
-                } else {
-                    section("RESULTS", results, collapsible: false)
+    /// The one control that removes the "which meal?" ambiguity — every "+" logs here.
+    private var slotMenu: some View {
+        Menu {
+            Picker("Meal", selection: $slot) {
+                ForEach(MealSlot.allCases) { s in
+                    Label(s.rawValue, systemImage: s.symbol).tag(s)
                 }
             }
-            .padding(.horizontal, Metrics.pagePadding)
-            .padding(.top, 16)
-            .padding(.bottom, 24)
-        }
-        .background(Theme.bg)
-        .scrollContentBackground(.hidden)
-        .task(id: query) { await runSearch(query) }
-    }
-
-    // MARK: MY MEALS — a normal list (the hero cards live in My Items → Meals)
-
-    private var myMealsSection: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text("MY MEALS").overlineStyle()
-                Spacer()
-                Button {
-                    HapticManager.shared.trigger(.light)
-                    showBuilder = true
-                } label: {
-                    Label("Create", systemImage: "plus")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Self.addTint)
-                }
-                .buttonStyle(.plain)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: slot.symbol).font(.system(size: 13, weight: .semibold))
+                Text(slot.rawValue).font(.system(size: 15, weight: .semibold))
+                Image(systemName: "chevron.down").font(.system(size: 11, weight: .bold))
             }
-            .padding(.bottom, 6)
-
-            if store.customMeals.isEmpty {
-                Text("No meals yet — tap Create to build one.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.textTertiary)
-                    .padding(.vertical, 6)
-            } else {
-                rows("MY MEALS", store.customMeals)
-            }
+            .foregroundStyle(Self.addTint)
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .glassEffect(.regular.interactive(), in: Capsule())
         }
     }
 
-    @ViewBuilder
-    private func section(_ title: String, _ foods: [Food], collapsible: Bool = true) -> some View {
-        if !foods.isEmpty {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).overlineStyle().padding(.bottom, 6)
-                rows(title, foods, collapsible: collapsible)
-            }
-        }
-    }
-
-    private func toggleSection(_ title: String) {
-        HapticManager.shared.trigger(.light)
-        withAnimation(.snappy(duration: 0.26)) {
-            if expandedSections.contains(title) { expandedSections.remove(title) }
-            else { expandedSections.insert(title) }
-        }
-    }
-
-    /// First 3 rows; the rest revealed on demand via a "Show N more" disclosure.
-    @ViewBuilder
-    private func rows(_ title: String, _ foods: [Food], collapsible: Bool = true) -> some View {
-        let expanded = expandedSections.contains(title)
-        let canCollapse = collapsible && foods.count > 3
-        let shown = (canCollapse && !expanded) ? Array(foods.prefix(3)) : foods
-        ForEach(Array(shown.enumerated()), id: \.element.id) { i, food in
-            if i > 0 { Divider().overlay(Theme.divider) }
-            foodRow(food)
-        }
-        if canCollapse {
-            Button { toggleSection(title) } label: {
-                HStack(spacing: 4) {
-                    Text(expanded ? "Show less" : "Show \(foods.count - 3) more")
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
-                        .rotationEffect(.degrees(expanded ? 180 : 0))
-                }
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Self.addTint)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    /// Warm quick-add tint from the palette (terracotta), matching the food-detail CTA.
-    private static let addTint = RingColor.carb.tint
-
-    /// Row subtitle — leads with the **brand** so brand searches are legible
-    /// (e.g. "Minute Maid · 5 cal · OFF"), falls back to source for generics.
-    private func rowSubtitle(_ food: Food) -> String {
-        if food.isCustomMeal {
-            return "\(food.components.count) ingredients · \(food.calories) cal"
-        }
-        let parts = [food.brand, "\(food.calories) cal", food.source.short]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-        return parts.joined(separator: " · ")
-    }
-
-    private func foodRow(_ food: Food) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: food.symbol)
-                .font(.system(size: 16))
-                .foregroundStyle(food.tint.fg)
-                .frame(width: 34, height: 34)
-                .background(food.tint.bg, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(food.name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                Text(rowSubtitle(food))
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textTertiary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 8)
-
-            Button {
-                HapticManager.shared.trigger(.success)
-                store.addEntry(food, slot: defaultSlot)
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Self.addTint)
-                    .frame(width: 34, height: 34)
-                    .glassEffect(.regular, in: Circle())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.vertical, 7)
-        .contentShape(Rectangle())
-        .onTapGesture { open(food) }
-    }
-
-    private var emptyResults: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 30))
-                .foregroundStyle(Theme.textTertiary)
-            Text("No matches for \u{201C}\(query)\u{201D}")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
-            Text("Try a different name, or scan the barcode.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.textTertiary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 48)
-    }
+    // MARK: Search field
 
     private var searchField: some View {
         HStack(spacing: 10) {
@@ -276,11 +132,323 @@ struct AddView: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
             }
         }
         .padding(.horizontal, 14)
         .frame(height: 46)
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    // MARK: Quick actions — scan / new meal / quick add (icons, not a second half-screen)
+
+    private var quickActions: some View {
+        HStack(spacing: 10) {
+            quickTile("Scan", "barcode.viewfinder") { HapticManager.shared.trigger(.light); showScan = true }
+            quickTile("New Meal", "square.stack.3d.up.fill") { HapticManager.shared.trigger(.light); showBuilder = true }
+            quickTile("Quick Add", "square.and.pencil") { HapticManager.shared.trigger(.light); showManualFood = true }
+        }
+    }
+
+    private func quickTile(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 7) {
+                Image(systemName: icon).font(.system(size: 20, weight: .semibold))
+                Text(label).font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(Self.addTint)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Content — search results or the selected browse tab
+
+    private var content: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 2) {
+                if !query.isEmpty {
+                    if !results.isEmpty {
+                        ForEach(Array(results.enumerated()), id: \.element.id) { i, food in
+                            if i > 0 { rowDivider }
+                            row(for: food)
+                        }
+                    } else if !searching {
+                        emptyResults
+                    }
+                } else {
+                    tabContent
+                }
+            }
+            .padding(.horizontal, Metrics.pagePadding)
+            .padding(.top, 16)
+            .padding(.bottom, 28)
+        }
+        .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.immediately)
+    }
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch tab {
+        case 1: mealsList
+        case 2: foodList(store.favorites, empty: "No favorites yet", hint: "Tap the star on any food to save it here.")
+        case 3: foodList(customFoods, empty: "No custom foods yet", hint: "Scan or Quick Add a food and it shows up here.")
+        default: historyList
+        }
+    }
+
+    // History — one-tap re-log of the exact portion you logged last time.
+    @ViewBuilder
+    private var historyList: some View {
+        let items = store.recentLogItems
+        if items.isEmpty {
+            emptyState("clock.arrow.circlepath", "Nothing logged yet",
+                       "Foods you log will appear here for a fast one-tap re-log.")
+        } else {
+            ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
+                if i > 0 { rowDivider }
+                AddRow(food: item.food,
+                       subtitle: recentSubtitle(item),
+                       slotName: slot.rawValue,
+                       onAdd: { store.addEntry(item.food, slot: slot, servings: item.servings) },
+                       onOpen: { open(item.food) })
+            }
+        }
+    }
+
+    // Meals — log a whole custom meal in one tap, or open it to tweak.
+    @ViewBuilder
+    private var mealsList: some View {
+        if store.customMeals.isEmpty {
+            emptyState("takeoutbag.and.cup.and.straw", "No meals yet",
+                       "Build a meal from your foods to log it in one tap.", cta: "Create meal") {
+                showBuilder = true
+            }
+        } else {
+            ForEach(Array(store.customMeals.enumerated()), id: \.element.id) { i, meal in
+                if i > 0 { rowDivider }
+                AddRow(food: meal,
+                       subtitle: foodSubtitle(meal),
+                       slotName: slot.rawValue,
+                       onAdd: { store.addEntry(meal, slot: slot, servings: 1) },
+                       onOpen: { selectedMeal = meal })
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func foodList(_ foods: [Food], empty: String, hint: String) -> some View {
+        if foods.isEmpty {
+            emptyState(tab == 2 ? "star" : "puzzlepiece", empty, hint)
+        } else {
+            ForEach(Array(foods.enumerated()), id: \.element.id) { i, food in
+                if i > 0 { rowDivider }
+                row(for: food)
+            }
+        }
+    }
+
+    /// A single food/meal row with a portion-aware "+" (logs one known serving).
+    private func row(for food: Food) -> some View {
+        AddRow(food: food,
+               subtitle: foodSubtitle(food),
+               slotName: slot.rawValue,
+               onAdd: { store.addEntry(food, slot: slot, servings: 1) },
+               onOpen: { open(food) })
+    }
+
+    private var rowDivider: some View { Divider().overlay(Theme.divider) }
+
+    // MARK: Subtitles (always show what "+" will log)
+
+    private func foodSubtitle(_ f: Food) -> String {
+        if f.isCustomMeal { return "\(f.components.count) ingredients · \(f.calories) cal" }
+        let tail = f.brand ?? f.source.short
+        return "\(f.calories) cal · \(f.servingDescription)" + (tail.isEmpty ? "" : " · \(tail)")
+    }
+
+    private func recentSubtitle(_ r: MockStore.RecentLog) -> String {
+        let cal = Int((Double(r.food.calories) * r.servings).rounded())
+        let tail = r.food.brand ?? r.food.source.short
+        return "\(cal) cal · \(portionText(r.food, r.servings))" + (tail.isEmpty ? "" : " · \(tail)")
+    }
+
+    private func portionText(_ f: Food, _ servings: Double) -> String {
+        if let g = f.servingGrams, g > 0 { return "\(Int((g * servings).rounded())) g" }
+        if servings == 1 { return f.servingDescription }
+        let s = servings.formatted(.number.precision(.fractionLength(0...1)))
+        return "\(s) × \(f.servingDescription)"
+    }
+
+    private var customFoods: [Food] {
+        store.foods.filter { $0.source == .custom || $0.source == .openFoodFacts }
+    }
+
+    // MARK: Search
+
+    /// Debounced search against the store's async catalog. `.task(id: query)` cancels
+    /// the in-flight run on each keystroke, so the sleep debounces cleanly.
+    private func runSearch(_ raw: String) async {
+        let q = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { results = []; searching = false; return }
+        searching = true
+        try? await Task.sleep(for: .milliseconds(200))
+        if Task.isCancelled { return }
+        let hits = await store.search(q)
+        if Task.isCancelled { return }
+        results = hits
+        searching = false
+    }
+
+    // MARK: Helpers
+
+    private func open(_ food: Food) {
+        HapticManager.shared.trigger(.light)
+        if food.isCustomMeal { selectedMeal = food } else { selectedFood = food }
+    }
+
+    private var emptyResults: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 30)).foregroundStyle(Theme.textTertiary)
+            Text("No matches for \u{201C}\(query)\u{201D}")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+            Text("Try a different name, or scan the barcode.")
+                .font(.system(size: 13)).foregroundStyle(Theme.textTertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 56)
+    }
+
+    @ViewBuilder
+    private func emptyState(_ icon: String, _ title: String, _ hint: String,
+                            cta: String? = nil, action: @escaping () -> Void = {}) -> some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 30)).foregroundStyle(Theme.textTertiary)
+            Text(title)
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.textSecondary)
+            Text(hint)
+                .font(.system(size: 13)).foregroundStyle(Theme.textTertiary)
+                .multilineTextAlignment(.center)
+            if let cta {
+                Button {
+                    HapticManager.shared.trigger(.light); action()
+                } label: {
+                    Label(cta, systemImage: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Self.addTint)
+                        .padding(.horizontal, 16).padding(.vertical, 9)
+                        .background(Self.addTint.opacity(0.12), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 6)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 52)
+    }
+
+    // MARK: Scan sheet (the scanner is now an action, not half the screen)
+
+    private var scanSheet: some View {
+        NavigationStack {
+            ScanView()
+                .navigationTitle("Scan")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Close") { HapticManager.shared.trigger(.light); showScan = false }
+                    }
+                }
+        }
+        .presentationDragIndicator(.visible)
+    }
+
+    private func applyScreenshotHooks() {
+        let env = ProcessInfo.processInfo.environment
+        if env["SALORIE_SCAN"] == "1" { showScan = true }
+        switch env["SALORIE_MEAL"] {
+        case "detail": selectedMeal = store.customMeals.first
+        case "builder": showBuilder = true
+        default: break
+        }
+        if let code = env["SALORIE_OPEN_BARCODE"] {
+            Task { selectedFood = await store.food(forBarcode: code) }
+        }
+    }
+}
+
+// MARK: - AddRow
+
+/// A tappable food/meal row with a portion-aware quick-add. The "+" logs the portion
+/// shown in the subtitle and flips to a checkmark for a beat as confirmation; tapping
+/// the row opens the detail to adjust the amount first.
+private struct AddRow: View {
+    let food: Food
+    let subtitle: String
+    let slotName: String
+    let onAdd: () -> Void
+    let onOpen: () -> Void
+    @State private var added = false
+    @State private var resetTask: Task<Void, Never>?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Row body opens the detail (proper button, so VoiceOver sees the action).
+            Button(action: onOpen) {
+                HStack(spacing: 12) {
+                    Image(systemName: food.symbol)
+                        .font(.system(size: 16))
+                        .foregroundStyle(food.tint.fg)
+                        .frame(width: 34, height: 34)
+                        .background(food.tint.bg, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(food.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Theme.textPrimary)
+                            .lineLimit(1)
+                        Text(subtitle)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.textTertiary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(food.name), \(subtitle)")
+            .accessibilityHint("Opens details")
+
+            // Quick-add: logs the portion in the subtitle; flips to a check as feedback.
+            // Rapid taps keep logging (each tap adds) — only the reset timer is debounced.
+            Button {
+                HapticManager.shared.trigger(.success)
+                onAdd()
+                withAnimation(.snappy) { added = true }
+                resetTask?.cancel()
+                resetTask = Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    if !Task.isCancelled { withAnimation(.snappy) { added = false } }
+                }
+            } label: {
+                Image(systemName: added ? "checkmark" : "plus")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(added ? RingColor.protein.tint : AddView.addTint)
+                    .frame(width: 36, height: 36)
+                    .glassEffect(.regular, in: Circle())
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add \(food.name) to \(slotName)")
+        }
+        .padding(.vertical, 9)
     }
 }
 

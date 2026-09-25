@@ -210,6 +210,27 @@ final class MockStore {
         return loggedEntries.compactMap { seen.insert($0.food).inserted ? $0.food : nil }
     }
 
+    /// Recently-logged items paired with the **exact portion** they were logged at, so
+    /// a one-tap re-log reproduces that portion (no guessing grams/servings). Deduped
+    /// by food (name + brand), newest first — the fastest, unambiguous "+".
+    struct RecentLog: Identifiable, Hashable {
+        let id: UUID
+        let food: Food
+        let servings: Double
+    }
+
+    var recentLogItems: [RecentLog] {
+        var seen = Set<String>()
+        var out: [RecentLog] = []
+        for entry in loggedEntries {
+            let key = (entry.food.name + "|" + (entry.food.brand ?? "")).lowercased()
+            if seen.insert(key).inserted {
+                out.append(RecentLog(id: entry.id, food: entry.food, servings: entry.servings))
+            }
+        }
+        return out
+    }
+
     // MARK: Mutation (UI-phase only)
 
     func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String = "Now") {

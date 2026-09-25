@@ -9,6 +9,13 @@ struct ManualFoodEntryView: View {
     @Environment(\.dismiss) private var dismiss
 
     var prefillBarcode: String?
+    var initialSlot: MealSlot = .breakfast
+
+    init(prefillBarcode: String? = nil, initialSlot: MealSlot = .breakfast) {
+        self.prefillBarcode = prefillBarcode
+        self.initialSlot = initialSlot
+        _slot = State(initialValue: initialSlot)
+    }
 
     @State private var name = ""
     @State private var brand = ""
