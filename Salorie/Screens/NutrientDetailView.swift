@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Full nutrition breakdown — pushed from the food detail sheet's "More nutrients".
-/// Clean, meaningful label (no wall of bars): a "Good source of" summary up top, then
-/// grouped rows of amount + %DV where notable values (≥20% DV) are highlighted so the
-/// eye lands on what the food actually delivers. Rows with no data are omitted.
+/// Clean and meaningful (no wall of bars): quality tiles (Nutri-Score / NOVA) with an
+/// info tap, a "Good source of" / "High in" glance, then grouped rows of amount + %DV
+/// where notable values are colour-coded. Rows with no data are omitted.
 struct NutrientDetailView: View {
     let food: Food
     var servings: Double = 1
@@ -13,10 +13,10 @@ struct NutrientDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
+            VStack(alignment: .leading, spacing: 24) {
                 header
-                if ext.nutriScore != nil || ext.novaGroup != nil { badges }
-                if !goodSources.isEmpty { highlights }
+                if ext.nutriScore != nil || ext.novaGroup != nil { quality }
+                if !goodSources.isEmpty || !watchOut.isEmpty { highlights }
                 ForEach(sections) { sectionView($0) }
                 footnote
             }
@@ -53,112 +53,108 @@ struct NutrientDetailView: View {
         return "\(q) × \(base) · \(kcal) kcal"
     }
 
-    // MARK: Highlights — what this food is actually a good source of
+    // MARK: Quality — Nutri-Score / NOVA as tile rows (app's tile language)
 
-    /// Nutrients at ≥20% DV (FDA "good source"), strongest first — the meaningful glance.
+    private var quality: some View {
+        VStack(spacing: 12) {
+            if let ns = ext.nutriScore {
+                qualityRow(
+                    glyph: ns.uppercased(), color: nutriColor(ns),
+                    title: "Nutri-Score \(ns.uppercased())",
+                    subtitle: "Overall rating, A (best) to E",
+                    info: "A front-of-pack rating from A to E. It balances nutrients to favour — fibre, protein, fruit & veg — against ones to limit: calories, sugar, saturated fat and salt.")
+            }
+            if let nova = ext.novaGroup {
+                qualityRow(
+                    glyph: "\(nova)", color: novaColor(nova),
+                    title: novaWord(nova),
+                    subtitle: "NOVA \(nova) · processing level",
+                    info: "How processed a food is, from 1 (unprocessed or minimally processed) to 4 (ultra-processed). Lower is generally better.")
+            }
+        }
+    }
+
+    private func qualityRow(glyph: String, color: TagColor, title: String, subtitle: String, info: String) -> some View {
+        HStack(spacing: 13) {
+            Text(glyph)
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .foregroundStyle(color.fg)
+                .frame(width: 44, height: 44)
+                .background(color.bg, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+            Spacer(minLength: 8)
+            InfoButton(title: title, message: info)
+        }
+    }
+
+    private func nutriColor(_ grade: String) -> TagColor {
+        switch grade.uppercased() { case "A", "B": .green; case "C": .yellow; case "D": .orange; default: .red }
+    }
+    private func novaColor(_ n: Int) -> TagColor {
+        switch n { case 1: .green; case 2: .yellow; case 3: .orange; default: .red }
+    }
+    private func novaWord(_ n: Int) -> String {
+        switch n { case 1: "Unprocessed"; case 2: "Culinary ingredient"; case 3: "Processed"; default: "Ultra-processed" }
+    }
+
+    // MARK: Highlights — good sources & watch-outs (icon-led, no pills)
+
+    /// Beneficial nutrients at ≥20% DV (FDA "good source"), strongest first.
     private var goodSources: [NutrientRow] {
-        sections.flatMap(\.rows)
-            .filter { ($0.percent ?? 0) >= 20 }
+        sections.flatMap(\.rows).filter { $0.kind == .good && ($0.percent ?? 0) >= 20 }
+            .sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
+    }
+    /// Limit nutrients at ≥20% DV — sodium, saturated fat, added sugars, …
+    private var watchOut: [NutrientRow] {
+        sections.flatMap(\.rows).filter { $0.kind == .limit && ($0.percent ?? 0) >= 20 }
             .sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
     }
 
     private var highlights: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            heading("Good source of")
-            FlowLayout(spacing: 8) {
-                ForEach(goodSources.prefix(8)) { row in
-                    HStack(spacing: 6) {
-                        Text(row.name)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.textPrimary)
-                        Text(row.percentText)
-                            .font(.system(size: 12, weight: .heavy))
-                            .monospacedDigit()
-                            .foregroundStyle(NutrientDetailView.goodColor)
-                    }
-                    .padding(.horizontal, 11).padding(.vertical, 7)
-                    .background(Capsule().fill(NutrientDetailView.goodColor.opacity(0.14)))
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            if !goodSources.isEmpty {
+                summaryLine(icon: "checkmark.seal.fill", color: NutrientDetailView.goodColor,
+                            label: "Good source of", rows: goodSources)
             }
+            if !watchOut.isEmpty {
+                summaryLine(icon: "exclamationmark.triangle.fill", color: NutrientDetailView.watchColor,
+                            label: "High in", rows: watchOut)
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 15)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    private func summaryLine(icon: String, color: Color, label: String, rows: [NutrientRow]) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(color)
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.textTertiary)
+                Text(rows.map(\.name).joined(separator: ", "))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
     }
 
-    /// Warm-friendly "good" green from the palette — one accent, no rainbow.
     static let goodColor = TagColor.green.fg
-
-    // MARK: Quality badges (Open Food Facts)
-
-    private var badges: some View {
-        FlowLayout(spacing: 8) {
-            if let ns = ext.nutriScore {
-                HStack(spacing: 6) {
-                    nutriScorePill(ns)
-                    InfoButton(title: "Nutri-Score",
-                               message: "A front-of-pack rating from A (healthiest) to E. It balances nutrients to favour — fibre, protein, fruit & veg — against ones to limit: calories, sugar, saturated fat and salt.")
-                }
-            }
-            if let nova = ext.novaGroup {
-                HStack(spacing: 6) {
-                    novaPill(nova)
-                    InfoButton(title: "NOVA group",
-                               message: "How processed a food is, from 1 (unprocessed or minimally processed) to 4 (ultra-processed). Lower is generally better.")
-                }
-            }
-        }
-    }
-
-    /// Caramel section heading for clear separation between groups.
-    private func heading(_ title: String) -> some View {
-        Text(title)
-            .font(.overline)
-            .textCase(.uppercase)
-            .tracking(0.9)
-            .foregroundStyle(NutrientDetailView.headingColor)
-    }
-
-    static let headingColor = RingColor.protein.tint   // caramel
-
-    private func nutriScorePill(_ s: String) -> some View {
-        let color: TagColor = switch s.uppercased() {
-            case "A", "B": .green
-            case "C":      .yellow
-            case "D":      .orange
-            default:       .red
-        }
-        return HStack(spacing: 7) {
-            Text("Nutri-Score")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.textSecondary)
-            Text(s.uppercased())
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(color.fg)
-                .padding(.horizontal, 7).padding(.vertical, 2)
-                .background(Capsule().fill(color.bg))
-        }
-        .padding(.horizontal, 11).padding(.vertical, 7)
-        .background(Capsule().fill(Theme.surface))
-        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    private func novaPill(_ n: Int) -> some View {
-        let (color, word): (TagColor, String) = switch n {
-            case 1:  (.green, "Unprocessed")
-            case 2:  (.yellow, "Culinary")
-            case 3:  (.orange, "Processed")
-            default: (.red, "Ultra-processed")
-        }
-        return HStack(spacing: 6) {
-            Text("NOVA \(n)")
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(color.fg)
-            Text(word)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Theme.textSecondary)
-        }
-        .padding(.horizontal, 11).padding(.vertical, 7)
-        .background(Capsule().fill(Theme.surface))
-        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
-    }
+    static let watchColor = TagColor.orange.fg
 
     // MARK: Sections
 
@@ -166,32 +162,32 @@ struct NutrientDetailView: View {
         [
             section("Macronutrients", [
                 NutrientRow("Total Carbohydrate", s(food.carbs), "g", dv: 275),
-                NutrientRow("Dietary Fibre", s(food.fibre), "g", dv: 28),
+                NutrientRow("Dietary Fibre", s(food.fibre), "g", dv: 28, kind: .good),
                 NutrientRow("Total Sugars", s(food.sugars), "g", dv: nil),
-                NutrientRow("Added Sugars", ext.addedSugars, "g", dv: 50),
-                NutrientRow("Protein", s(food.protein), "g", dv: 50),
+                NutrientRow("Added Sugars", ext.addedSugars, "g", dv: 50, kind: .limit),
+                NutrientRow("Protein", s(food.protein), "g", dv: 50, kind: .good),
                 NutrientRow("Total Fat", s(food.fat), "g", dv: 78),
-                NutrientRow("Saturated Fat", s(food.saturatedFat), "g", dv: 20),
-                NutrientRow("Trans Fat", ext.transFat, "g", dv: nil),
+                NutrientRow("Saturated Fat", s(food.saturatedFat), "g", dv: 20, kind: .limit),
+                NutrientRow("Trans Fat", ext.transFat, "g", dv: nil, kind: .limit),
                 NutrientRow("Monounsaturated Fat", ext.monounsaturatedFat, "g", dv: nil),
                 NutrientRow("Polyunsaturated Fat", ext.polyunsaturatedFat, "g", dv: nil),
-                NutrientRow("Omega-3", ext.omega3, "g", dv: nil),
-                NutrientRow("Cholesterol", s(food.cholesterol), "mg", dv: 300),
-                NutrientRow("Sodium", s(food.sodium), "mg", dv: 2300),
+                NutrientRow("Omega-3", ext.omega3, "g", dv: nil, kind: .good),
+                NutrientRow("Cholesterol", s(food.cholesterol), "mg", dv: 300, kind: .limit),
+                NutrientRow("Sodium", s(food.sodium), "mg", dv: 2300, kind: .limit),
             ]),
             section("Minerals", [
-                NutrientRow("Potassium", ext.potassium, "mg", dv: 4700),
-                NutrientRow("Calcium", ext.calcium, "mg", dv: 1300),
-                NutrientRow("Iron", ext.iron, "mg", dv: 18),
-                NutrientRow("Magnesium", ext.magnesium, "mg", dv: 420),
-                NutrientRow("Zinc", ext.zinc, "mg", dv: 11),
+                NutrientRow("Potassium", ext.potassium, "mg", dv: 4700, kind: .good),
+                NutrientRow("Calcium", ext.calcium, "mg", dv: 1300, kind: .good),
+                NutrientRow("Iron", ext.iron, "mg", dv: 18, kind: .good),
+                NutrientRow("Magnesium", ext.magnesium, "mg", dv: 420, kind: .good),
+                NutrientRow("Zinc", ext.zinc, "mg", dv: 11, kind: .good),
             ]),
             section("Vitamins", [
-                NutrientRow("Vitamin D", ext.vitaminD, "µg", dv: 20),
-                NutrientRow("Vitamin C", ext.vitaminC, "mg", dv: 90),
-                NutrientRow("Vitamin A", ext.vitaminA, "µg", dv: 900),
-                NutrientRow("Vitamin B12", ext.vitaminB12, "µg", dv: 2.4),
-                NutrientRow("Folate", ext.folate, "µg", dv: 400),
+                NutrientRow("Vitamin D", ext.vitaminD, "µg", dv: 20, kind: .good),
+                NutrientRow("Vitamin C", ext.vitaminC, "mg", dv: 90, kind: .good),
+                NutrientRow("Vitamin A", ext.vitaminA, "µg", dv: 900, kind: .good),
+                NutrientRow("Vitamin B12", ext.vitaminB12, "µg", dv: 2.4, kind: .good),
+                NutrientRow("Folate", ext.folate, "µg", dv: 400, kind: .good),
             ]),
             section("Other", [
                 NutrientRow("Caffeine", ext.caffeine, "mg", dv: nil),
@@ -215,7 +211,18 @@ struct NutrientDetailView: View {
         }
     }
 
-    // MARK: Row — name · amount · %DV (notable values highlighted, no bars)
+    /// Caramel section heading for clear separation between groups.
+    private func heading(_ title: String) -> some View {
+        Text(title)
+            .font(.overline)
+            .textCase(.uppercase)
+            .tracking(0.9)
+            .foregroundStyle(NutrientDetailView.headingColor)
+    }
+
+    static let headingColor = RingColor.protein.tint   // caramel
+
+    // MARK: Row — name · amount · %DV (notable values colour-coded, no bars)
 
     private func rowView(_ row: NutrientRow) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -228,15 +235,15 @@ struct NutrientDetailView: View {
                 .monospacedDigit()
                 .foregroundStyle(Theme.textPrimary)
             Text(row.percentText)
-                .font(.system(size: 13, weight: row.isNotable ? .bold : .medium))
+                .font(.system(size: 13, weight: row.accentColor != nil ? .bold : .medium))
                 .monospacedDigit()
-                .foregroundStyle(row.isNotable ? NutrientDetailView.goodColor : Theme.textTertiary)
+                .foregroundStyle(row.accentColor ?? Theme.textTertiary)
                 .frame(width: 44, alignment: .trailing)
         }
     }
 
     private var footnote: some View {
-        Text("% Daily Value shows how much a nutrient contributes to a daily 2,000-calorie diet. 20% DV or more is considered a good source — those are highlighted above.")
+        Text("% Daily Value shows how much a nutrient contributes to a daily 2,000-calorie diet. 20% or more counts as a good source (or, for sodium and the like, high) — those are called out above.")
             .font(.system(size: 12))
             .foregroundStyle(Theme.textTertiary)
             .fixedSize(horizontal: false, vertical: true)
@@ -246,6 +253,10 @@ struct NutrientDetailView: View {
 
 // MARK: - Models
 
+/// Whether a nutrient is beneficial (a "good source" when high), one to limit, or
+/// neutral — drives the highlight lines and the coloured %DV.
+enum NutrientKind { case good, limit, neutral }
+
 /// One line on the full nutrition screen. Fails to init when the amount is `nil`
 /// (missing data) so absent nutrients drop out cleanly.
 struct NutrientRow: Identifiable {
@@ -254,13 +265,15 @@ struct NutrientRow: Identifiable {
     let amount: Double
     let unit: String        // "g" | "mg" | "µg"
     let dv: Double?          // Daily Value in the same unit; nil = no established DV
+    let kind: NutrientKind
 
-    init?(_ name: String, _ amount: Double?, _ unit: String, dv: Double?) {
+    init?(_ name: String, _ amount: Double?, _ unit: String, dv: Double?, kind: NutrientKind = .neutral) {
         guard let amount else { return nil }
         self.name = name
         self.amount = amount
         self.unit = unit
         self.dv = dv
+        self.kind = kind
     }
 
     var amountText: String {
@@ -271,12 +284,20 @@ struct NutrientRow: Identifiable {
     }
 
     var percent: Double? { dv.map { amount / $0 * 100 } }
-    /// A "good source" — FDA threshold; drives the highlight + coloured %DV.
-    var isNotable: Bool { (percent ?? 0) >= 20 }
     var percentText: String {
         guard let p = percent else { return "" }
         if p >= 1 { return "\(Int(p.rounded()))%" }
         return amount > 0 ? "<1%" : "0%"
+    }
+
+    /// Green for a notable good source, amber for a notable limit nutrient, else nil.
+    var accentColor: Color? {
+        guard (percent ?? 0) >= 20 else { return nil }
+        switch kind {
+        case .good:  return NutrientDetailView.goodColor
+        case .limit: return NutrientDetailView.watchColor
+        case .neutral: return nil
+        }
     }
 }
 
@@ -300,7 +321,7 @@ struct InfoButton: View {
             show = true
         } label: {
             Image(systemName: "info.circle")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.textTertiary)
         }
         .buttonStyle(.plain)
@@ -315,60 +336,15 @@ struct InfoButton: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(16)
-            .frame(width: 264)
+            .frame(width: 268)
             .presentationCompactAdaptation(.popover)
-        }
-    }
-}
-
-// MARK: - FlowLayout
-
-/// Left-to-right wrapping layout for chips/pills.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var x: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var totalHeight: CGFloat = 0
-        var rowMaxX: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if x > 0, x + size.width > maxWidth {
-                totalHeight += rowHeight + spacing
-                x = 0
-                rowHeight = 0
-            }
-            x += size.width + spacing
-            rowMaxX = max(rowMaxX, x - spacing)
-            rowHeight = max(rowHeight, size.height)
-        }
-        totalHeight += rowHeight
-        return CGSize(width: maxWidth.isFinite ? maxWidth : rowMaxX, height: totalHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-        for sub in subviews {
-            let size = sub.sizeThatFits(.unspecified)
-            if x > bounds.minX, x + size.width > bounds.maxX {
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
-            }
-            sub.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        NutrientDetailView(food: SampleData.foods[1], servings: 1)
+        NutrientDetailView(food: SampleData.foods[9], servings: 1)   // dark chocolate: E / NOVA 4
     }
     .preferredColorScheme(.dark)
 }
