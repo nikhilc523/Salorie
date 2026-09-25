@@ -241,41 +241,39 @@ struct FoodDetailView: View {
     // MARK: Meal + amount — one compact line (calories is the hero below)
 
     private var mealAmountRow: some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            HStack(alignment: .center, spacing: 10) {
-                MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
-                Spacer(minLength: 8)
-                numberSquare
-                measureTrigger
-            }
+        HStack(alignment: .center, spacing: 8) {
+            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
+            Spacer(minLength: 6)
+            numberSquare
+            measureTrigger
             if !gramsText.isEmpty {
                 Text(gramsText)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textTertiary)
             }
         }
     }
 
-    /// Editable quantity inside a soft, minimal light-gradient square — tap to type.
+    /// Editable quantity in a small, light oatmeal square — tap to type.
     private var numberSquare: some View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
-            .font(.system(size: 18, weight: .bold, design: .rounded))
+            .font(.system(size: 16, weight: .bold, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Theme.textPrimary)
-            .tint(RingColor.carb.tint)
+            .tint(RingColor.protein.tint)                 // caramel caret (not red)
             .fixedSize()
-            .padding(.horizontal, 16)
-            .frame(minWidth: 46, minHeight: 46)
+            .padding(.horizontal, 10)
+            .frame(minWidth: 40, minHeight: 40)
             .background(
-                LinearGradient(colors: [RingColor.carb.tint.opacity(0.30), RingColor.carb.tint.opacity(0.12)],
+                LinearGradient(colors: [RingColor.calories.tint.opacity(0.18), RingColor.calories.tint.opacity(0.06)],
                                startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                in: RoundedRectangle(cornerRadius: 11, style: .continuous)
             )
-            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
-                .stroke(RingColor.carb.tint.opacity(0.35), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .stroke(RingColor.calories.tint.opacity(0.18), lineWidth: 1))
     }
 
     /// Measure picker — white label + terracotta chevron; opens the same custom glass
@@ -284,11 +282,11 @@ struct FoodDetailView: View {
         DropdownTrigger(isOpen: $measureMenuOpen) {
             HStack(spacing: 5) {
                 Text(selectedMeasure?.label ?? "Serving")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(RingColor.carb.tint)
                     .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
             }
