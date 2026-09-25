@@ -112,7 +112,8 @@ struct AddView: View {
             .foregroundStyle(Self.addTint)
             .padding(.horizontal, 14)
             .frame(height: 38)
-            .glassEffect(.regular.interactive(), in: Capsule())
+            .background(Theme.surface, in: Capsule())
+            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
         }
     }
 
@@ -137,22 +138,31 @@ struct AddView: View {
         }
         .padding(.horizontal, 14)
         .frame(height: 46)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
     }
 
     // MARK: Quick actions — scan / new meal / quick add (icons, not a second half-screen)
 
+    /// One grouped bar, three segments — reads as a single quiet control instead of a
+    /// row of look-alike glass pills. Flat surface + hairlines, matching the food rows.
     private var quickActions: some View {
-        HStack(spacing: 8) {
-            quickTile("Scan", "barcode.viewfinder") { HapticManager.shared.trigger(.light); showScan = true }
-            quickTile("New Meal", "fork.knife") { HapticManager.shared.trigger(.light); showBuilder = true }
-            quickTile("Quick Add", "square.and.pencil") { HapticManager.shared.trigger(.light); showManualFood = true }
+        HStack(spacing: 0) {
+            actionSegment("Scan", "barcode.viewfinder") { HapticManager.shared.trigger(.light); showScan = true }
+            segDivider
+            actionSegment("New Meal", "fork.knife") { HapticManager.shared.trigger(.light); showBuilder = true }
+            segDivider
+            actionSegment("Quick Add", "square.and.pencil") { HapticManager.shared.trigger(.light); showManualFood = true }
         }
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
     }
 
-    /// Compact pill: a small icon beside its label — low, wide, and quiet, so the
-    /// actions read as a toolbar rather than three big buttons competing with the list.
-    private func quickTile(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
+    private var segDivider: some View {
+        Rectangle().fill(Theme.divider).frame(width: 1, height: 22)
+    }
+
+    private func actionSegment(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: icon).font(.system(size: 14, weight: .semibold))
@@ -160,8 +170,8 @@ struct AddView: View {
             }
             .foregroundStyle(Self.addTint)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 11)
-            .glassEffect(.regular, in: Capsule())
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
@@ -445,7 +455,7 @@ private struct AddRow: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(added ? RingColor.protein.tint : AddView.addTint)
                     .frame(width: 36, height: 36)
-                    .glassEffect(.regular, in: Circle())
+                    .background((added ? RingColor.protein.tint : AddView.addTint).opacity(0.14), in: Circle())
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
