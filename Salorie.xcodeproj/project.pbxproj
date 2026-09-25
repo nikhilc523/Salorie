@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -116,7 +116,7 @@
 		C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingView.swift; sourceTree = "<group>"; };
 		CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogTests.swift; sourceTree = "<group>"; };
 		D0A1FB552762B5C36F7AF646 /* CatalogDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDownloadManager.swift; sourceTree = "<group>"; };
-		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
 		D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLabelParserTests.swift; sourceTree = "<group>"; };
 		D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBFoodCatalog.swift; sourceTree = "<group>"; };
@@ -325,7 +325,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9996AB496B3996F707E07B40 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					BEB0546AAF2636F892CB2871 = {
@@ -345,9 +344,8 @@
 			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -449,6 +447,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AP7RK323K3;
 				INFOPLIST_FILE = Salorie/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -616,6 +615,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = AP7RK323K3;
 				INFOPLIST_FILE = Salorie/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -679,7 +679,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+		FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -692,12 +692,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		85ECA25BAEA5D8583588DBF9 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 		8A0DE5C8B820F77E3CB671E4 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */

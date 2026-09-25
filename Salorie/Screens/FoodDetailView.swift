@@ -57,9 +57,9 @@ struct FoodDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     header
-                    amountControl          // pick how much first…
+                    slotPicker             // which meal — the thing people care about, up top
+                    amountControl          // how much…
                     macroBreakdown         // …then nutrition updates live below
-                    slotPicker
                     details
                     if !food.ingredients.isEmpty { ingredients }
                 }
@@ -246,19 +246,17 @@ struct FoodDetailView: View {
         }
     }
 
-    /// Editable quantity — tap to type an exact amount. No +/- adjustment.
+    /// Editable quantity — tap to type an exact amount. No +/- adjustment. Small white
+    /// pill (the old selected-chip look) so the number reads as the key value.
     private var quantityField: some View {
         TextField("", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
-            .font(.system(size: 19, weight: .bold, design: .rounded))
+            .font(.system(size: 17, weight: .bold, design: .rounded))
             .monospacedDigit()
-            .foregroundStyle(Theme.textPrimary)
-            .frame(minWidth: 40)
-            .padding(.horizontal, 18)
-            .frame(height: 44)
-            .background(Theme.surface, in: Capsule())
-            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+            .foregroundStyle(Color(hex: 0x000000))
+            .frame(width: 76, height: 40)
+            .background(Theme.textPrimary, in: Capsule())
     }
 
     /// Measure dropdown — Serving · household portions · 100 g · Grams · Ounces.
@@ -286,7 +284,7 @@ struct FoodDetailView: View {
             }
             .foregroundStyle(RingColor.carb.tint)
             .padding(.horizontal, 16)
-            .frame(height: 44)
+            .frame(height: 40)
             .background(RingColor.carb.tint.opacity(0.14), in: Capsule())
         }
     }
