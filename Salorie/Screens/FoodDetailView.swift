@@ -9,7 +9,6 @@ struct FoodDetailView: View {
 
     let food: Food
     @State private var slot: MealSlot = .breakfast
-    @State private var slotMenuOpen = false
     @State private var measureMenuOpen = false
     @State private var quantity: Double = 1
     @State private var portions: [FoodPortion] = []
@@ -73,7 +72,7 @@ struct FoodDetailView: View {
                 portions = await store.portions(for: food)
                 measures = buildMeasures()
                 if selectedMeasureID == nil { selectedMeasureID = measures.first?.id }
-                if ProcessInfo.processInfo.environment["SALORIE_SLOTMENU"] == "1" { slotMenuOpen = true }
+                if ProcessInfo.processInfo.environment["SALORIE_MEASUREMENU"] == "1" { measureMenuOpen = true }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -94,7 +93,6 @@ struct FoodDetailView: View {
             .navigationDestination(isPresented: $showNutrients) {
                 NutrientDetailView(food: food, servings: servings)
             }
-            .mealSlotMenu(isOpen: $slotMenuOpen, slot: $slot)
             .glassMenu(isOpen: $measureMenuOpen,
                        items: measureItems,
                        selectedID: selectedMeasureID?.uuidString ?? "",
@@ -239,64 +237,132 @@ struct FoodDetailView: View {
 
     // MARK: Bottom controls — meal picker + serving, in one glass bar
 
-    /// A bare (glass-less) meal trigger, sized to live *inside* the shared controls
-    /// pill in `addBar` rather than carrying its own capsule.
-    private var mealTrigger: some View {
-        DropdownTrigger(isOpen: $slotMenuOpen) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(mealSlotColor(slot))
-                    .frame(width: 7, height: 7)
-                Text(slot.rawValue)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                    .contentTransition(.numericText())
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(mealSlotColor(slot).opacity(0.9))
-                    .rotationEffect(.degrees(slotMenuOpen ? 180 : 0))
-            }
-            .contentShape(Rectangle())
+    /// Left control: a circular button showing the current meal's glyph. Tapping it
+    /// cycles breakfast → lunch → dinner → snacks — the icon symbol-swaps and the glass
+    /// tint morphs to that meal's colour.
+    private var mealCycleButton: some View {
+        Button {
+            HapticManager.shared.trigger(.selection)
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { slot = slot.next }
+        } label: {
+            Image(systemName: slot.symbol)
+                .font(.system(size: 21, weight: .semibold))
+                .foregroundStyle(mealSlotColor(slot))
+                .contentTransition(.symbolEffect(.replace.downUp))
+                .frame(width: 54, height: 54)
+                .glassEffect(.regular.tint(mealSlotColor(slot).opacity(0.22)).interactive(), in: Circle())
+                .overlay(Circle().stroke(mealSlotColor(slot).opacity(0.45), lineWidth: 1))
         }
+        .buttonStyle(BouncyPress())
+        .accessibilityLabel("Meal: \(slot.rawValue). Tap to change.")
     }
 
-    /// Editable quantity in a light cream chip with a dark number — reads clearly as an
-    /// input against the black theme. Tap to type.
-    private var numberSquare: some View {
-        TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.center)
-            .font(.system(size: 15, weight: .bold, design: .rounded))
-            .monospacedDigit()
-            .foregroundStyle(Color(hex: 0x241E18))        // dark espresso number on cream
-            .tint(RingColor.carb.tint)                    // terracotta caret
-            .fixedSize()
-            .padding(.horizontal, 9)
-            .frame(minWidth: 34, minHeight: 34)
-            .background(
-                LinearGradient(colors: [RingColor.calories.tint, RingColor.calories.tint.opacity(0.86)],
-                               startPoint: .top, endPoint: .bottom),
-                in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-            )
-    }
-
-    /// Measure picker — white label + terracotta chevron; opens the same custom glass
-    /// dropdown as the meal picker (hosted below via `.glassMenu`).
-    private var measureTrigger: some View {
-        DropdownTrigger(isOpen: $measureMenuOpen) {
-            HStack(spacing: 5) {
-                Text(selectedMeasure?.label ?? "Serving")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(RingColor.carb.tint)
-                    .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
+    /// Centre control: a wide capsule that owns the amount. `−` / `+` step the quantity
+    /// by the measure's natural increment; the label in the middle opens the measure
+    /// picker (Serving · 100 g · Grams · …). Fills all remaining width.
+    private var amountCapsule: some View {
+        HStack(spacing: 0) {
+            stepButton("minus", enabled: canDecrement) { step(-1) }
+            DropdownTrigger(isOpen: $measureMenuOpen) {
+                HStack(spacing: 5) {
+                    Text(amountValue.num)
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.textPrimary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    Text(amountValue.unit)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                    Text("\(calories) kcal")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Theme.textSecondary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .padding(.leading, 3)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(RingColor.carb.tint)
+                        .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
             }
-            .padding(.vertical, 6)
-            .contentShape(Rectangle())
+            stepButton("plus", enabled: true) { step(1) }
+        }
+        .padding(.horizontal, 4)
+        .frame(height: 54)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    /// A circular `−`/`+` stepper. The glyph bounces on each change for tactile feedback.
+    private func stepButton(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            withAnimation(.snappy(duration: 0.25)) { action() }
+        } label: {
+            Image(systemName: system)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(enabled ? Theme.textPrimary : Theme.textTertiary.opacity(0.5))
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Color.white.opacity(0.06)))
+                .symbolEffect(.bounce, value: quantity)
+                .contentShape(Circle())
+        }
+        .buttonStyle(BouncyPress())
+        .disabled(!enabled)
+    }
+
+    /// Right control: the solid terracotta log button. One tap adds the food to the
+    /// selected meal and dismisses.
+    private var addCircleButton: some View {
+        Button {
+            HapticManager.shared.trigger(.success)
+            store.addEntry(food, slot: slot, servings: servings)
+            dismiss()
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 23, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 54, height: 54)
+                .background(
+                    LinearGradient(colors: [RingColor.carb.tint, RingColor.carb.tint.opacity(0.82)],
+                                   startPoint: .top, endPoint: .bottom),
+                    in: Circle()
+                )
+                .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 1))
+                .shadow(color: RingColor.carb.tint.opacity(0.5), radius: 12, y: 5)
+        }
+        .buttonStyle(BouncyPress())
+        .accessibilityLabel("Add \(calories) calories to \(slot.rawValue)")
+    }
+
+    /// Whether the quantity can still be decremented (kept at ≥ one step).
+    private var canDecrement: Bool {
+        quantity > (selectedMeasure?.step ?? 1) + 0.0001
+    }
+
+    /// Step the quantity by the measure's increment, clamped to a single-unit minimum.
+    private func step(_ dir: Double) {
+        let s = selectedMeasure?.step ?? 1
+        quantity = max(s, ((quantity + dir * s) * 100).rounded() / 100)
+    }
+
+    /// The amount shown in the capsule, split into a bold number + a quiet unit. Weight
+    /// measures resolve to grams so it reads like "48 g"; count measures read like
+    /// "1 serving" / "2 slices".
+    private var amountValue: (num: String, unit: String) {
+        func f(_ v: Double) -> String { v == v.rounded() ? String(Int(v)) : String(format: "%.2g", v) }
+        guard let m = selectedMeasure else { return (f(quantity), "serving") }
+        switch m.kind {
+        case .grams:     return (f(quantity), "g")
+        case .ounces:    return (f(quantity), "oz")
+        case .hundred:   return (f(quantity * 100), "g")
+        case .serving:   return (f(quantity), quantity == 1 ? "serving" : "servings")
+        case .household: return (f(quantity), m.label.lowercased())
         }
     }
 
@@ -401,9 +467,10 @@ struct FoodDetailView: View {
     // MARK: Add bar
 
     private var addBar: some View {
-        HStack(spacing: 12) {
-            controlsPill
-            addButton
+        HStack(spacing: 10) {
+            mealCycleButton
+            amountCapsule
+            addCircleButton
         }
         .padding(.horizontal, Metrics.pagePadding)
         .padding(.top, 22)
@@ -413,52 +480,15 @@ struct FoodDetailView: View {
                            startPoint: .top, endPoint: .bottom)
         )
     }
+}
 
-    /// Left half of the bar: the meal picker and the serving controls, sharing one
-    /// glass capsule — meal reads on the leading edge, amount on the trailing edge.
-    private var controlsPill: some View {
-        HStack(spacing: 8) {
-            mealTrigger
-                .fixedSize()                // meal name always reads in full
-                .layoutPriority(1)
-            Spacer(minLength: 8)
-            HStack(spacing: 6) {            // serving group; measure yields first if tight
-                numberSquare
-                measureTrigger
-            }
-            .layoutPriority(0)
-        }
-        .padding(.horizontal, 13)
-        .frame(height: 54)
-        .frame(maxWidth: .infinity)
-        .glassEffect(.regular.interactive(), in: Capsule())
-        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    /// Right half: the detached CTA. Warm terracotta-tinted glass so it reads as the
-    /// one action — the meal name already lives in the pill, so the label stays short.
-    private var addButton: some View {
-        Button {
-            HapticManager.shared.trigger(.success)
-            store.addEntry(food, slot: slot, servings: servings)
-            dismiss()
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .bold))
-                Text("\(calories)")
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .fixedSize()
-            }
-            .foregroundStyle(RingColor.carb.tint)
-            .padding(.horizontal, 17)
-            .frame(height: 54)
-            .glassEffect(.regular.tint(RingColor.carb.tint.opacity(0.22)).interactive(), in: Capsule())
-            .overlay(Capsule().stroke(RingColor.carb.tint.opacity(0.45), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
+/// Circular/inline control press feel: a quick spring scale-down while held. Used across
+/// the food-detail command bar so every tap has the same tactile bounce.
+private struct BouncyPress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.88 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
 

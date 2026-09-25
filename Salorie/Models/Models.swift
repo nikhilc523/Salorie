@@ -271,6 +271,12 @@ enum MealSlot: String, CaseIterable, Identifiable {
         case .snacks:    return .purple
         }
     }
+
+    /// Next slot in day order, wrapping snacks → breakfast. Powers tap-to-cycle pickers.
+    var next: MealSlot {
+        let all = Self.allCases
+        return all[(all.firstIndex(of: self)! + 1) % all.count]
+    }
 }
 
 struct MealEntry: Identifiable, Hashable {
