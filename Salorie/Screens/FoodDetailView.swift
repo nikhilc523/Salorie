@@ -10,6 +10,7 @@ struct FoodDetailView: View {
     let food: Food
     @State private var slot: MealSlot = .breakfast
     @State private var measureMenuOpen = false
+    @FocusState private var amountFocused: Bool
     @State private var quantity: Double = 1
     @State private var portions: [FoodPortion] = []
     @State private var measures: [Measure] = []
@@ -263,32 +264,30 @@ struct FoodDetailView: View {
     private var amountCapsule: some View {
         HStack(spacing: 0) {
             stepButton("minus", enabled: canDecrement) { step(-1) }
-            DropdownTrigger(isOpen: $measureMenuOpen) {
-                HStack(spacing: 5) {
-                    Text(amountValue.num)
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.textPrimary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                    Text(amountValue.unit)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                    Text("\(calories) kcal")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .padding(.leading, 3)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(RingColor.carb.tint)
-                        .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
+            HStack(spacing: 6) {
+                quantityField                       // tap to type a custom value
+                DropdownTrigger(isOpen: $measureMenuOpen) {
+                    HStack(spacing: 5) {
+                        Text(amountValue.unit)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                        Text("\(calories) kcal")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(Theme.textTertiary)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .padding(.leading, 2)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(RingColor.carb.tint)
+                            .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .contentShape(Rectangle())
                 }
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
             }
+            .frame(maxWidth: .infinity)
             stepButton("plus", enabled: true) { step(1) }
         }
         .padding(.horizontal, 4)
@@ -296,6 +295,44 @@ struct FoodDetailView: View {
         .frame(maxWidth: .infinity)
         .glassEffect(.regular.interactive(), in: Capsule())
         .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    /// The quantity as a tap-to-edit field. Styled as a warm terracotta input chip
+    /// (tinted fill + hairline border + caret) so it clearly reads as "type here",
+    /// while `−` / `+` still nudge it. Number only — the unit sits beside it.
+    private var quantityField: some View {
+        TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .font(.system(size: 18, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Theme.textPrimary)
+            .tint(RingColor.carb.tint)
+            .focused($amountFocused)
+            .fixedSize()
+            .padding(.horizontal, 9)
+            .frame(minHeight: 32)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(RingColor.carb.tint.opacity(amountFocused ? 0.22 : 0.13))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(RingColor.carb.tint.opacity(amountFocused ? 0.9 : 0.45),
+                            lineWidth: amountFocused ? 1.5 : 1)
+            )
+            .animation(.snappy(duration: 0.2), value: amountFocused)
+            .onChange(of: amountFocused) { _, focused in
+                if !focused, quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { amountFocused = false }
+                        .font(.system(size: 16, weight: .semibold))
+                        .tint(RingColor.carb.tint)
+                }
+            }
     }
 
     /// A circular `−`/`+` stepper. The glyph bounces on each change for tactile feedback.
@@ -351,16 +388,15 @@ struct FoodDetailView: View {
         quantity = max(s, ((quantity + dir * s) * 100).rounded() / 100)
     }
 
-    /// The amount shown in the capsule, split into a bold number + a quiet unit. Weight
-    /// measures resolve to grams so it reads like "48 g"; count measures read like
-    /// "1 serving" / "2 slices".
+    /// The unit shown beside the editable quantity — grams/oz for weight, or the count
+    /// noun for servings and household portions. (The number itself is `quantityField`.)
     private var amountValue: (num: String, unit: String) {
         func f(_ v: Double) -> String { v == v.rounded() ? String(Int(v)) : String(format: "%.2g", v) }
         guard let m = selectedMeasure else { return (f(quantity), "serving") }
         switch m.kind {
         case .grams:     return (f(quantity), "g")
         case .ounces:    return (f(quantity), "oz")
-        case .hundred:   return (f(quantity * 100), "g")
+        case .hundred:   return (f(quantity), "× 100 g")
         case .serving:   return (f(quantity), quantity == 1 ? "serving" : "servings")
         case .household: return (f(quantity), m.label.lowercased())
         }
