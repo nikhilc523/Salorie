@@ -10,6 +10,7 @@ struct FoodDetailView: View {
     let food: Food
     @State private var slot: MealSlot = .breakfast
     @State private var slotMenuOpen = false
+    @State private var measureMenuOpen = false
     @State private var quantity: Double = 1
     @State private var portions: [FoodPortion] = []
     @State private var measures: [Measure] = []
@@ -95,6 +96,15 @@ struct FoodDetailView: View {
                 NutrientDetailView(food: food, servings: servings)
             }
             .mealSlotMenu(isOpen: $slotMenuOpen, slot: $slot)
+            .glassMenu(isOpen: $measureMenuOpen,
+                       items: measureItems,
+                       selectedID: selectedMeasureID?.uuidString ?? "",
+                       accent: RingColor.carb.tint,
+                       width: 180) { id in
+                if let m = measures.first(where: { $0.id.uuidString == id }) {
+                    withAnimation(.snappy) { select(m) }
+                }
+            }
         }
         .presentationDragIndicator(.visible)
     }
@@ -231,32 +241,24 @@ struct FoodDetailView: View {
     // MARK: Meal + amount — one compact line (calories is the hero below)
 
     private var mealAmountRow: some View {
-        HStack(alignment: .center, spacing: 10) {
-            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
-            Spacer(minLength: 8)
-            // Number + measure sit on ONE shared underline — reads as a single editable
-            // "amount" field. Terracotta is the sole accent (the underline); text stays
-            // neutral so nothing competes.
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                quantityField
-                measureMenu
-            }
-            .padding(.bottom, 5)
-            .overlay(alignment: .bottom) {
-                Capsule().fill(RingColor.carb.tint).frame(height: 2)
+        VStack(alignment: .trailing, spacing: 4) {
+            HStack(alignment: .center, spacing: 10) {
+                MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
+                Spacer(minLength: 8)
+                numberSquare
+                measureTrigger
             }
             if !gramsText.isEmpty {
                 Text(gramsText)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 13, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(Theme.textTertiary)
             }
         }
     }
 
-    /// Editable quantity — tap to type. White, neutral; the shared underline below is
-    /// the editable cue.
-    private var quantityField: some View {
+    /// Editable quantity inside a soft, minimal light-gradient square — tap to type.
+    private var numberSquare: some View {
         TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
@@ -265,25 +267,21 @@ struct FoodDetailView: View {
             .foregroundStyle(Theme.textPrimary)
             .tint(RingColor.carb.tint)
             .fixedSize()
+            .padding(.horizontal, 16)
+            .frame(minWidth: 46, minHeight: 46)
+            .background(
+                LinearGradient(colors: [Color.white.opacity(0.12), Color.white.opacity(0.03)],
+                               startPoint: .top, endPoint: .bottom),
+                in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1))
     }
 
-    /// Measure dropdown — Serving · household portions · 100 g · Grams · Ounces.
-    /// A compact warm terracotta pill; switching animates and converts the quantity.
-    private var measureMenu: some View {
-        Menu {
-            ForEach(measures) { m in
-                Button {
-                    HapticManager.shared.trigger(.selection)
-                    withAnimation(.snappy) { select(m) }
-                } label: {
-                    if m.id == selectedMeasureID {
-                        Label(m.label, systemImage: "checkmark")
-                    } else {
-                        Text(m.label)
-                    }
-                }
-            }
-        } label: {
+    /// Measure picker — white label + terracotta chevron; opens the same custom glass
+    /// dropdown as the meal picker (hosted below via `.glassMenu`).
+    private var measureTrigger: some View {
+        DropdownTrigger(isOpen: $measureMenuOpen) {
             HStack(spacing: 5) {
                 Text(selectedMeasure?.label ?? "Serving")
                     .font(.system(size: 18, weight: .semibold))
@@ -291,10 +289,17 @@ struct FoodDetailView: View {
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(Theme.textSecondary)
+                    .foregroundStyle(RingColor.carb.tint)
+                    .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
             }
+            .padding(.vertical, 6)
             .contentShape(Rectangle())
         }
+    }
+
+    /// The measure options as glass-dropdown items (Serving · portions · 100 g · …).
+    private var measureItems: [GlassMenuItem] {
+        measures.map { GlassMenuItem(id: $0.id.uuidString, title: $0.label) }
     }
 
     /// Available measures for this food. Weight options (100 g / Grams / Ounces)
