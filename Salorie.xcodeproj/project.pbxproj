@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		04444891B7E698C9C927DA16 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975EE432B600E36E3C95416F /* TodayView.swift */; };
 		0550BF60589630E3BA27E68A /* IngredientPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 098894E12940365049E6D37F /* IngredientPickerView.swift */; };
+		063C7496B8F6AFF58F00B54C /* IngredientSplitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */; };
 		087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */; };
 		1FEC21311919848DD9EFE95C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8A0DE5C8B820F77E3CB671E4 /* GRDB */; };
 		2EF75F316AE5C266B4D322F1 /* CatalogInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F875A4359B7528965B5F269 /* CatalogInstaller.swift */; };
@@ -101,6 +102,7 @@
 		7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatDetailView.swift; sourceTree = "<group>"; };
 		7AB10BD692D05CBB0054109A /* Salorie.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Salorie.entitlements; sourceTree = "<group>"; };
 		7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedCardsCarousel.swift; sourceTree = "<group>"; };
+		7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientSplitTests.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 				E84136E56251F472DCCC4871 /* ExtendedNutrientsTests.swift */,
 				CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */,
 				717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */,
+				7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */,
 				AD5099C09F7FC588E37734EF /* MeasureTests.swift */,
 				D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */,
 				0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */,
@@ -421,6 +424,7 @@
 				E12BAB007D5E2143BE788BE2 /* ExtendedNutrientsTests.swift in Sources */,
 				3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */,
 				CE5B52B222C509AD134BD08D /* GRDBFoodCatalogTests.swift in Sources */,
+				063C7496B8F6AFF58F00B54C /* IngredientSplitTests.swift in Sources */,
 				848545928D4071F5104D9AD0 /* MeasureTests.swift in Sources */,
 				488E2714F29084AD44099BF4 /* NutritionLabelParserTests.swift in Sources */,
 				B11BC84E69EBE48BDE7D3D72 /* PersistenceTests.swift in Sources */,

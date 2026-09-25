@@ -230,34 +230,11 @@ struct FoodDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("AMOUNT").overlineStyle()
 
-            // Measure chips: Serving · household measures · 100 g · Grams · Ounces.
-            if measures.count > 1 {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(measures) { measureChip($0) }
-                    }
-                    .padding(.horizontal, 1)
-                }
-            }
-
-            // Quantity: numeric field (type an exact weight) + steppers.
-            HStack(spacing: 14) {
-                stepButton("minus") { adjust(-1) }
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    TextField("", value: $quantity, format: .number.precision(.fractionLength(0...2)))
-                        .keyboardType(.decimalPad)
-                        .multilineTextAlignment(.center)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.textPrimary)
-                        .frame(minWidth: 74)
-                        .fixedSize()
-                    Text(unitSuffix)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                stepButton("plus") { adjust(1) }
-                Spacer()
+            // Type the quantity, pick the measure from a dropdown — no steppers.
+            HStack(spacing: 12) {
+                quantityField
+                measureMenu
+                Spacer(minLength: 8)
                 if !gramsText.isEmpty {
                     Text(gramsText)
                         .font(.system(size: 13, weight: .medium))
@@ -269,21 +246,49 @@ struct FoodDetailView: View {
         }
     }
 
-    private func measureChip(_ m: Measure) -> some View {
-        let on = m.id == selectedMeasureID
-        return Button {
-            HapticManager.shared.trigger(.selection)
-            withAnimation(.snappy) { select(m) }
+    /// Editable quantity — tap to type an exact amount. No +/- adjustment.
+    private var quantityField: some View {
+        TextField("", value: $quantity, format: .number.precision(.fractionLength(0...2)))
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .font(.system(size: 19, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Theme.textPrimary)
+            .frame(minWidth: 40)
+            .padding(.horizontal, 18)
+            .frame(height: 44)
+            .background(Theme.surface, in: Capsule())
+            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    /// Measure dropdown — Serving · household portions · 100 g · Grams · Ounces.
+    /// A warm terracotta pill; switching animates and converts the quantity.
+    private var measureMenu: some View {
+        Menu {
+            ForEach(measures) { m in
+                Button {
+                    HapticManager.shared.trigger(.selection)
+                    withAnimation(.snappy) { select(m) }
+                } label: {
+                    if m.id == selectedMeasureID {
+                        Label(m.label, systemImage: "checkmark")
+                    } else {
+                        Text(m.label)
+                    }
+                }
+            }
         } label: {
-            Text(m.label)
-                .font(.system(size: 14, weight: .medium))
-                .lineLimit(1).fixedSize()
-                .foregroundStyle(on ? Color(hex: 0x000000) : Theme.textSecondary)
-                .padding(.horizontal, 14).padding(.vertical, 9)
-                .background(Capsule().fill(on ? Theme.textPrimary : Theme.surface))
-                .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: on ? 0 : 1))
+            HStack(spacing: 6) {
+                Text(selectedMeasure?.label ?? "Serving")
+                    .font(.system(size: 15, weight: .semibold))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down").font(.system(size: 12, weight: .bold))
+            }
+            .foregroundStyle(RingColor.carb.tint)
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .background(RingColor.carb.tint.opacity(0.14), in: Capsule())
         }
-        .buttonStyle(.plain)
     }
 
     /// Available measures for this food. Weight options (100 g / Grams / Ounces)
@@ -313,42 +318,10 @@ struct FoodDetailView: View {
         selectedMeasureID = m.id
     }
 
-    private func adjust(_ sign: Double) {
-        let step = selectedMeasure?.step ?? 0.5
-        withAnimation(.snappy) {
-            quantity = max(step, ((quantity + sign * step) * 100).rounded() / 100)
-        }
-    }
-
-    private var unitSuffix: String {
-        switch selectedMeasure?.kind {
-        case .grams:  return "g"
-        case .ounces: return "oz"
-        case .hundred: return "× 100 g"
-        case .household: return "×"
-        default: return quantity == 1 ? "serving" : "servings"
-        }
-    }
-
     /// "= 247 g" hint for non-gram measures, so the exact weight is always visible.
     private var gramsText: String {
         guard let m = selectedMeasure, let sg = food.servingGrams, sg > 0, m.kind != .grams else { return "" }
         return "= \(Int((quantity * m.gramsPerUnit).rounded())) g"
-    }
-
-    private func stepButton(_ icon: String, action: @escaping () -> Void) -> some View {
-        Button {
-            HapticManager.shared.trigger(.light)
-            withAnimation(.snappy) { action() }
-        } label: {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(RingColor.carb.tint)                 // terracotta glyph
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(RingColor.carb.tint.opacity(0.16)))
-                .overlay(Circle().stroke(RingColor.carb.tint.opacity(0.28), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: Meal slot picker (uniform neutral selection — no per-slot color)
@@ -401,13 +374,50 @@ struct FoodDetailView: View {
     }
 
     private var ingredients: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("INGREDIENTS").overlineStyle()
-            Text(food.ingredients.joined(separator: ", "))
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("INGREDIENTS").overlineStyle().padding(.bottom, 4)
+            ForEach(Array(ingredientList.enumerated()), id: \.offset) { i, item in
+                HStack(spacing: 12) {
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 5))
+                        .foregroundStyle(Theme.textTertiary)
+                        .frame(width: 18)
+                    Text(item)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: 40)
+                if i < ingredientList.count - 1 {
+                    Divider().overlay(Theme.divider)
+                }
+            }
         }
+    }
+
+    /// Ingredients as individual rows. Splits a label string on **top-level** commas
+    /// only, so a compound ingredient like "Milk chocolate (sugar, cocoa butter)"
+    /// stays on one row instead of shattering inside its parentheses.
+    private var ingredientList: [String] {
+        food.ingredients.flatMap(Self.splitIngredients).filter { !$0.isEmpty }
+    }
+
+    nonisolated static func splitIngredients(_ s: String) -> [String] {
+        var out: [String] = []
+        var depth = 0
+        var current = ""
+        for ch in s {
+            switch ch {
+            case "(", "[": depth += 1; current.append(ch)
+            case ")", "]": depth = max(0, depth - 1); current.append(ch)
+            case "," where depth == 0:
+                out.append(current.trimmingCharacters(in: .whitespaces)); current = ""
+            default: current.append(ch)
+            }
+        }
+        out.append(current.trimmingCharacters(in: .whitespaces))
+        return out.filter { !$0.isEmpty }
     }
 
     // MARK: Add bar
