@@ -13,10 +13,8 @@ struct NutrientDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 22) {
                 header
-                if ext.nutriScore != nil || ext.novaGroup != nil { quality }
-                if !goodSources.isEmpty || !watchOut.isEmpty { highlights }
                 ForEach(sections) { sectionView($0) }
                 footnote
             }
@@ -29,21 +27,45 @@ struct NutrientDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    // MARK: Header
+    // MARK: Header — name, serving, quality badges, and the good/watch glance
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(food.name)
                 .font(.screenTitle)
                 .foregroundStyle(Theme.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+            Text(servingText)
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.textSecondary)
+
             HStack(spacing: 6) {
-                Text(servingText)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.textSecondary)
                 SourceBadge(source: food.source)
+                if let ns = ext.nutriScore {
+                    TagPill(text: "Nutri-Score \(ns.uppercased())", color: nutriColor(ns))
+                }
+                if let nova = ext.novaGroup {
+                    TagPill(text: "NOVA \(nova)", color: novaColor(nova))
+                }
+                if ext.nutriScore != nil || ext.novaGroup != nil {
+                    InfoButton(title: "Nutri-Score & NOVA",
+                               message: "Nutri-Score rates overall nutrition from A (best) to E. NOVA rates how processed a food is, from 1 (unprocessed) to 4 (ultra-processed).")
+                }
+                Spacer(minLength: 0)
             }
+            .padding(.top, 2)
+
+            if !goodSources.isEmpty { glanceLine("Good source of", goodSources, NutrientDetailView.goodColor) }
+            if !watchOut.isEmpty { glanceLine("High in", watchOut, NutrientDetailView.watchColor) }
         }
+    }
+
+    /// A one-line, colour-keyed glance — "Good source of Calcium, Protein".
+    private func glanceLine(_ label: String, _ rows: [NutrientRow], _ color: Color) -> some View {
+        (Text("\(label) ").foregroundStyle(Theme.textSecondary)
+            + Text(rows.map(\.name).joined(separator: ", ")).foregroundStyle(color).fontWeight(.semibold))
+            .font(.system(size: 13))
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     private var servingText: String {
@@ -53,58 +75,14 @@ struct NutrientDetailView: View {
         return "\(q) × \(base) · \(kcal) kcal"
     }
 
-    // MARK: Quality — Nutri-Score / NOVA as tile rows (app's tile language)
-
-    private var quality: some View {
-        VStack(spacing: 12) {
-            if let ns = ext.nutriScore {
-                qualityRow(
-                    glyph: ns.uppercased(), color: nutriColor(ns),
-                    title: "Nutri-Score \(ns.uppercased())",
-                    subtitle: "Overall rating, A (best) to E",
-                    info: "A front-of-pack rating from A to E. It balances nutrients to favour — fibre, protein, fruit & veg — against ones to limit: calories, sugar, saturated fat and salt.")
-            }
-            if let nova = ext.novaGroup {
-                qualityRow(
-                    glyph: "\(nova)", color: novaColor(nova),
-                    title: novaWord(nova),
-                    subtitle: "NOVA \(nova) · processing level",
-                    info: "How processed a food is, from 1 (unprocessed or minimally processed) to 4 (ultra-processed). Lower is generally better.")
-            }
-        }
-    }
-
-    private func qualityRow(glyph: String, color: TagColor, title: String, subtitle: String, info: String) -> some View {
-        HStack(spacing: 13) {
-            Text(glyph)
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
-                .foregroundStyle(color.fg)
-                .frame(width: 44, height: 44)
-                .background(color.bg, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.textTertiary)
-            }
-            Spacer(minLength: 8)
-            InfoButton(title: title, message: info)
-        }
-    }
-
     private func nutriColor(_ grade: String) -> TagColor {
         switch grade.uppercased() { case "A", "B": .green; case "C": .yellow; case "D": .orange; default: .red }
     }
     private func novaColor(_ n: Int) -> TagColor {
         switch n { case 1: .green; case 2: .yellow; case 3: .orange; default: .red }
     }
-    private func novaWord(_ n: Int) -> String {
-        switch n { case 1: "Unprocessed"; case 2: "Culinary ingredient"; case 3: "Processed"; default: "Ultra-processed" }
-    }
 
-    // MARK: Highlights — good sources & watch-outs (icon-led, no pills)
+    // MARK: Good sources & watch-outs
 
     /// Beneficial nutrients at ≥20% DV (FDA "good source"), strongest first.
     private var goodSources: [NutrientRow] {
@@ -115,42 +93,6 @@ struct NutrientDetailView: View {
     private var watchOut: [NutrientRow] {
         sections.flatMap(\.rows).filter { $0.kind == .limit && ($0.percent ?? 0) >= 20 }
             .sorted { ($0.percent ?? 0) > ($1.percent ?? 0) }
-    }
-
-    private var highlights: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if !goodSources.isEmpty {
-                summaryLine(icon: "checkmark.seal.fill", color: NutrientDetailView.goodColor,
-                            label: "Good source of", rows: goodSources)
-            }
-            if !watchOut.isEmpty {
-                summaryLine(icon: "exclamationmark.triangle.fill", color: NutrientDetailView.watchColor,
-                            label: "High in", rows: watchOut)
-            }
-        }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 15)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    private func summaryLine(icon: String, color: Color, label: String, rows: [NutrientRow]) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(color)
-                .frame(width: 22)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(label)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Theme.textTertiary)
-                Text(rows.map(\.name).joined(separator: ", "))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 0)
-        }
     }
 
     static let goodColor = TagColor.green.fg
