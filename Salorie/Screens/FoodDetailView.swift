@@ -267,12 +267,21 @@ struct FoodDetailView: View {
         .accessibilityLabel("Meal: \(slot.rawValue). Tap to change.")
     }
 
-    /// Centre control: a wide capsule that owns the amount. `−` / `+` step the quantity
-    /// by the measure's natural increment; the label in the middle opens the measure
-    /// picker (Serving · 100 g · Grams · …). Fills all remaining width.
+    /// Centre control: `−  number  +` on the left with the unit pushed to the right.
+    /// The `−` / `+` step by the measure's natural increment and hide while the number
+    /// is being typed (keyboard up) — tapping the checkmark brings them back.
     private var amountCapsule: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
+            if !amountFocused {
+                stepButton("minus", enabled: canDecrement) { step(-1) }
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+            }
             quantityField                           // tap the number to type in place
+            if !amountFocused {
+                stepButton("plus", enabled: true) { step(1) }
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+            }
+            Spacer(minLength: 8)
             DropdownTrigger(isOpen: $measureMenuOpen) {
                 HStack(spacing: 5) {
                     Text(amountValue.unit)
@@ -287,41 +296,31 @@ struct FoodDetailView: View {
                 .minimumScaleFactor(0.7)
                 .contentShape(Rectangle())
             }
-            Spacer(minLength: 6)
-            verticalStepper                         // compact ↑ / ↓ in terracotta
         }
-        .padding(.leading, 16)
-        .padding(.trailing, 8)
+        .animation(.spring(response: 0.34, dampingFraction: 0.78), value: amountFocused)
+        .padding(.horizontal, 12)
         .frame(height: 54)
         .frame(maxWidth: .infinity)
         .glassEffect(.regular.interactive(), in: Capsule())
         .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
     }
 
-    /// Compact vertical nudge control — a terracotta up/down chevron pair that steps the
-    /// quantity by the measure's increment. Takes far less width than two round buttons,
-    /// freeing space in the pill for more info.
-    private var verticalStepper: some View {
-        VStack(spacing: 0) {
-            arrowButton("chevron.up", enabled: true) { step(1) }
-            arrowButton("chevron.down", enabled: canDecrement) { step(-1) }
-        }
-        .padding(.horizontal, 4)
-        .background(Capsule().fill(RingColor.carb.tint.opacity(0.12)))
-    }
-
-    private func arrowButton(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
+    /// A compact terracotta `−`/`+` nudge. Small glyph, but a generous 40pt hit area so
+    /// taps always register. Steps by the measure increment and snaps the page to the
+    /// hero calories so the live total is visible.
+    private func stepButton(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
         Button {
             HapticManager.shared.trigger(.light)
-            withAnimation(.snappy(duration: 0.22)) { action() }
-            scrollToTopTick &+= 1                    // reveal the live calories up top
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { action() }
+            scrollToTopTick &+= 1
         } label: {
             Image(systemName: system)
-                .font(.system(size: 13, weight: .heavy))
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(enabled ? RingColor.carb.tint : Theme.textTertiary.opacity(0.4))
-                .frame(width: 30, height: 21)
+                .frame(width: 40, height: 40)                       // big, reliable tap target
+                .background(Circle().fill(RingColor.carb.tint.opacity(enabled ? 0.14 : 0.06)))
                 .symbolEffect(.bounce, value: quantity)
-                .contentShape(Rectangle())
+                .contentShape(Circle())
         }
         .buttonStyle(BouncyPress())
         .disabled(!enabled)
