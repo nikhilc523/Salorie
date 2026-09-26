@@ -105,7 +105,7 @@ struct AddView: View {
     // geometry — the glass capsule just animates its own frame, which stays buttery.
 
     private let strip: CGFloat = 52
-    private let pillWidth: CGFloat = 118
+    private let pillWidth: CGFloat = 132
 
     private var controlStrip: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -114,8 +114,10 @@ struct AddView: View {
                 actionsPill
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
                 Spacer(minLength: 6)
+                scanCircle
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
             }
-            searchGroup
+            searchColumn
             if searchExpanded {
                 cancelButton
             }
@@ -166,80 +168,74 @@ struct AddView: View {
         .frame(width: pillWidth)
     }
 
-    /// Scan + Search in one glass pill. Tapping Search grows the same capsule into the full
-    /// search field (Scan slides to the trailing edge); Cancel appears. Only the capsule's
-    /// own frame animates — no matched-geometry on the glass — so it stays smooth.
-    private var searchGroup: some View {
+    /// Scan — its own circle, kept separate from Search since their colours differ.
+    private var scanCircle: some View {
         VStack(spacing: 7) {
-            searchCapsule
-            if !searchExpanded {
-                HStack(spacing: 0) {
-                    stripLabel("Scan", tint: Theme.textSecondary).frame(maxWidth: .infinity)
-                    stripLabel("Search", tint: Theme.textSecondary).frame(maxWidth: .infinity)
-                }
+            Button { HapticManager.shared.trigger(.light); showScan = true } label: {
+                circleFace(icon: "barcode.viewfinder", tint: Self.addTint,
+                           fill: Self.addTint.opacity(0.14), ring: Theme.cardStroke)
             }
+            .buttonStyle(CirclePress())
+            stripLabel("Scan", tint: Theme.textSecondary)
         }
-        .frame(maxWidth: searchExpanded ? .infinity : pillWidth)
+        .frame(width: 60)
     }
 
-    private var searchCapsule: some View {
-        ZStack {
-            if searchExpanded {
-                expandedSearchContent.transition(.opacity)
-            } else {
-                collapsedSearchContent.transition(.opacity)
-            }
+    /// Search — a glass circle that grows into the full search field when tapped. Only the
+    /// capsule's own frame animates (no matched-geometry), so it stays smooth.
+    private var searchColumn: some View {
+        VStack(spacing: 7) {
+            searchBar
+            if !searchExpanded { stripLabel("Search", tint: Theme.textSecondary) }
         }
-        .frame(height: strip)
-        .frame(maxWidth: searchExpanded ? .infinity : pillWidth)
-        .glassEffect(.regular.interactive(), in: Capsule())
-        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+        .frame(maxWidth: searchExpanded ? .infinity : 60)
     }
 
-    private var collapsedSearchContent: some View {
-        HStack(spacing: 0) {
-            segButton("barcode.viewfinder", tint: Self.addTint) {
-                HapticManager.shared.trigger(.light); showScan = true
-            }
-            segDivider
-            segButton("magnifyingglass", tint: Theme.textPrimary) { expandSearch() }
-        }
-    }
-
-    private var expandedSearchContent: some View {
+    private var searchBar: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Theme.textSecondary)
-            TextField("", text: $query, prompt: Text("Search foods, brands, barcodes")
-                .foregroundColor(Theme.textTertiary))
-                .foregroundStyle(Theme.textPrimary)
-                .tint(Self.addTint)
-                .focused($searchFocused)
-                .submitLabel(.search)
-            if !query.isEmpty {
-                Button { HapticManager.shared.trigger(.light); query = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
+                .font(.system(size: searchExpanded ? 16 : 19, weight: .semibold))
+                .foregroundStyle(searchExpanded ? Theme.textSecondary : Theme.textPrimary)
+                .frame(maxWidth: searchExpanded ? nil : .infinity)   // centre while collapsed
+
+            if searchExpanded {
+                TextField("", text: $query, prompt: Text("Search foods, brands, barcodes")
+                    .foregroundColor(Theme.textTertiary))
+                    .foregroundStyle(Theme.textPrimary)
+                    .tint(Self.addTint)
+                    .focused($searchFocused)
+                    .submitLabel(.search)
+                if !query.isEmpty {
+                    Button { HapticManager.shared.trigger(.light); query = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+                }
+                Button { HapticManager.shared.trigger(.light); showScan = true } label: {
+                    Image(systemName: "barcode.viewfinder")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(
+                            LinearGradient(colors: [Self.addTint, Self.addTint.opacity(0.82)],
+                                           startPoint: .top, endPoint: .bottom),
+                            in: Circle()
+                        )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
+                .accessibilityLabel("Scan")
+                .transition(.opacity)
             }
-            Button { HapticManager.shared.trigger(.light); showScan = true } label: {
-                Image(systemName: "barcode.viewfinder")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        LinearGradient(colors: [Self.addTint, Self.addTint.opacity(0.82)],
-                                       startPoint: .top, endPoint: .bottom),
-                        in: Circle()
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Scan")
         }
-        .padding(.leading, 16)
-        .padding(.trailing, 6)
+        .padding(.leading, searchExpanded ? 16 : 0)
+        .padding(.trailing, searchExpanded ? 6 : 0)
+        .frame(width: searchExpanded ? nil : strip, height: strip)
+        .frame(maxWidth: searchExpanded ? .infinity : nil)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+        .contentShape(Capsule())
+        .onTapGesture { if !searchExpanded { expandSearch() } }
     }
 
     private var cancelButton: some View {
