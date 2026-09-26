@@ -20,7 +20,6 @@ struct AddView: View {
     @State private var showManualFood = false
     @State private var searchExpanded = false            // control strip → search bar morph
     @FocusState private var searchFocused: Bool
-    @Namespace private var searchNS
 
     private static let tabs = ["History", "Meals", "Favorites", "Foods"]
     /// Warm quick-add tint from the palette (terracotta), matching the food-detail CTA.
@@ -106,24 +105,17 @@ struct AddView: View {
     // geometry — the glass capsule just animates its own frame, which stays buttery.
 
     private let strip: CGFloat = 52
+    private let pillWidth: CGFloat = 118
 
     private var controlStrip: some View {
         HStack(alignment: .center, spacing: 10) {
             mealCircle
             if !searchExpanded {
-                actionCircle("New Meal", "fork.knife", tint: Self.addTint) {
-                    HapticManager.shared.trigger(.light); showBuilder = true
-                }
-                .transition(.scale(scale: 0.6).combined(with: .opacity))
-                actionCircle("Quick Add", "square.and.pencil", tint: Self.addTint) {
-                    HapticManager.shared.trigger(.light); showManualFood = true
-                }
-                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                actionsPill
+                    .transition(.scale(scale: 0.7).combined(with: .opacity))
                 Spacer(minLength: 6)
-                scanCircle
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
-            searchColumn
+            searchGroup
             if searchExpanded {
                 cancelButton
             }
@@ -151,74 +143,103 @@ struct AddView: View {
         .frame(width: 60)
     }
 
-    private var scanCircle: some View {
-        labeledCircle(label: "Scan") {
-            Button { HapticManager.shared.trigger(.light); showScan = true } label: {
-                circleFace(icon: "barcode.viewfinder", tint: Self.addTint,
-                           fill: Self.addTint.opacity(0.14), ring: Theme.cardStroke)
-                    .matchedGeometryEffect(id: "scan", in: searchNS)
-            }
-            .buttonStyle(CirclePress())
-        }
-    }
-
-    /// The search control: a single glass capsule that lives in the row at all times.
-    /// Collapsed it's a 52pt circle (just the magnifier, tap to expand); expanded it grows
-    /// to fill the row and reveals the field, clear button and trailing Scan.
-    private var searchColumn: some View {
+    /// New Meal + Quick Add, together in one glass pill (two segments, hairline divider).
+    private var actionsPill: some View {
         VStack(spacing: 7) {
-            searchBar
-            if !searchExpanded { stripLabel("Search", tint: Theme.textSecondary) }
-        }
-        .frame(maxWidth: searchExpanded ? .infinity : 60)
-    }
-
-    private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: searchExpanded ? 16 : 19, weight: .semibold))
-                .foregroundStyle(searchExpanded ? Theme.textSecondary : Theme.textPrimary)
-                .frame(maxWidth: searchExpanded ? nil : .infinity)   // centre while collapsed
-
-            if searchExpanded {
-                TextField("", text: $query, prompt: Text("Search foods, brands, barcodes")
-                    .foregroundColor(Theme.textTertiary))
-                    .foregroundStyle(Theme.textPrimary)
-                    .tint(Self.addTint)
-                    .focused($searchFocused)
-                    .submitLabel(.search)
-                if !query.isEmpty {
-                    Button { HapticManager.shared.trigger(.light); query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear search")
+            HStack(spacing: 0) {
+                segButton("fork.knife", tint: Self.addTint) {
+                    HapticManager.shared.trigger(.light); showBuilder = true
                 }
-                Button { HapticManager.shared.trigger(.light); showScan = true } label: {
-                    Image(systemName: "barcode.viewfinder")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 40, height: 40)
-                        .background(
-                            LinearGradient(colors: [Self.addTint, Self.addTint.opacity(0.82)],
-                                           startPoint: .top, endPoint: .bottom),
-                            in: Circle()
-                        )
-                        .matchedGeometryEffect(id: "scan", in: searchNS)
+                segDivider
+                segButton("square.and.pencil", tint: Self.addTint) {
+                    HapticManager.shared.trigger(.light); showManualFood = true
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Scan")
-                .transition(.opacity)
+            }
+            .frame(height: strip)
+            .glassEffect(.regular.interactive(), in: Capsule())
+            .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+            HStack(spacing: 0) {
+                stripLabel("New Meal", tint: Theme.textSecondary).frame(maxWidth: .infinity)
+                stripLabel("Quick Add", tint: Theme.textSecondary).frame(maxWidth: .infinity)
             }
         }
-        .padding(.leading, searchExpanded ? 16 : 0)
-        .padding(.trailing, searchExpanded ? 6 : 0)
-        .frame(width: searchExpanded ? nil : strip, height: strip)
-        .frame(maxWidth: searchExpanded ? .infinity : nil)
+        .frame(width: pillWidth)
+    }
+
+    /// Scan + Search in one glass pill. Tapping Search grows the same capsule into the full
+    /// search field (Scan slides to the trailing edge); Cancel appears. Only the capsule's
+    /// own frame animates — no matched-geometry on the glass — so it stays smooth.
+    private var searchGroup: some View {
+        VStack(spacing: 7) {
+            searchCapsule
+            if !searchExpanded {
+                HStack(spacing: 0) {
+                    stripLabel("Scan", tint: Theme.textSecondary).frame(maxWidth: .infinity)
+                    stripLabel("Search", tint: Theme.textSecondary).frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .frame(maxWidth: searchExpanded ? .infinity : pillWidth)
+    }
+
+    private var searchCapsule: some View {
+        ZStack {
+            if searchExpanded {
+                expandedSearchContent.transition(.opacity)
+            } else {
+                collapsedSearchContent.transition(.opacity)
+            }
+        }
+        .frame(height: strip)
+        .frame(maxWidth: searchExpanded ? .infinity : pillWidth)
         .glassEffect(.regular.interactive(), in: Capsule())
         .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
-        .contentShape(Capsule())
-        .onTapGesture { if !searchExpanded { expandSearch() } }
+    }
+
+    private var collapsedSearchContent: some View {
+        HStack(spacing: 0) {
+            segButton("barcode.viewfinder", tint: Self.addTint) {
+                HapticManager.shared.trigger(.light); showScan = true
+            }
+            segDivider
+            segButton("magnifyingglass", tint: Theme.textPrimary) { expandSearch() }
+        }
+    }
+
+    private var expandedSearchContent: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+            TextField("", text: $query, prompt: Text("Search foods, brands, barcodes")
+                .foregroundColor(Theme.textTertiary))
+                .foregroundStyle(Theme.textPrimary)
+                .tint(Self.addTint)
+                .focused($searchFocused)
+                .submitLabel(.search)
+            if !query.isEmpty {
+                Button { HapticManager.shared.trigger(.light); query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+            Button { HapticManager.shared.trigger(.light); showScan = true } label: {
+                Image(systemName: "barcode.viewfinder")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        LinearGradient(colors: [Self.addTint, Self.addTint.opacity(0.82)],
+                                       startPoint: .top, endPoint: .bottom),
+                        in: Circle()
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Scan")
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 6)
     }
 
     private var cancelButton: some View {
@@ -243,16 +264,24 @@ struct AddView: View {
         DispatchQueue.main.async { searchFocused = true }
     }
 
-    private func actionCircle(_ label: String, _ icon: String, tint: Color, _ action: @escaping () -> Void) -> some View {
-        labeledCircle(label: label) {
-            Button(action: action) {
-                circleFace(icon: icon, tint: tint, fill: tint.opacity(0.14), ring: Theme.cardStroke)
-            }
-            .buttonStyle(CirclePress())
+    /// One tappable icon segment inside a pill.
+    private func segButton(_ icon: String, tint: Color, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(maxWidth: .infinity)
+                .frame(height: strip)
+                .contentShape(Rectangle())
         }
+        .buttonStyle(CirclePress())
     }
 
-    /// A 52pt glass circle with an icon — the shared face for every strip button.
+    private var segDivider: some View {
+        Rectangle().fill(Theme.divider).frame(width: 1, height: 24)
+    }
+
+    /// A 52pt glass circle with an icon — the meal target's face.
     private func circleFace(icon: String, tint: Color, fill: Color, ring: Color, ringWidth: CGFloat = 1) -> some View {
         Image(systemName: icon)
             .font(.system(size: 19, weight: .semibold))
@@ -268,17 +297,6 @@ struct AddView: View {
             .foregroundStyle(tint)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
-    }
-
-    /// Wraps a circle face with a caption underneath, at a fixed column width so the row
-    /// aligns cleanly.
-    private func labeledCircle<Content: View>(label: String, labelTint: Color = Theme.textSecondary,
-                                              @ViewBuilder _ face: () -> Content) -> some View {
-        VStack(spacing: 7) {
-            face()
-            stripLabel(label, tint: labelTint)
-        }
-        .frame(width: 60)
     }
 
     // MARK: Content — search results or the selected browse tab
