@@ -207,7 +207,12 @@ struct TodayView: View {
                     } else {
                         VStack(spacing: 0) {
                             ForEach(entries) { entry in
-                                mealRow(entry)
+                                SwipeToDeleteRow {
+                                    HapticManager.shared.trigger(.warning)
+                                    withAnimation(.snappy(duration: 0.3)) { store.removeEntry(entry) }
+                                } content: {
+                                    mealRow(entry)
+                                }
                                 if entry.id != entries.last?.id {
                                     Rectangle().fill(Theme.divider).frame(height: 1)
                                 }
@@ -327,4 +332,55 @@ struct TodayView: View {
     TodayView()
         .environment(MockStore())
         .preferredColorScheme(.dark)
+}
+
+// MARK: - Swipe to delete
+
+/// Wraps a row so a left-swipe reveals a red delete action (the Today lists aren't a
+/// `List`, so this stands in for `.swipeActions`). Swipe right — or tap Delete — closes/acts.
+/// Only responds to mostly-horizontal drags, so vertical scrolling is unaffected.
+private struct SwipeToDeleteRow<Content: View>: View {
+    var onDelete: () -> Void
+    @ViewBuilder var content: () -> Content
+
+    @State private var offset: CGFloat = 0
+    private let actionWidth: CGFloat = 76
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            Button(role: .destructive) {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) { offset = 0 }
+                onDelete()
+            } label: {
+                Image(systemName: "trash.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: actionWidth)
+                    .frame(maxHeight: .infinity)
+                    .background(Color.red.opacity(0.9),
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .opacity(offset < -6 ? 1 : 0)
+            .padding(.vertical, 4)
+
+            content()
+                .background(Theme.bg)               // opaque so the row hides the action when closed
+                .offset(x: offset)
+                .gesture(
+                    DragGesture(minimumDistance: 14)
+                        .onChanged { v in
+                            guard abs(v.translation.width) > abs(v.translation.height) else { return }
+                            offset = min(0, max(-actionWidth - 24, v.translation.width))
+                        }
+                        .onEnded { v in
+                            let shouldOpen = v.translation.width < -actionWidth * 0.5
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                offset = shouldOpen ? -actionWidth : 0
+                            }
+                            if shouldOpen { HapticManager.shared.trigger(.light) }
+                        }
+                )
+        }
+    }
 }

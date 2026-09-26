@@ -286,10 +286,20 @@ final class MockStore {
     private static let encoder = JSONEncoder()
     private static let decoder = JSONDecoder()
 
+    /// Bump this whenever the bundled seed/catalog changes and stale persisted user data
+    /// should be flushed on the next launch. A mismatch with the stored version wipes and
+    /// reseeds automatically — no env var needed.
+    static let seedVersion = 2
+    private static let seedVersionKey = "salorie.seedVersion"
+
     /// Load user data from SwiftData, seeding it from `SampleData` on first launch.
-    /// Honors `SALORIE_RESET=1` (wipe + reseed) for deterministic screenshots/UI tests.
+    /// Wipes + reseeds when `SALORIE_RESET=1` (screenshots/tests) or when the stored
+    /// `seedVersion` is out of date (flushes stale data so new seed data is picked up).
     private func loadOrSeed(_ ctx: ModelContext) {
-        let reset = ProcessInfo.processInfo.environment["SALORIE_RESET"] == "1"
+        let defaults = UserDefaults.standard
+        let storedVersion = defaults.object(forKey: Self.seedVersionKey) as? Int
+        let versionChanged = storedVersion != Self.seedVersion
+        let reset = ProcessInfo.processInfo.environment["SALORIE_RESET"] == "1" || versionChanged
         if reset { wipe(ctx) }
 
         let isEmpty = (try? ctx.fetchCount(FetchDescriptor<StoredFood>())) ?? 0 == 0
@@ -297,6 +307,7 @@ final class MockStore {
             && (try? ctx.fetchCount(FetchDescriptor<StoredEntry>())) ?? 0 == 0
             && (try? ctx.fetchCount(FetchDescriptor<StoredTargets>())) ?? 0 == 0
         if isEmpty { seed(ctx) }
+        if versionChanged { defaults.set(Self.seedVersion, forKey: Self.seedVersionKey) }
 
         foods = fetchFoods(ctx)
         customMeals = fetchMeals(ctx)
