@@ -18,6 +18,9 @@ struct AddView: View {
     @State private var showScan = false
     @State private var showBuilder = false
     @State private var showManualFood = false
+    @State private var searchExpanded = false            // control strip → search bar morph
+    @FocusState private var searchFocused: Bool
+    @Namespace private var searchNS
 
     private static let tabs = ["History", "Meals", "Favorites", "Foods"]
     /// Warm quick-add tint from the palette (terracotta), matching the food-detail CTA.
@@ -54,17 +57,15 @@ struct AddView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 header
-                searchField
+                controlStrip
                     .padding(.horizontal, Metrics.pagePadding)
-                    .padding(.top, 16)
+                    .padding(.top, 14)
 
-                if query.isEmpty {
-                    quickActions
-                        .padding(.horizontal, Metrics.pagePadding)
-                        .padding(.top, 16)
+                if !searchExpanded {
                     SegmentedTabs(items: Self.tabs, selection: $tab)
                         .padding(.horizontal, Metrics.pagePadding)
-                        .padding(.top, 24)
+                        .padding(.top, 22)
+                        .transition(.opacity)
                 }
 
                 content
@@ -83,79 +84,184 @@ struct AddView: View {
         }
     }
 
-    // MARK: Header — title + meal-slot target
+    // MARK: Header — just the title (the meal target now lives in the control strip)
 
     private var header: some View {
-        HStack(alignment: .center) {
+        HStack {
             Text("Add Food")
                 .font(.screenTitle)
                 .foregroundStyle(Theme.textPrimary)
             Spacer()
-            // The one control that removes the "which meal?" ambiguity — every "+" logs here.
-            MealSlotDropdown(slot: $slot, isOpen: $slotMenuOpen)
         }
         .padding(.horizontal, Metrics.pagePadding)
         .padding(.top, 6)
     }
 
-    // MARK: Search field
+    // MARK: Control strip — circular actions that collapse into a search bar
+    //
+    // Resting: [meal ▾] [New Meal] [Quick Add]  ···  [Scan] [Search], each a glass circle
+    // with a label. Tapping Search springs the row into a full search field: New Meal /
+    // Quick Add fade out, the Search circle *morphs* into the field (matched geometry) and
+    // Scan flies to the field's trailing edge, with Cancel sliding in.
 
-    private var searchField: some View {
+    private var controlStrip: some View {
         HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass").foregroundStyle(Theme.textSecondary)
+            mealCircle
+            if searchExpanded {
+                expandedSearchBar
+                cancelButton
+            } else {
+                actionCircle("New Meal", "fork.knife", tint: Self.addTint) {
+                    HapticManager.shared.trigger(.light); showBuilder = true
+                }
+                .transition(.scale(scale: 0.5).combined(with: .opacity))
+                actionCircle("Quick Add", "square.and.pencil", tint: Self.addTint) {
+                    HapticManager.shared.trigger(.light); showManualFood = true
+                }
+                .transition(.scale(scale: 0.5).combined(with: .opacity))
+                Spacer(minLength: 6)
+                scanCircle
+                searchCircle
+            }
+        }
+        .animation(.spring(response: 0.44, dampingFraction: 0.82), value: searchExpanded)
+    }
+
+    /// Leading circle: the meal target. Shows the slot glyph in its meal colour with a
+    /// matching ring; tapping opens the slot menu (hosted on the screen).
+    private var mealCircle: some View {
+        labeledCircle(label: slot.rawValue, labelTint: mealSlotColor(slot)) {
+            DropdownTrigger(isOpen: $slotMenuOpen) {
+                circleFace(icon: slot.symbol,
+                           tint: mealSlotColor(slot),
+                           fill: mealSlotColor(slot).opacity(0.2),
+                           ring: mealSlotColor(slot).opacity(0.6),
+                           ringWidth: 2)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+        }
+    }
+
+    private var scanCircle: some View {
+        labeledCircle(label: "Scan") {
+            Button { HapticManager.shared.trigger(.light); showScan = true } label: {
+                circleFace(icon: "barcode.viewfinder", tint: Self.addTint,
+                           fill: Self.addTint.opacity(0.14), ring: Theme.cardStroke)
+                    .matchedGeometryEffect(id: "scan", in: searchNS)
+            }
+            .buttonStyle(CirclePress())
+        }
+    }
+
+    private var searchCircle: some View {
+        labeledCircle(label: "Search") {
+            Button { expandSearch() } label: {
+                circleFace(icon: "magnifyingglass", tint: Theme.textPrimary,
+                           fill: .clear, ring: Theme.cardStroke)
+                    .matchedGeometryEffect(id: "searchbg", in: searchNS)
+            }
+            .buttonStyle(CirclePress())
+        }
+    }
+
+    private func actionCircle(_ label: String, _ icon: String, tint: Color, _ action: @escaping () -> Void) -> some View {
+        labeledCircle(label: label) {
+            Button(action: action) {
+                circleFace(icon: icon, tint: tint, fill: tint.opacity(0.14), ring: Theme.cardStroke)
+            }
+            .buttonStyle(CirclePress())
+        }
+    }
+
+    /// A 52pt glass circle with an icon — the shared face for every strip button.
+    private func circleFace(icon: String, tint: Color, fill: Color, ring: Color, ringWidth: CGFloat = 1) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 19, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 52, height: 52)
+            .glassEffect(.regular.tint(fill).interactive(), in: Circle())
+            .overlay(Circle().stroke(ring, lineWidth: ringWidth))
+    }
+
+    /// Wraps a circle face with a caption underneath, at a fixed column width so the row
+    /// aligns cleanly.
+    private func labeledCircle<Content: View>(label: String, labelTint: Color = Theme.textSecondary,
+                                              @ViewBuilder _ face: () -> Content) -> some View {
+        VStack(spacing: 7) {
+            face()
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(labelTint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(width: 60)
+    }
+
+    // MARK: Expanded search bar
+
+    private var expandedSearchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
             TextField("", text: $query, prompt: Text("Search foods, brands, barcodes")
                 .foregroundColor(Theme.textTertiary))
                 .foregroundStyle(Theme.textPrimary)
+                .tint(Self.addTint)
+                .focused($searchFocused)
+                .submitLabel(.search)
             if !query.isEmpty {
-                Button {
-                    HapticManager.shared.trigger(.light)
-                    query = ""
-                } label: {
+                Button { HapticManager.shared.trigger(.light); query = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search")
             }
-        }
-        .padding(.horizontal, 14)
-        .frame(height: 46)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    // MARK: Quick actions — scan / new meal / quick add (icons, not a second half-screen)
-
-    /// One grouped bar, three segments — reads as a single quiet control instead of a
-    /// row of look-alike glass pills. Flat surface + hairlines, matching the food rows.
-    private var quickActions: some View {
-        HStack(spacing: 0) {
-            actionSegment("Scan", "barcode.viewfinder") { HapticManager.shared.trigger(.light); showScan = true }
-            segDivider
-            actionSegment("New Meal", "fork.knife") { HapticManager.shared.trigger(.light); showBuilder = true }
-            segDivider
-            actionSegment("Quick Add", "square.and.pencil") { HapticManager.shared.trigger(.light); showManualFood = true }
-        }
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
-    }
-
-    private var segDivider: some View {
-        Rectangle().fill(Theme.divider).frame(width: 1, height: 22)
-    }
-
-    private func actionSegment(_ label: String, _ icon: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 14, weight: .semibold))
-                Text(label).font(.system(size: 13, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.85)
+            // Scan lands here — flies in from its resting spot via matched geometry.
+            Button { HapticManager.shared.trigger(.light); showScan = true } label: {
+                Image(systemName: "barcode.viewfinder")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(
+                        LinearGradient(colors: [Self.addTint, Self.addTint.opacity(0.82)],
+                                       startPoint: .top, endPoint: .bottom),
+                        in: Circle()
+                    )
+                    .matchedGeometryEffect(id: "scan", in: searchNS)
             }
-            .foregroundStyle(Self.addTint)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .accessibilityLabel("Scan")
+        }
+        .padding(.leading, 16)
+        .padding(.trailing, 6)
+        .frame(height: 52)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+        .matchedGeometryEffect(id: "searchbg", in: searchNS)
+    }
+
+    private var cancelButton: some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            searchFocused = false
+            query = ""
+            withAnimation(.spring(response: 0.44, dampingFraction: 0.82)) { searchExpanded = false }
+        } label: {
+            Text("Cancel")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Self.addTint)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .transition(.opacity.combined(with: .move(edge: .trailing)))
+    }
+
+    private func expandSearch() {
+        HapticManager.shared.trigger(.light)
+        withAnimation(.spring(response: 0.44, dampingFraction: 0.82)) { searchExpanded = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { searchFocused = true }
     }
 
     // MARK: Content — search results or the selected browse tab
@@ -367,6 +473,7 @@ struct AddView: View {
         let env = ProcessInfo.processInfo.environment
         if env["SALORIE_SCAN"] == "1" { showScan = true }
         if env["SALORIE_SLOTMENU"] == "1" { slotMenuOpen = true }
+        if env["SALORIE_SEARCH"] == "1" { searchExpanded = true }
         switch env["SALORIE_MEAL"] {
         case "detail": selectedMeal = store.customMeals.first
         case "builder": showBuilder = true
@@ -375,6 +482,17 @@ struct AddView: View {
         if let code = env["SALORIE_OPEN_BARCODE"] {
             Task { selectedFood = await store.food(forBarcode: code) }
         }
+    }
+}
+
+// MARK: - Press style
+
+/// Quick spring scale-down for the circular strip buttons.
+private struct CirclePress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 
