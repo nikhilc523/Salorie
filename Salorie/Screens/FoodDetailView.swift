@@ -10,6 +10,7 @@ struct FoodDetailView: View {
     let food: Food
     @State private var slot: MealSlot = .breakfast
     @State private var measureMenuOpen = false
+    @State private var scrollToTopTick = 0          // bump to scroll the page back to the hero calories
     @FocusState private var amountFocused: Bool
     @State private var quantity: Double = 1
     @State private var portions: [FoodPortion] = []
@@ -56,6 +57,7 @@ struct FoodDetailView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     header
@@ -65,10 +67,16 @@ struct FoodDetailView: View {
                 }
                 .padding(Metrics.pagePadding)
                 .padding(.bottom, 90)
+                .id("top")
             }
             .background(Theme.bg)
             .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
+            // Any amount input snaps back to the hero calories at the top, so the live
+            // total is always in view while the user tweaks the quantity.
+            .onChange(of: scrollToTopTick) { _, _ in
+                withAnimation(.easeInOut(duration: 0.35)) { proxy.scrollTo("top", anchor: .top) }
+            }
             .task {
                 portions = await store.portions(for: food)
                 measures = buildMeasures()
@@ -102,6 +110,7 @@ struct FoodDetailView: View {
                 if let m = measures.first(where: { $0.id.uuidString == id }) {
                     withAnimation(.snappy) { select(m) }
                 }
+            }
             }
         }
         .presentationDragIndicator(.visible)
@@ -262,39 +271,60 @@ struct FoodDetailView: View {
     /// by the measure's natural increment; the label in the middle opens the measure
     /// picker (Serving · 100 g · Grams · …). Fills all remaining width.
     private var amountCapsule: some View {
-        HStack(spacing: 0) {
-            stepButton("minus", enabled: canDecrement) { step(-1) }
-            HStack(spacing: 6) {
-                quantityField                       // tap the number to type in place
-                DropdownTrigger(isOpen: $measureMenuOpen) {
-                    HStack(spacing: 5) {
-                        Text(amountValue.unit)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Theme.textSecondary)
-                        Text("\(calories) kcal")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(Theme.textTertiary)
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                            .padding(.leading, 2)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(RingColor.carb.tint)
-                            .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
-                    }
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .contentShape(Rectangle())
+        HStack(spacing: 8) {
+            quantityField                           // tap the number to type in place
+            DropdownTrigger(isOpen: $measureMenuOpen) {
+                HStack(spacing: 5) {
+                    Text(amountValue.unit)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(RingColor.carb.tint)
+                        .rotationEffect(.degrees(measureMenuOpen ? 180 : 0))
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity)
-            stepButton("plus", enabled: true) { step(1) }
+            Spacer(minLength: 6)
+            verticalStepper                         // compact ↑ / ↓ in terracotta
         }
-        .padding(.horizontal, 4)
+        .padding(.leading, 16)
+        .padding(.trailing, 8)
         .frame(height: 54)
         .frame(maxWidth: .infinity)
         .glassEffect(.regular.interactive(), in: Capsule())
         .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    /// Compact vertical nudge control — a terracotta up/down chevron pair that steps the
+    /// quantity by the measure's increment. Takes far less width than two round buttons,
+    /// freeing space in the pill for more info.
+    private var verticalStepper: some View {
+        VStack(spacing: 0) {
+            arrowButton("chevron.up", enabled: true) { step(1) }
+            arrowButton("chevron.down", enabled: canDecrement) { step(-1) }
+        }
+        .padding(.horizontal, 4)
+        .background(Capsule().fill(RingColor.carb.tint.opacity(0.12)))
+    }
+
+    private func arrowButton(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            withAnimation(.snappy(duration: 0.22)) { action() }
+            scrollToTopTick &+= 1                    // reveal the live calories up top
+        } label: {
+            Image(systemName: system)
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(enabled ? RingColor.carb.tint : Theme.textTertiary.opacity(0.4))
+                .frame(width: 30, height: 21)
+                .symbolEffect(.bounce, value: quantity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(BouncyPress())
+        .disabled(!enabled)
     }
 
     /// The quantity, edited in place. Reads as a plain bold number with a quiet
@@ -319,26 +349,9 @@ struct FoodDetailView: View {
             }
             .animation(.snappy(duration: 0.2), value: amountFocused)
             .onChange(of: amountFocused) { _, focused in
+                if focused { scrollToTopTick &+= 1 }          // show live calories while typing
                 if !focused, quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
             }
-    }
-
-    /// A circular `−`/`+` stepper. The glyph bounces on each change for tactile feedback.
-    private func stepButton(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
-        Button {
-            HapticManager.shared.trigger(.light)
-            withAnimation(.snappy(duration: 0.25)) { action() }
-        } label: {
-            Image(systemName: system)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(enabled ? Theme.textPrimary : Theme.textTertiary.opacity(0.5))
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(Color.white.opacity(0.06)))
-                .symbolEffect(.bounce, value: quantity)
-                .contentShape(Circle())
-        }
-        .buttonStyle(BouncyPress())
-        .disabled(!enabled)
     }
 
     /// Right control: the solid terracotta button. While the amount field is being
