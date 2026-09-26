@@ -13,6 +13,7 @@ struct FoodDetailView: View {
     @State private var scrollToTopTick = 0          // bump to scroll the page back to the hero calories
     @FocusState private var amountFocused: Bool
     @State private var quantity: Double = 1
+    @State private var quantityText: String = "1"   // string-backed so the caret never jumps
     @State private var portions: [FoodPortion] = []
     @State private var measures: [Measure] = []
     @State private var selectedMeasureID: Measure.ID?
@@ -272,16 +273,20 @@ struct FoodDetailView: View {
     /// is being typed (keyboard up) — tapping the checkmark brings them back.
     private var amountCapsule: some View {
         HStack(spacing: 6) {
-            if !amountFocused {
+            if amountFocused {
+                Spacer(minLength: 0)                 // centre the enlarged number while typing
+            } else {
                 stepButton("minus", enabled: canDecrement) { step(-1) }
                     .transition(.scale(scale: 0.5).combined(with: .opacity))
             }
             quantityField                           // tap the number to type in place
-            if !amountFocused {
+            if amountFocused {
+                Spacer(minLength: 0)
+            } else {
                 stepButton("plus", enabled: true) { step(1) }
                     .transition(.scale(scale: 0.5).combined(with: .opacity))
+                Spacer(minLength: 8)
             }
-            Spacer(minLength: 8)
             DropdownTrigger(isOpen: $measureMenuOpen) {
                 HStack(spacing: 5) {
                     Text(amountValue.unit)
@@ -315,10 +320,9 @@ struct FoodDetailView: View {
             scrollToTopTick &+= 1
         } label: {
             Image(systemName: system)
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(enabled ? RingColor.carb.tint : Theme.textTertiary.opacity(0.4))
-                .frame(width: 40, height: 40)                       // big, reliable tap target
-                .background(Circle().fill(RingColor.carb.tint.opacity(enabled ? 0.14 : 0.06)))
+                .frame(width: 40, height: 40)                       // big, reliable tap target — no fill
                 .symbolEffect(.bounce, value: quantity)
                 .contentShape(Circle())
         }
@@ -330,10 +334,10 @@ struct FoodDetailView: View {
     /// terracotta underline that thickens and lights up on focus — so it's clearly
     /// tappable to type a custom value, without a boxy chip crowding the bar.
     private var quantityField: some View {
-        TextField("0", value: $quantity, format: .number.precision(.fractionLength(0...2)))
+        TextField("0", text: $quantityText)
             .keyboardType(.decimalPad)
             .multilineTextAlignment(.center)
-            .font(.system(size: 18, weight: .bold, design: .rounded))
+            .font(.system(size: amountFocused ? 30 : 18, weight: .bold, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(Theme.textPrimary)
             .tint(RingColor.carb.tint)
@@ -344,13 +348,29 @@ struct FoodDetailView: View {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(RingColor.carb.tint.opacity(amountFocused ? 1 : 0.55))
                     .frame(height: amountFocused ? 2.5 : 2)
-                    .offset(y: 5)
+                    .offset(y: amountFocused ? 7 : 5)
             }
-            .animation(.snappy(duration: 0.2), value: amountFocused)
+            .animation(.spring(response: 0.34, dampingFraction: 0.78), value: amountFocused)
+            // String-backed: typing never triggers a value→format re-render, so the caret
+            // stays put at the end instead of jumping to the left.
+            .onChange(of: quantityText) { _, t in
+                if let v = Double(t) { quantity = v } else if t.isEmpty { quantity = 0 }
+            }
+            .onChange(of: quantity) { _, v in
+                if Double(quantityText) != v { quantityText = formatQuantity(v) }
+            }
             .onChange(of: amountFocused) { _, focused in
                 if focused { scrollToTopTick &+= 1 }          // show live calories while typing
-                if !focused, quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
+                if !focused {
+                    if quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
+                    quantityText = formatQuantity(quantity)   // normalise (e.g. "1." → "1")
+                }
             }
+    }
+
+    /// Compact numeric string: whole numbers show no decimals, else up to two.
+    private func formatQuantity(_ v: Double) -> String {
+        v == v.rounded() ? String(Int(v)) : String((v * 100).rounded() / 100)
     }
 
     /// Right control: the solid terracotta button. While the amount field is being
