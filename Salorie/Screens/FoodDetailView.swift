@@ -321,14 +321,6 @@ struct FoodDetailView: View {
             .onChange(of: amountFocused) { _, focused in
                 if !focused, quantity <= 0 { quantity = selectedMeasure?.step ?? 1 }
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { amountFocused = false }
-                        .font(.system(size: 16, weight: .semibold))
-                        .tint(RingColor.carb.tint)
-                }
-            }
     }
 
     /// A circular `−`/`+` stepper. The glyph bounces on each change for tactile feedback.
@@ -349,17 +341,25 @@ struct FoodDetailView: View {
         .disabled(!enabled)
     }
 
-    /// Right control: the solid terracotta log button. One tap adds the food to the
-    /// selected meal and dismisses.
+    /// Right control: the solid terracotta button. While the amount field is being
+    /// edited it shows a checkmark (Done) in the *same spot* — tapping it commits the
+    /// number and dismisses the keyboard; it then morphs back to `+`, which logs the
+    /// food to the selected meal. Keeping one button avoids any Done/＋ misalignment.
     private var addCircleButton: some View {
         Button {
-            HapticManager.shared.trigger(.success)
-            store.addEntry(food, slot: slot, servings: servings)
-            dismiss()
+            if amountFocused {
+                HapticManager.shared.trigger(.light)
+                amountFocused = false                 // commit the typed amount
+            } else {
+                HapticManager.shared.trigger(.success)
+                store.addEntry(food, slot: slot, servings: servings)
+                dismiss()
+            }
         } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 23, weight: .bold))
+            Image(systemName: amountFocused ? "checkmark" : "plus")
+                .font(.system(size: amountFocused ? 21 : 23, weight: .bold))
                 .foregroundStyle(.white)
+                .contentTransition(.symbolEffect(.replace))
                 .frame(width: 54, height: 54)
                 .background(
                     LinearGradient(colors: [RingColor.carb.tint, RingColor.carb.tint.opacity(0.82)],
@@ -370,7 +370,8 @@ struct FoodDetailView: View {
                 .shadow(color: RingColor.carb.tint.opacity(0.5), radius: 12, y: 5)
         }
         .buttonStyle(BouncyPress())
-        .accessibilityLabel("Add \(calories) calories to \(slot.rawValue)")
+        .accessibilityLabel(amountFocused ? "Done editing amount"
+                                          : "Add \(calories) calories to \(slot.rawValue)")
     }
 
     /// Whether the quantity can still be decremented (kept at ≥ one step).
