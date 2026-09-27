@@ -80,8 +80,8 @@ struct DayDetailView: View {
                 } label: {
                     VStack(spacing: 8) {
                         Text(d.weekdayLetter)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(i == index ? Theme.textPrimary : Theme.textTertiary)
+                            .font(.system(size: 12, weight: i == index ? .bold : .semibold))
+                            .foregroundStyle(i == index ? Color.white : Theme.textTertiary)
                         MiniSunRings(calories: frac(d.calories, over: store.targets.calories),
                                      protein: frac(d.protein, over: store.targets.protein),
                                      carbs: frac(d.carbs, over: store.targets.carbs))
@@ -90,8 +90,8 @@ struct DayDetailView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(i == index ? Theme.surface : .clear,
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    // Selection is shown by the white day-letter + full-opacity rings —
+                    // no grey rectangle behind the day.
                 }
                 .buttonStyle(.plain)
             }
