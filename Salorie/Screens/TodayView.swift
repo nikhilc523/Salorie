@@ -11,6 +11,9 @@ struct TodayView: View {
     @State private var expandedMeals: Set<UUID> = []
     @State private var showSettings = false
     @AppStorage(NutrientPrefs.key) private var trackedRaw = NutrientPrefs.default
+    @AppStorage(WeightPrefs.startKey) private var weightStart = 0.0
+    @AppStorage(WeightPrefs.currentKey) private var weightCurrent = 0.0
+    @AppStorage(WeightPrefs.targetKey) private var weightTarget = 0.0
 
     var body: some View {
         NavigationStack {
@@ -19,7 +22,7 @@ struct TodayView: View {
                 VStack(spacing: 16) {
                     dateHeader
                     heroCard
-                    mealsSection.id("meals")
+                    mealsSection.id("meals").padding(.top, 10)
                     insightsSection
                 }
                 .padding(.horizontal, Metrics.pagePadding)
@@ -89,7 +92,8 @@ struct TodayView: View {
         SalorieMacroSummary(
             calories: .init(consumed: Double(store.caloriesToday), goal: Double(store.targets.calories)),
             protein: .init(consumed: store.proteinToday, goal: store.targets.protein),
-            carbs: .init(consumed: store.carbsToday, goal: store.targets.carbs)
+            carbs: .init(consumed: store.carbsToday, goal: store.targets.carbs),
+            weight: weightTrack
         )
         .padding(.top, 8)
         .contentShape(Rectangle())
@@ -98,6 +102,16 @@ struct TodayView: View {
             dayIndex = max(0, store.history.count - 1)
             showDayDetail = true
         }
+    }
+
+    // MARK: Weight milestones
+
+    /// The weight journey to ride the rings' horizon line — only present once a
+    /// present and a target weight have been set (in Settings) and they differ.
+    private var weightTrack: WeightTrack? {
+        let startWeight = weightStart > 0 ? weightStart : weightCurrent
+        guard weightCurrent > 0, weightTarget > 0, startWeight != weightTarget else { return nil }
+        return WeightTrack(start: startWeight, current: weightCurrent, target: weightTarget)
     }
 
     // MARK: Meals

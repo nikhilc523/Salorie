@@ -43,10 +43,16 @@ private struct SunGeometry {
     /// drop below the horizon do we extend the box downward so it isn't clipped.
     /// Under goal the box stays tight so the stats sit right beneath the sun.
     static let designWidth: CGFloat = 320
-    static func designHeight(reserveDock: Bool) -> CGFloat { reserveDock ? 260 : 196 }
+    /// `compact` hugs the box to the arcs (used when the horizon line is dropped
+    /// and the milestone track supplies the base below), trimming the dead space
+    /// under the sun so the track can sit a comfortable — not huge — gap below.
+    static func designHeight(reserveDock: Bool, compact: Bool = false) -> CGFloat {
+        if reserveDock { return 260 }
+        return compact ? 170 : 196
+    }
 
-    init(size: CGSize, reserveDock: Bool) {
-        let h = SunGeometry.designHeight(reserveDock: reserveDock)
+    init(size: CGSize, reserveDock: Bool, compact: Bool = false) {
+        let h = SunGeometry.designHeight(reserveDock: reserveDock, compact: compact)
         s = min(size.width / SunGeometry.designWidth, size.height / h)
         center = CGPoint(x: size.width / 2, y: (size.height - h * s) / 2 + 158 * s)
         R = 114 * s
@@ -78,8 +84,13 @@ private func lerp(_ a: CGPoint, _ b: CGPoint, _ t: CGFloat) -> CGPoint {
 /// The single horizon line, drawn once beneath every ring layer.
 private struct SunBackdrop: View {
     let reserveDock: Bool
+    /// The milestone track carries its own line below the rings, so when it's on
+    /// we drop the sun's horizon line and let the arcs float above it (like the
+    /// mockup) — no double line.
+    var showHorizon: Bool = true
     var body: some View {
         Canvas { ctx, size in
+            guard showHorizon else { return }
             let g = SunGeometry(size: size, reserveDock: reserveDock)
             var h = Path()
             h.move(to: CGPoint(x: g.center.x - (g.R + g.W), y: g.center.y + g.W))
@@ -104,6 +115,7 @@ private struct SunRingLayer: View, Animatable {
     let showPills: Bool
     let showShadow: Bool
     let reserveDock: Bool
+    var compact: Bool = false
 
     nonisolated var animatableData: AnimatablePair<Double, Double> {
         get { .init(frac, dock) }
@@ -112,7 +124,7 @@ private struct SunRingLayer: View, Animatable {
 
     var body: some View {
         Canvas { ctx, size in
-            let g = SunGeometry(size: size, reserveDock: reserveDock)
+            let g = SunGeometry(size: size, reserveDock: reserveDock, compact: compact)
             let r = g.radii[ringIndex]
             let c = g.center
             let W = g.W, s = g.s
@@ -219,6 +231,8 @@ struct SalorieRings: View {
     var carbs: Double
     var showPills: Bool = true
     var showShadow: Bool = true
+    /// Drop the sun's horizon line when the milestone track below supplies its own.
+    var showHorizon: Bool = true
 
     @State private var frac: [Double] = [0, 0, 0]
     @State private var dock: [Double] = [0, 0, 0]
@@ -234,16 +248,19 @@ struct SalorieRings: View {
         showPills && (calories >= 1 || protein >= 1 || carbs >= 1)
     }
 
+    private var compact: Bool { !showHorizon }
+
     var body: some View {
         ZStack {
-            SunBackdrop(reserveDock: reserveDock)
+            SunBackdrop(reserveDock: reserveDock, showHorizon: showHorizon)
             ForEach(0..<3, id: \.self) { i in
                 SunRingLayer(frac: frac[i], dock: dock[i], ringIndex: i,
                              style: styles[i], showPills: showPills,
-                             showShadow: showShadow, reserveDock: reserveDock)
+                             showShadow: showShadow, reserveDock: reserveDock,
+                             compact: compact)
             }
         }
-        .aspectRatio(SunGeometry.designWidth / SunGeometry.designHeight(reserveDock: reserveDock),
+        .aspectRatio(SunGeometry.designWidth / SunGeometry.designHeight(reserveDock: reserveDock, compact: compact),
                      contentMode: .fit)
         .animation(reduceMotion ? nil : .spring(response: 0.6, dampingFraction: 0.8), value: reserveDock)
         .onAppear { apply(animated: !reduceMotion) }
@@ -361,15 +378,181 @@ struct SalorieMacroSummary: View {
     /// Percentage pills are off on the Home hero — the stats row already shows the
     /// real numbers and "% of goal", so the pills were redundant clutter.
     var showPills: Bool = false
+    /// Optional weight-milestone journey shown as its own line below the rings.
+    var weight: WeightTrack? = nil
 
     var body: some View {
         VStack(spacing: 8) {
             SalorieRings(calories: calories.fraction,
                          protein: protein.fraction,
                          carbs: carbs.fraction,
-                         showPills: showPills)
+                         showPills: showPills,
+                         showHorizon: weight == nil)
+            if let weight {
+                WeightMilestoneTrack(track: weight)
+                    .padding(.top, 6)
+            }
             MacroStatsRow(calories: calories, protein: protein, carbs: carbs)
+                .padding(.top, weight == nil ? 0 : 12)
         }
+    }
+}
+
+// MARK: - Weight milestone track
+
+/// The three weights that define the milestone journey.
+struct WeightTrack: Equatable {
+    var start: Double
+    var current: Double
+    var target: Double
+}
+
+/// Drops trailing ".0" so whole kilos read cleanly.
+private func weightLabel(_ v: Double) -> String {
+    v.rounded() == v ? String(Int(v)) : String(format: "%.1f", v)
+}
+
+/// The weight journey as its own element below the rings: a wide line with
+/// milestone markers, large numbers tucked right under it, and a caption close
+/// beneath. Sits with comfortable breathing room from the (horizon-less) rings.
+struct WeightMilestoneTrack: View {
+    let track: WeightTrack
+
+    @State private var anim: Double = 0   // animated fill/knob position (0…1)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let reached  = Color(hex: 0xE3D9C6) // oatmeal — progress + checks
+    private let flagTint = Color(hex: 0xB3664C) // terracotta — goal + "next"
+    private let rail     = Color(hex: 0x3A2E25) // empty line (the old horizon tone)
+    private let upcoming = Color(hex: 0x4A3B30) // not-yet dots
+
+    private let lineY: CGFloat = 20             // headroom above for flag + knob
+    private let numberGap: CGFloat = 25         // numbers hug the line
+    private let inset: CGFloat = 13             // so end markers/flag aren't clipped
+
+    private var milestones: [Double] { WeightPrefs.milestones(start: track.start, target: track.target) }
+    private var realProgress: Double { WeightPrefs.progress(start: track.start, current: track.current, target: track.target) }
+
+    private func frac(_ v: Double) -> Double {
+        guard track.start != track.target else { return 0 }
+        return min(max((v - track.start) / (track.target - track.start), 0), 1)
+    }
+    private func isReached(_ v: Double) -> Bool { anim >= frac(v) - 0.0001 }
+    private var nextIndex: Int? { milestones.dropLast().firstIndex { !isReached($0) } }
+
+    private var reachedCount: Int {
+        milestones.dropLast().filter { realProgress >= frac($0) - 0.0001 }.count
+    }
+    private var nextTarget: (value: Double, away: Double)? {
+        guard let v = milestones.first(where: { realProgress < frac($0) - 0.0001 }) else { return nil }
+        return (v, abs(track.current - v))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geo in lineAndMarkers(width: geo.size.width) }
+                .frame(height: lineY + numberGap + 12)
+            caption
+        }
+        .onAppear { animate() }
+        .onChange(of: track) { _, _ in animate() }
+        .accessibilityElement()
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private func lineAndMarkers(width w: CGFloat) -> some View {
+        let usable = max(w - inset * 2, 1)
+        func x(_ f: Double) -> CGFloat { inset + usable * CGFloat(f) }
+        let lineH: CGFloat = 5
+
+        return ZStack(alignment: .topLeading) {
+            // Empty rail + bright reached portion up to the present weight.
+            Capsule().fill(rail).frame(width: usable, height: lineH)
+                .position(x: w / 2, y: lineY)
+            Capsule().fill(reached)
+                .frame(width: max(usable * CGFloat(anim), 0.001), height: lineH)
+                .position(x: inset + usable * CGFloat(anim) / 2, y: lineY)
+
+            ForEach(Array(milestones.enumerated()), id: \.offset) { i, v in
+                let isGoal = i == milestones.count - 1
+                marker(v, isGoal: isGoal, isNext: i == nextIndex)
+                    .position(x: x(frac(v)), y: lineY)
+                Text(weightLabel(v))
+                    .font(.system(size: 15, weight: labelWeight(v, isGoal: isGoal), design: .rounded))
+                    .monospacedDigit()
+                    .fixedSize()
+                    .foregroundStyle(labelColor(v, isGoal: isGoal, isNext: i == nextIndex))
+                    .position(x: x(frac(v)), y: lineY + numberGap)
+            }
+
+            // Goal flag flies just above the final marker.
+            Image(systemName: "flag.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(flagTint)
+                .position(x: x(1), y: lineY - 16)
+
+            // Present-weight knob rides the head of the filled line.
+            Circle().fill(reached).frame(width: 13, height: 13)
+                .overlay(Circle().stroke(Theme.bg, lineWidth: 3))
+                .shadow(color: reached.opacity(0.5), radius: 4)
+                .position(x: x(anim), y: lineY)
+        }
+    }
+
+    @ViewBuilder
+    private func marker(_ v: Double, isGoal: Bool, isNext: Bool) -> some View {
+        if isGoal {
+            Circle().fill(isReached(v) ? flagTint : Color(hex: 0x2A2420)).frame(width: 19, height: 19)
+                .overlay(Circle().stroke(flagTint, lineWidth: isReached(v) ? 0 : 2))
+        } else if isReached(v) {
+            Circle().fill(reached).frame(width: 21, height: 21)
+                .overlay(Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(Color(hex: 0x17110D)))
+        } else if isNext {
+            Circle().fill(Theme.bg).frame(width: 19, height: 19)
+                .overlay(Circle().stroke(flagTint, lineWidth: 2))
+        } else {
+            Circle().fill(upcoming).frame(width: 9, height: 9)
+        }
+    }
+
+    private var caption: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("\(reachedCount) ").fontWeight(.bold).foregroundStyle(reached)
+            + Text(reachedCount == 1 ? "milestone reached" : "milestones reached")
+                .foregroundStyle(Theme.textSecondary)
+
+            Spacer(minLength: 8)
+
+            if let next = nextTarget {
+                Text("Next: ").foregroundStyle(Theme.textSecondary)
+                + Text("\(weightLabel(next.value)) kg").fontWeight(.semibold).foregroundStyle(Theme.textPrimary)
+                + Text(", \(weightLabel(next.away)) kg away").foregroundStyle(Theme.textSecondary)
+            } else {
+                Text("Goal reached").fontWeight(.semibold).foregroundStyle(flagTint)
+            }
+        }
+        .font(.system(size: 12))
+    }
+
+    private func labelWeight(_ v: Double, isGoal: Bool) -> Font.Weight {
+        isGoal || isReached(v) ? .semibold : .regular
+    }
+    private func labelColor(_ v: Double, isGoal: Bool, isNext: Bool) -> Color {
+        if isGoal || isNext { return flagTint }
+        if isReached(v) { return Theme.textSecondary }
+        return Theme.textTertiary
+    }
+    private func animate() {
+        if reduceMotion { anim = realProgress }
+        else { withAnimation(.spring(response: 0.7, dampingFraction: 0.85)) { anim = realProgress } }
+    }
+    private var accessibilityText: String {
+        if let next = nextTarget {
+            return "Weight goal: \(reachedCount) milestones reached. Next milestone \(weightLabel(next.value)) kilograms, \(weightLabel(next.away)) away. Target \(weightLabel(track.target)) kilograms."
+        }
+        return "Weight goal reached: \(weightLabel(track.target)) kilograms."
     }
 }
 

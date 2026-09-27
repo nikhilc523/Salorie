@@ -24,6 +24,53 @@ enum NutrientPrefs {
     }
 }
 
+// MARK: - Weight milestone preferences
+
+/// Present / target weight for the home milestone track. Stored as loose
+/// `@AppStorage` doubles (kg) so there's no schema migration — this is a
+/// lightweight testing surface, not part of the logged-data model.
+///
+/// `start` is captured automatically: it's the point furthest from the target
+/// we've seen, so nudging the present weight toward the goal reveals the
+/// milestones you've passed (and moving away resets the journey's origin).
+enum WeightPrefs {
+    static let startKey   = "weight.start"
+    static let currentKey = "weight.current"
+    static let targetKey  = "weight.target"
+
+    /// A "nice" spacing so the track shows ~4–8 evenly placed markers that land
+    /// on round numbers regardless of how big the goal is.
+    static func step(forRange range: Double) -> Double {
+        let candidates: [Double] = [0.5, 1, 2, 2.5, 5, 10, 20, 25, 50]
+        return candidates.first { range / $0 <= 7 } ?? candidates.last!
+    }
+
+    /// Milestone weights from `start` → `target` inclusive, stepping along a nice
+    /// grid, with the target always the final marker (the flag). The gap before
+    /// the target may be shorter than the others — the track positions markers by
+    /// value, so that reads as a slightly closer flag rather than an uneven grid.
+    static func milestones(start: Double, target: Double) -> [Double] {
+        guard start != target else { return [start] }
+        let step = step(forRange: abs(target - start))
+        let descending = target < start
+        var values = [start]
+        var v = start
+        while true {
+            v += descending ? -step : step
+            if descending ? (v <= target + 0.0001) : (v >= target - 0.0001) { break }
+            values.append(v)
+        }
+        values.append(target)
+        return values
+    }
+
+    /// 0…1 progress from start toward target for the given present weight.
+    static func progress(start: Double, current: Double, target: Double) -> Double {
+        guard start != target else { return 0 }
+        return min(max((current - start) / (target - start), 0), 1)
+    }
+}
+
 // MARK: - Goal streak banner
 
 /// One day in the week strip: its weekday letter and whether it hit the goal.
@@ -308,6 +355,9 @@ struct NutrientCard: View {
 /// the home screen. Backed by `@AppStorage` (no schema migration needed).
 struct SettingsView: View {
     @AppStorage(NutrientPrefs.key) private var raw = NutrientPrefs.default
+    @AppStorage(WeightPrefs.currentKey) private var weightCurrent = 0.0
+    @AppStorage(WeightPrefs.targetKey) private var weightTarget = 0.0
+    @AppStorage(WeightPrefs.startKey) private var weightStart = 0.0
     @Environment(MockStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var confirmReset = false
@@ -315,6 +365,17 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    weightRow("Present weight", value: $weightCurrent, step: 0.1)
+                    weightRow("Target weight", value: $weightTarget, step: 0.5)
+                } header: {
+                    Text("Weight goal")
+                } footer: {
+                    Text("Drives the milestone track under your rings. Set both to see the journey; nudging your present weight toward the target reveals the milestones you've passed.")
+                }
+                .onChange(of: weightCurrent) { _, _ in syncStart() }
+                .onChange(of: weightTarget) { _, _ in syncStart() }
+
                 Section {
                     ForEach(StatKind.trackableCases) { kind in
                         Toggle(isOn: binding(for: kind)) {
@@ -362,6 +423,34 @@ struct SettingsView: View {
             } message: {
                 Text("Your logged entries, history, trends, saved foods and meals will be permanently erased. The app will start fresh and empty.")
             }
+        }
+    }
+
+    /// One weight input: a typed value with a kg suffix and a fine stepper for
+    /// nudging (handy for landing on values like 78.4 to test "kg away").
+    private func weightRow(_ label: String, value: Binding<Double>, step: Double) -> some View {
+        HStack(spacing: 10) {
+            Text(label).foregroundStyle(Theme.textPrimary)
+            Spacer(minLength: 8)
+            TextField("0", value: value, format: .number.precision(.fractionLength(1)))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .monospacedDigit()
+                .frame(width: 56)
+                .foregroundStyle(Theme.textPrimary)
+            Text("kg").foregroundStyle(Theme.textTertiary)
+            Stepper("", value: value, in: 0...400, step: step)
+                .labelsHidden()
+        }
+    }
+
+    /// Keep `start` at the point furthest from the target we've seen, so lowering
+    /// the present weight toward the goal fills the track (and raising it away
+    /// re-anchors the origin). Nothing to reset — it self-calibrates.
+    private func syncStart() {
+        guard weightCurrent > 0, weightTarget > 0 else { return }
+        if weightStart == 0 || abs(weightCurrent - weightTarget) > abs(weightStart - weightTarget) {
+            weightStart = weightCurrent
         }
     }
 
