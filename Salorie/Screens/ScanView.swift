@@ -26,8 +26,7 @@ struct ScanView: View {
     @State private var looking = false   // network lookup (OFF/USDA) in flight
     @FocusState private var manualFieldFocused: Bool
 
-    private let scanTint = RingColor.calories.tint  // oatmeal — the calorie-ring colour
-    private let brandGreen = TagColor.green.fg      // sage green (#7DB38A) — the app's green accent
+    private let scanTint = RingColor.calories.tint  // oatmeal — the calorie-ring colour (the app accent for scan flows)
 
     var body: some View {
         ZStack {
@@ -53,9 +52,13 @@ struct ScanView: View {
             .padding(.top, 4)
 
             if looking { lookingOverlay }
+
+            // Scanned code isn't in any database → custom glass card (not a system alert,
+            // whose buttons ignore our tint and render in the global terracotta accent).
+            if notFoundCode != nil { noMatchOverlay }
         }
         .background(Color.black)
-        .tint(brandGreen)               // green accent for the no-match alert's Cancel / Add Manually
+        .tint(scanTint)                 // calorie-ring accent for scan chrome
         .statusBarHidden()
         .onDisappear { setTorch(false) }
         .sheet(item: $selectedFood, onDismiss: finishScanResult) { food in
@@ -63,13 +66,6 @@ struct ScanView: View {
         }
         .sheet(isPresented: $showManualFood) {
             ManualFoodEntryView(prefillBarcode: pendingCode)
-        }
-        // Scanned code isn't in any database → offer to add the item by hand.
-        .alert("No match for that code", isPresented: .constant(notFoundCode != nil)) {
-            Button("Add Manually") { pendingCode = notFoundCode ?? ""; notFoundCode = nil; showManualFood = true }
-            Button("Cancel", role: .cancel) { notFoundCode = nil }
-        } message: {
-            Text("\(notFoundCode ?? "") isn't in the catalog or Open Food Facts. Add it by hand — you can scan its nutrition label.")
         }
         // Camera can't read the barcode → type the number in and look it up.
         // Custom liquid-glass sheet (not a system alert) so it matches the scanner.
@@ -191,9 +187,9 @@ struct ScanView: View {
                     let isEmpty = manualCode.trimmingCharacters(in: .whitespaces).isEmpty
                     Text("Look up")
                         .font(.system(size: 16, weight: .bold))
-                        // No solid fill — a glossy liquid-glass capsule with green text,
-                        // matching the Cancel button's glass treatment.
-                        .foregroundStyle(brandGreen)
+                        // No solid fill — a glossy liquid-glass capsule with calorie-ring
+                        // text, matching the Cancel button's glass treatment.
+                        .foregroundStyle(scanTint)
                         .opacity(isEmpty ? 0.4 : 1)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -231,6 +227,67 @@ struct ScanView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
         .glassEffect(.regular, in: Capsule())
+        .transition(.opacity)
+    }
+
+    /// "No match for that code" — a centered liquid-glass card over a dim scrim, with
+    /// the calorie-ring accent on the primary action (matches the scanner's language).
+    private var noMatchOverlay: some View {
+        let code = notFoundCode ?? ""
+        return ZStack {
+            Color.black.opacity(0.55).ignoresSafeArea()
+                .onTapGesture { withAnimation(.snappy(duration: 0.2)) { notFoundCode = nil } }
+
+            VStack(spacing: 18) {
+                Image(systemName: "barcode.viewfinder")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(scanTint)
+                VStack(spacing: 8) {
+                    Text("No match for that code")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                        .multilineTextAlignment(.center)
+                    Text("\(code) isn't in the catalog or Open Food Facts. Add it by hand — you can scan its nutrition label.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                HStack(spacing: 12) {
+                    Button {
+                        HapticManager.shared.trigger(.light)
+                        withAnimation(.snappy(duration: 0.2)) { notFoundCode = nil }
+                    } label: {
+                        Text("Cancel")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Theme.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .glassEffect(.regular.interactive(), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        HapticManager.shared.trigger(.light)
+                        pendingCode = code
+                        notFoundCode = nil
+                        showManualFood = true
+                    } label: {
+                        Text("Add Manually")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(scanTint)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .glassEffect(.regular.interactive(), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: 360)
+            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Theme.surface))
+            .padding(.horizontal, 32)
+        }
         .transition(.opacity)
     }
 

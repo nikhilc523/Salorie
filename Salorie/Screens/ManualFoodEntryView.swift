@@ -66,11 +66,7 @@ struct ManualFoodEntryView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     identityCard
-                    if isScanning {
-                        scanningCard
-                    } else if scanBanner != nil {
-                        aiBanner
-                    }
+                    if !isScanning, scanBanner != nil { aiBanner }
                     nutritionCard
                     servingCard
                     moreCard
@@ -104,6 +100,9 @@ struct ManualFoodEntryView: View {
                                  onScanStarted: { withAnimation(.snappy(duration: 0.3)) { isScanning = true } })
                     .ignoresSafeArea()
             }
+            // Full-screen loading state while OCR runs — a clean progress indicator over
+            // a frosted layer, not an inline field. Dismisses when the fields are filled.
+            .overlay { if isScanning { scanningOverlay } }
         }
     }
 
@@ -416,46 +415,31 @@ struct ManualFoodEntryView: View {
         .onTapGesture { focus = field }   // tap anywhere in the pill to start typing
     }
 
-    // MARK: AI scan card + hint banner
+    // MARK: Scan loading overlay + hint banner
 
-    /// The "reading" card shown while OCR + on-device AI run after a scan. A shimmering
-    /// sparkle tile, a meaningful message, and an indeterminate progress line — it
-    /// appears in place, then vanishes when the fields fill in (no navigation away).
-    private var scanningCard: some View {
-        cardContainer {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 15, style: .continuous)
-                        .fill(RingColor.calories.tint.opacity(0.14))
-                        .frame(width: 52, height: 52)
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 23, weight: .semibold))
-                        .foregroundStyle(RingColor.calories.tint)
-                        .symbolEffect(.variableColor.iterative.reversing, options: .repeating)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Reading nutrition label")
-                        .font(.system(size: 17, weight: .bold))
+    /// Full-screen loading state shown while the captured photo is read. A frosted
+    /// layer hides the empty form, with a centred spinner + short label — a plain
+    /// progress state, not an inline field. Fades away once the fields are filled.
+    private var scanningOverlay: some View {
+        ZStack {
+            Rectangle().fill(.ultraThinMaterial).ignoresSafeArea()
+            VStack(spacing: 16) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(RingColor.calories.tint)
+                VStack(spacing: 5) {
+                    Text("Reading label")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(Theme.textPrimary)
-                    Text("On-device AI is filling in the details — no data leaves your phone.")
+                    Text("This only takes a moment.")
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 4)
             }
-            // Indeterminate progress line — the "it's working" cue, tinted to match.
-            ProgressView()
-                .progressViewStyle(.linear)
-                .tint(RingColor.calories.tint)
-                .padding(.top, 14)
+            .padding(.horizontal, 36).padding(.vertical, 30)
+            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Theme.surface))
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(RingColor.calories.tint.opacity(0.28), lineWidth: 1)
-        )
-        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .top)),
-                                removal: .opacity))
+        .transition(.opacity)
     }
 
     /// A quiet hint line (shown when NOT scanning): an availability reason (why the
