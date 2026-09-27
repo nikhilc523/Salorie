@@ -138,7 +138,7 @@ struct DayDetailView: View {
     /// Three compact cards side by side — each shows the day's total for a macro,
     /// a mini hourly chart, and a chevron into the full D/W/M/Y detail.
     private var macroCards: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             macroMiniCard(.calories, title: "Calories", value: day.calories, unit: "",
                           tint: RingColor.calories.tint, hourly: macroPerHour { Double($0.calories) })
             macroMiniCard(.protein, title: "Protein", value: Int(day.protein.rounded()), unit: "g",
@@ -175,7 +175,7 @@ struct DayDetailView: View {
                 miniHourChart(hourly, tint: tint)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
+            .padding(10)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.metricCardRadius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: Metrics.metricCardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
         }
@@ -191,18 +191,18 @@ struct DayDetailView: View {
                 .clipShape(Capsule())
         }
         .frame(height: 46)
-        .chartXScale(domain: -1...25.5)   // right pad so the 6PM label isn't clipped
+        // Pad both edges so the outer 12AM / 6PM caps labels aren't clipped.
+        .chartXScale(domain: -2.5...25.5)
         .chartYScale(domain: 0...(peak * 1.12))
         .chartYAxis(.hidden)
         .chartXAxis {
-            // Dotted gridlines at every quarter; caps labels only where they fit
-            // (6AM · 6PM) so three narrow cards don't crowd/clip the text.
+            // Dotted gridlines + all four caps labels: 12AM · 6AM · 12PM · 6PM.
             AxisMarks(values: [0, 6, 12, 18]) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [2, 4]))
                     .foregroundStyle(Theme.divider.opacity(0.8))
-                if let h = value.as(Int.self), h == 6 || h == 18 {
-                    AxisValueLabel {
-                        Text(Self.hourCaps(h)).font(.system(size: 9)).foregroundStyle(Theme.textTertiary)
+                AxisValueLabel {
+                    if let h = value.as(Int.self) {
+                        Text(Self.hourCaps(h)).font(.system(size: 6.5)).foregroundStyle(Theme.textTertiary)
                     }
                 }
             }
