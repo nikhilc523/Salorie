@@ -296,19 +296,16 @@ private struct MacroStatsRow: View {
     private static let labelColor  = Color(hex: 0x8E8E93)
     private static let unitColor   = Color(hex: 0x636366)
     private static let statusColor = Color(hex: 0x8E8E93)
-    private static let dividerColor = Color(hex: 0x1C1C1E)
 
     var body: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(Self.dividerColor).frame(height: 1)
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                column("Calories", calories, unit: "kcal", color: Color(hex: 0xE3D9C6))
-                column("Protein", protein, unit: "g", color: Color(hex: 0xD1A67A))
-                column("Carbs", carbs, unit: "g", color: Color(hex: 0xB3664C))
-            }
-            .padding(.top, 14)
-            .padding(.horizontal, 8)
+        // No divider rule under the rings — the stats sit directly beneath the sun.
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            column("Calories", calories, unit: "kcal", color: Color(hex: 0xE3D9C6))
+            column("Protein", protein, unit: "g", color: Color(hex: 0xD1A67A))
+            column("Carbs", carbs, unit: "g", color: Color(hex: 0xB3664C))
         }
+        .padding(.top, 14)
+        .padding(.horizontal, 8)
     }
 
     private func column(_ label: String, _ datum: MacroDatum, unit: String, color: Color) -> some View {
@@ -361,12 +358,16 @@ struct SalorieMacroSummary: View {
     let calories: MacroDatum
     let protein: MacroDatum
     let carbs: MacroDatum
+    /// Percentage pills are off on the Home hero — the stats row already shows the
+    /// real numbers and "% of goal", so the pills were redundant clutter.
+    var showPills: Bool = false
 
     var body: some View {
         VStack(spacing: 8) {
             SalorieRings(calories: calories.fraction,
                          protein: protein.fraction,
-                         carbs: carbs.fraction)
+                         carbs: carbs.fraction,
+                         showPills: showPills)
             MacroStatsRow(calories: calories, protein: protein, carbs: carbs)
         }
     }

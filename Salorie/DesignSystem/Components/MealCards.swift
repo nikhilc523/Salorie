@@ -40,7 +40,9 @@ private struct MealArc: View {
         ZStack(alignment: .bottom) {
             Canvas { ctx, size in
                 let lw: CGFloat = 5.5
-                let r = (size.width - lw) / 2
+                // Constrain the radius by BOTH width and height so the round-capped
+                // peak isn't sliced flat by the frame top (the "black line cutoff").
+                let r = min((size.width - lw) / 2, size.height - lw)
                 let c = CGPoint(x: size.width / 2, y: size.height - lw / 2)
                 func arc(_ to: Double) -> Path {
                     var p = Path()
