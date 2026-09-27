@@ -1,6 +1,7 @@
 import SwiftUI
 import Observation
 import SwiftData
+import CloudKit
 
 /// Single source of truth for the UI phase. `@Observable` so views update automatically.
 /// Later this is replaced by the real (SwiftData/GRDB) store with identical surface.
@@ -11,7 +12,12 @@ final class MockStore {
     var customMeals: [Food]        // user-built composite meals (kind == .custom)
     var todayEntries: [MealEntry]
     var targets: MacroTargets
-    var friends: [SharedFriend]    // Sharing tab: me + family/friends' rings
+    var friends: [SharedFriend]    // Sharing tab: me + accepted friends' rings
+
+    /// Backs the Sharing tab. CloudKit `CKShare` when a container is configured
+    /// (`RemoteConfig.cloudKitContainerID`), else an offline mock (previews / tests
+    /// / no iCloud). Not `@Observable`-tracked — it holds no view state.
+    @ObservationIgnored let sharingService: SharingService
 
     /// Seeded demo history — the past days. The final element is `today`
     /// (referenceDate); we never read its seeded entries directly. `history` /
@@ -95,6 +101,15 @@ final class MockStore {
         self.remote = remote
         self.cache = cache
         self.persistence = persistence
+        // Real CloudKit sharing when a container is configured — except under Xcode
+        // previews and unit tests, which must stay offline (no network, no iCloud).
+        let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        if let ckContainer = RemoteConfig.cloudKitContainerID, !isPreview, !isTesting {
+            self.sharingService = CloudKitSharingService(containerID: ckContainer)
+        } else {
+            self.sharingService = MockSharingService()
+        }
         let defaults = UserDefaults.standard
         // One-time migration to a clean, demo-free start: no placeholder history/trends/
         // logged foods, real current date. Runs once per install (then persists via
@@ -131,8 +146,9 @@ final class MockStore {
             self.todayEntries = SampleData.todayEntries()
         }
 
-        // Me is built from this store's own day/history + friends are seeded.
-        self.friends = [meFriend] + SampleData.otherFriends()
+        // Me is built from this store's own day/history. Real friends load from the
+        // Sharing service (CloudKit) on demand via `refreshFriends()`.
+        self.friends = [meFriend]
     }
 
     // MARK: Derived — today's totals
@@ -216,6 +232,52 @@ final class MockStore {
             today: ringProgress(calories: caloriesToday, protein: proteinToday, carbs: carbsToday),
             last7: last7
         )
+    }
+
+    /// True while a `refreshFriends()` is in flight (drives the Sharing spinner).
+    var isLoadingFriends = false
+    /// Set when the last friend fetch failed (e.g. not signed into iCloud); drives
+    /// an inline banner in the Sharing tab.
+    var friendsError: String?
+
+    /// Pull accepted friends from CloudKit and rebuild `friends` = me + them. Always
+    /// rebuilds the "me" row from live totals so my own card is current. Failures are
+    /// surfaced (not thrown) so the tab still shows my own rings.
+    func refreshFriends() async {
+        isLoadingFriends = true
+        defer { isLoadingFriends = false }
+        do {
+            let others = try await sharingService.fetchFriends()
+            friends = [meFriend] + others
+            friendsError = nil
+        } catch {
+            // Keep whatever we had (at least "me").
+            if friends.isEmpty { friends = [meFriend] }
+            // Sharing is opt-in: not being signed into iCloud isn't an error worth
+            // nagging about on a passive load (the invite button surfaces it instead).
+            if (error as? CKError)?.code == .notAuthenticated {
+                friendsError = nil
+            } else {
+                friendsError = Self.friendlyMessage(for: error)
+            }
+        }
+    }
+
+    /// Publish my current rings so already-accepted friends see today's progress.
+    /// Best-effort — silently no-ops on failure (e.g. offline).
+    func publishMyRings() async {
+        try? await sharingService.publish(meFriend)
+    }
+
+    /// Human-readable text for the common CloudKit failure modes.
+    private static func friendlyMessage(for error: Error) -> String {
+        let ck = error as? CKError
+        switch ck?.code {
+        case .notAuthenticated: return "Sign in to iCloud to see friends' rings."
+        case .networkUnavailable, .networkFailure: return "You're offline — pull to retry."
+        case .quotaExceeded: return "iCloud storage is full."
+        default: return "Couldn't load friends. Pull to retry."
+        }
     }
 
     // MARK: Grouping
@@ -415,8 +477,8 @@ final class MockStore {
 
     /// Wipe every piece of stored data and keep the app blank going forward — a true
     /// "start from the very beginning, empty" reset. Clears the live in-memory state
-    /// immediately so the UI empties without a relaunch. Demo `otherFriends` remain
-    /// (they're other people's mock rings, not your data); "Me" goes to zero.
+    /// immediately so the UI empties without a relaunch. The Sharing tab drops back to
+    /// just "Me" (at zero); real friends reappear on the next CloudKit refresh.
     func resetAllData() {
         if let ctx = persistence?.context { wipe(ctx) }
         UserDefaults.standard.set(true, forKey: Self.emptyStartKey)
@@ -425,7 +487,7 @@ final class MockStore {
         todayEntries = []
         seededHistory = Self.emptyWeekScaffold(endingAt: today)   // keep the week strip's frame
         seededDailyLog = []
-        friends = [meFriend] + SampleData.otherFriends()
+        friends = [meFriend]
     }
 
     /// Load user data from SwiftData, seeding it from `SampleData` on first launch.

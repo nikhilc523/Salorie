@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 import BackgroundTasks
+import CloudKit
 
 @main
 struct SalorieApp: App {
@@ -51,12 +52,29 @@ struct SalorieApp: App {
     }
 }
 
-/// UIKit shim: forwards background-session completion events to the download manager.
+/// UIKit shim: forwards background-session completion events to the download manager,
+/// and accepts incoming CloudKit share links (tapping a Salorie invite URL).
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      handleEventsForBackgroundURLSession identifier: String,
                      completionHandler: @escaping () -> Void) {
         CatalogDownloadManager.shared.setBackgroundCompletionHandler(
             completionHandler, forSessionIdentifier: identifier)
+    }
+
+    /// The OS launches/foregrounds us here when the user taps a `CKShare` invite
+    /// link. We accept the share (its zone then appears in the shared database) and
+    /// notify the Sharing tab to refresh. Uses the metadata's own container so it
+    /// works even if `RemoteConfig` differs.
+    func application(_ application: UIApplication,
+                     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata) {
+        let container = CKContainer(identifier: cloudKitShareMetadata.containerIdentifier)
+        let operation = CKAcceptSharesOperation(shareMetadatas: [cloudKitShareMetadata])
+        operation.acceptSharesResultBlock = { _ in
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .salorieDidAcceptShare, object: nil)
+            }
+        }
+        container.add(operation)
     }
 }

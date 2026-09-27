@@ -181,7 +181,11 @@ enum RemoteConfig {
     /// container id to turn on cross-device sync of logs / meals / favorites.
     static var cloudKitContainerID: String? {
         if let e = ProcessInfo.processInfo.environment["SALORIE_CLOUDKIT_CONTAINER"], !e.isEmpty { return e }
-        let baked = ""   // ← e.g. "iCloud.com.salorie.app"  (requires the iCloud capability)
+        // Active by default: backs both SwiftData sync (Persistence, 3-tier fallback to
+        // local if iCloud is unavailable) and friend sharing (CloudKitSharingService).
+        // Set `SALORIE_CLOUDKIT_CONTAINER=""`… can't blank an env var; use the mock in
+        // previews/tests, which construct MockStore without this path being exercised.
+        let baked = "iCloud.com.salorie.app"   // requires the iCloud capability + a DEVELOPMENT_TEAM
         return baked.isEmpty ? nil : baked
     }
 }

@@ -22,6 +22,8 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>CKSharingSupported</key>
+	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Salorie uses the camera to scan barcodes and food labels.</string>
 	<key>UIApplicationSceneManifest</key>

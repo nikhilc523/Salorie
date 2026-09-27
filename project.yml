@@ -51,15 +51,18 @@ targets:
         # Background App Refresh (BGAppRefreshTask) + CloudKit silent-push sync.
         UIBackgroundModes: [fetch, remote-notification]
         BGTaskSchedulerPermittedIdentifiers: [com.salorie.app.catalog-refresh]
+        # Lets the OS launch us to accept a CKShare invite link (friend sharing).
+        CKSharingSupported: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.salorie.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1"
-        # To enable CloudKit sync of user data (plan §10): set DEVELOPMENT_TEAM, add
-        # CODE_SIGN_ENTITLEMENTS: Salorie/Salorie.entitlements (iCloud + CloudKit
-        # container iCloud.com.salorie.app), and set RemoteConfig.cloudKitContainerID.
+        # CloudKit (user-data sync + friend CKShare sharing). Container is
+        # iCloud.com.salorie.app (see RemoteConfig.cloudKitContainerID). Set a real
+        # DEVELOPMENT_TEAM above for device builds / to sign the iCloud entitlement.
+        CODE_SIGN_ENTITLEMENTS: Salorie/Salorie.entitlements
   SalorieTests:
     type: bundle.unit-test
     platform: iOS
