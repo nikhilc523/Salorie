@@ -101,12 +101,14 @@ struct DayDetailView: View {
     // MARK: Hero ring
 
     private var heroRing: some View {
-        SalorieRings(
-            calories: frac(day.calories, over: store.targets.calories),
-            protein: frac(day.protein, over: store.targets.protein),
-            carbs: frac(day.carbs, over: store.targets.carbs)
+        // Same hero as the Home screen (rising-sun rings + Calories/Protein/Carbs
+        // stats row, no pills). No `weight:` track here, so the weight goal line
+        // stays off this screen.
+        SalorieMacroSummary(
+            calories: .init(consumed: Double(day.calories), goal: Double(store.targets.calories)),
+            protein: .init(consumed: day.protein, goal: store.targets.protein),
+            carbs: .init(consumed: day.carbs, goal: store.targets.carbs)
         )
-        .frame(maxWidth: 340)
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)
     }
