@@ -49,6 +49,13 @@ struct DayDetailView: View {
             }
         }
         .presentationDragIndicator(.visible)
+        .onAppear {
+            // Screenshot hook: SALORIE_STAT=carbs opens that metric's D/W/M/Y detail.
+            if let raw = ProcessInfo.processInfo.environment["SALORIE_STAT"],
+               let kind = StatKind(rawValue: raw) {
+                selectedNutrient = kind
+            }
+        }
         .sheet(item: $selectedNutrient) { kind in
             StatDetailView(kind: kind, initialPeriod: .day, day: day, targets: store.targets)
         }

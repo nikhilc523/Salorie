@@ -228,6 +228,24 @@ struct StatDetailView: View {
         return -0.6 ... (Double(bars.count) - 0.5 + rightPad)
     }
 
+    /// The daily goal for this metric (0 for metrics we don't set a target on).
+    private var goalValue: Double { kind.goal(targets) }
+
+    /// Show a goal reference line so the target is visible even with no data.
+    /// W/M/Y bars are per-day, so the daily goal always applies there; the Day
+    /// chart is hourly, so we only show it when nothing's logged yet (empty state).
+    private var showGoalLine: Bool {
+        guard kind != .onTarget, goalValue > 0 else { return false }
+        return period != .day || presentValues.isEmpty
+    }
+
+    /// Y-axis top — always tall enough to include the goal line (with headroom).
+    private var yTop: Double {
+        let dataMax = bars.map(\.value).max() ?? 0
+        let top = max(dataMax, showGoalLine ? goalValue : 0)
+        return top > 0 ? top * 1.15 : 1
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -319,6 +337,17 @@ struct StatDetailView: View {
 
     private var chart: some View {
         Chart {
+            if showGoalLine {
+                RuleMark(y: .value("Goal", goalValue))
+                    .foregroundStyle(kind.numberColor.opacity(0.55))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .annotation(position: .top, alignment: .leading, spacing: 4) {
+                        Text("Goal \(fmt(goalValue)) \(kind.unit)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(kind.numberColor.opacity(0.85))
+                            .monospacedDigit()
+                    }
+            }
             ForEach(bars) { bar in
                 if bar.value > 0 {
                     BarMark(x: .value("i", bar.index), y: .value("v", bar.value), width: .fixed(barWidth))
@@ -329,7 +358,7 @@ struct StatDetailView: View {
         }
         .frame(height: 260)
         .chartXScale(domain: xDomain)
-        .chartYScale(domain: .automatic(includesZero: true))
+        .chartYScale(domain: 0...yTop)
         .chartYAxis {
             AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 1)).foregroundStyle(Theme.divider.opacity(0.55))
