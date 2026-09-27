@@ -73,8 +73,9 @@ final class MockStore {
     /// `nil` in previews & tests → pure in-memory demo (the original behavior).
     private let persistence: PersistenceController?
 
-    /// Fixed display date to match reference screens deterministically.
-    let today: Date = SampleData.referenceDate
+    /// The real current day (start of today). The app tracks the actual date/time;
+    /// `SampleData.referenceDate` is only used to lay out the demo data (previews/tests).
+    let today: Date = Calendar.current.startOfDay(for: Date())
 
     /// The best available real catalog — a downloaded build (plan §10) if one is
     /// installed, else the bundled seed (466k+ foods), else the in-memory sample
@@ -94,12 +95,22 @@ final class MockStore {
         self.remote = remote
         self.cache = cache
         self.persistence = persistence
-        // "Empty start" (set by Settings → Delete all data) keeps the app blank on every
-        // future launch: no demo history/trends and no reseed of foods/meals/entries.
-        let emptyStart = UserDefaults.standard.bool(forKey: Self.emptyStartKey)
-        // Read-only demo data — rebuilt from SampleData every launch, never persisted.
-        // The last day of each is `today`; `history`/`dailyLog` overlay live entries there.
-        self.seededHistory = emptyStart ? Self.emptyWeekScaffold(endingAt: SampleData.referenceDate)
+        let defaults = UserDefaults.standard
+        // One-time migration to a clean, demo-free start: no placeholder history/trends/
+        // logged foods, real current date. Runs once per install (then persists via
+        // `freshStartKey`). Skipped under tests so the seeding tests keep exercising
+        // SampleData. The actual persistent wipe happens below (it needs the context).
+        let underTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let doFreshStart = !underTests && !defaults.bool(forKey: Self.freshStartKey)
+        if doFreshStart {
+            defaults.set(true, forKey: Self.emptyStartKey)   // never seed demo data again
+            defaults.set(true, forKey: Self.freshStartKey)
+        }
+        // "Empty start" (set here on first launch, or by Settings → Delete all data) keeps
+        // the app blank: no demo history/trends and no reseed of foods/meals/entries.
+        let emptyStart = defaults.bool(forKey: Self.emptyStartKey)
+        // The week strips / Day Detail want a 7-day frame ending on the REAL today.
+        self.seededHistory = emptyStart ? Self.emptyWeekScaffold(endingAt: today)
                                         : SampleData.history()
         self.seededDailyLog = emptyStart ? [] : SampleData.extendedHistory()
         // User data — loaded from SwiftData when persistence is present (seeded from
@@ -111,6 +122,8 @@ final class MockStore {
         self.friends = []
 
         if let persistence {
+            // Clear any previously-seeded demo + test data once, so the store is truly empty.
+            if doFreshStart { wipe(persistence.context) }
             loadOrSeed(persistence.context)
         } else if !emptyStart {
             self.foods = SampleData.foods
@@ -396,6 +409,10 @@ final class MockStore {
     /// the app, which restores the original demo start.
     static let emptyStartKey = "salorie.emptyStart"
 
+    /// Set once, on the first launch after the "clean start" change: wipes any
+    /// previously-seeded demo/test data and switches the app to a real, empty start.
+    static let freshStartKey = "salorie.freshStartV1"
+
     /// Wipe every piece of stored data and keep the app blank going forward — a true
     /// "start from the very beginning, empty" reset. Clears the live in-memory state
     /// immediately so the UI empties without a relaunch. Demo `otherFriends` remain
@@ -406,7 +423,7 @@ final class MockStore {
         foods = []
         customMeals = []
         todayEntries = []
-        seededHistory = []
+        seededHistory = Self.emptyWeekScaffold(endingAt: today)   // keep the week strip's frame
         seededDailyLog = []
         friends = [meFriend] + SampleData.otherFriends()
     }
