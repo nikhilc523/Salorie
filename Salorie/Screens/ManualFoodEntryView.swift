@@ -66,7 +66,11 @@ struct ManualFoodEntryView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     identityCard
-                    if isScanning || scanBanner != nil { aiBanner }
+                    if isScanning {
+                        scanningCard
+                    } else if scanBanner != nil {
+                        aiBanner
+                    }
                     nutritionCard
                     servingCard
                     moreCard
@@ -97,7 +101,7 @@ struct ManualFoodEntryView: View {
             .fullScreenCover(isPresented: $showLabelScanner) {
                 LabelScannerView(onResult: applyScan,
                                  onDismiss: { showLabelScanner = false },
-                                 onScanStarted: { isScanning = true })
+                                 onScanStarted: { withAnimation(.snappy(duration: 0.3)) { isScanning = true } })
                     .ignoresSafeArea()
             }
         }
@@ -412,14 +416,51 @@ struct ManualFoodEntryView: View {
         .onTapGesture { focus = field }   // tap anywhere in the pill to start typing
     }
 
-    // MARK: AI scan banner + progressive fill
+    // MARK: AI scan card + hint banner
 
-    /// A hint line: either "reading" progress, an availability reason (why the basic
-    /// scan is being used), or a low-confidence caution after an AI fill.
-    private var scanBanner: (icon: String, text: String, tint: Color)? {
-        if isScanning {
-            return ("sparkles", "Reading label…", RingColor.calories.tint)
+    /// The "reading" card shown while OCR + on-device AI run after a scan. A shimmering
+    /// sparkle tile, a meaningful message, and an indeterminate progress line — it
+    /// appears in place, then vanishes when the fields fill in (no navigation away).
+    private var scanningCard: some View {
+        cardContainer {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 15, style: .continuous)
+                        .fill(RingColor.calories.tint.opacity(0.14))
+                        .frame(width: 52, height: 52)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 23, weight: .semibold))
+                        .foregroundStyle(RingColor.calories.tint)
+                        .symbolEffect(.variableColor.iterative.reversing, options: .repeating)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Reading nutrition label")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("On-device AI is filling in the details — no data leaves your phone.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+            }
+            // Indeterminate progress line — the "it's working" cue, tinted to match.
+            ProgressView()
+                .progressViewStyle(.linear)
+                .tint(RingColor.calories.tint)
+                .padding(.top, 14)
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(RingColor.calories.tint.opacity(0.28), lineWidth: 1)
+        )
+        .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .top)),
+                                removal: .opacity))
+    }
+
+    /// A quiet hint line (shown when NOT scanning): an availability reason (why the
+    /// basic scan is being used) or a low-confidence caution after an AI fill.
+    private var scanBanner: (icon: String, text: String, tint: Color)? {
         if let reason = LabelAI.unavailableReason {
             return ("info.circle", reason, Theme.textTertiary)
         }
@@ -431,9 +472,7 @@ struct ManualFoodEntryView: View {
 
     private var aiBanner: some View {
         HStack(spacing: 10) {
-            if isScanning {
-                ProgressView().controlSize(.small).tint(RingColor.calories.tint)
-            } else if let b = scanBanner {
+            if let b = scanBanner {
                 Image(systemName: b.icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(b.tint)
             }
             Text(scanBanner?.text ?? "")
