@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,6 +13,7 @@
 		087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */; };
 		1FEC21311919848DD9EFE95C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8A0DE5C8B820F77E3CB671E4 /* GRDB */; };
 		2EF75F316AE5C266B4D322F1 /* CatalogInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F875A4359B7528965B5F269 /* CatalogInstaller.swift */; };
+		31495DC54A3E4267489FB152 /* NutritionFactsMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B889ABBA745666AC99A5694 /* NutritionFactsMappingTests.swift */; };
 		39E3123F04390E319188DF58 /* CatalogDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A1FB552762B5C36F7AF646 /* CatalogDownloadManager.swift */; };
 		3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */; };
 		41F5660254DB6C0FDF07E99F /* HomeInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE436B02A7A62A63FBF3D3B /* HomeInsights.swift */; };
@@ -27,6 +28,7 @@
 		56B661456D285D00FB2AD814 /* FoodCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7466A965D2F0733D23670020 /* FoodCatalog.swift */; };
 		5A3F74092479E24587345675 /* LabelScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */; };
 		68DDEAC0CCE7F67B9C2BCD28 /* CatalogInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22439BCB157BA514F558138A /* CatalogInstallerTests.swift */; };
+		719889E2108908256967541C /* LabelExtractorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9A29291E26A45B1FF5A0AF /* LabelExtractorTests.swift */; };
 		7967B146D79631A7D320B6EF /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 48FF287CA3E525C5E86210DA /* README.md */; };
 		7AE749C2C4AB76CC9F881DAD /* GRDBFoodCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */; };
 		7BD988031CCCEE7B7EE3BA45 /* StatDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */; };
@@ -36,6 +38,7 @@
 		87A2D3FCB38B7C9CB3EAD321 /* IslandOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07334B8A3A0E8824D5AB5E84 /* IslandOverlay.swift */; };
 		87BE3D104F5D340FD98F503C /* FlightLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE93A14C72AE5C8D0780B8ED /* FlightLayer.swift */; };
 		8A1149E5807D35502AB43347 /* IslandController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0139FA6ECE2BAB33187DF86C /* IslandController.swift */; };
+		938BFB331860261DC61AA88A /* LabelAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E4FB271AB06FEBD0C94B6B6 /* LabelAI.swift */; };
 		9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796CC2D90F52CABD600C2327 /* ScanView.swift */; };
 		A104915F623D78B3570AA975 /* NutrientDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */; };
 		A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */; };
@@ -47,11 +50,13 @@
 		AF653DFF152A256E38791299 /* Pills.swift in Sources */ = {isa = PBXBuildFile; fileRef = D63E0ED90EE41BBE3D238551 /* Pills.swift */; };
 		B11BC84E69EBE48BDE7D3D72 /* PersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */; };
 		B202210D8871E3402C91ED4D /* salorie_foods.sqlite in Resources */ = {isa = PBXBuildFile; fileRef = BE35E489440951BF31FF35D8 /* salorie_foods.sqlite */; };
+		B272C733E297C1BCD46CB46B /* LabelExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CA58CA9F74B5C2293ED1FC /* LabelExtractor.swift */; };
 		B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 538D84F27FD95FE00E9125A1 /* MockStore.swift */; };
 		B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0F1310D8556FE2BBFE59AD /* Haptics.swift */; };
 		B99033C99767A6CB6C3A8BA3 /* MealBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */; };
 		BEA1438614E6CD724C560E7E /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */; };
 		C400483A86E87EE8122880F0 /* Sharing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2434F8183B6029C1DB2CE164 /* Sharing.swift */; };
+		CA58EDE33D3F045286C302B4 /* NutritionFacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = E141C76C0C495E1D0741EF60 /* NutritionFacts.swift */; };
 		CE5B52B222C509AD134BD08D /* GRDBFoodCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */; };
 		CE7BDE3F57A0C5E5D6242049 /* ManualFoodEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */; };
 		D02DBBC0FBDD414F3A763B2F /* NutritionLabelParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 254B6D0F990B6FD1FDE84324 /* NutritionLabelParser.swift */; };
@@ -93,11 +98,14 @@
 		254B6D0F990B6FD1FDE84324 /* NutritionLabelParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLabelParser.swift; sourceTree = "<group>"; };
 		2B012781019B5FE6E6A6921A /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		2B0F1310D8556FE2BBFE59AD /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		2B889ABBA745666AC99A5694 /* NutritionFactsMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionFactsMappingTests.swift; sourceTree = "<group>"; };
 		2B9F6B20723261BA38380813 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
 		2F20EE4833BBAD3BA0072AE9 /* SalorieTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SalorieTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalorieApp.swift; sourceTree = "<group>"; };
 		2F875A4359B7528965B5F269 /* CatalogInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogInstaller.swift; sourceTree = "<group>"; };
 		30E53BAEF02BD8F7F83022C5 /* BarcodeCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeCache.swift; sourceTree = "<group>"; };
+		35CA58CA9F74B5C2293ED1FC /* LabelExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelExtractor.swift; sourceTree = "<group>"; };
+		3F9A29291E26A45B1FF5A0AF /* LabelExtractorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelExtractorTests.swift; sourceTree = "<group>"; };
 		48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendDetailView.swift; sourceTree = "<group>"; };
 		48FF287CA3E525C5E86210DA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionHeader.swift; sourceTree = "<group>"; };
@@ -121,6 +129,7 @@
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		9BE5EC538F57268098B92887 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealHeroCard.swift; sourceTree = "<group>"; };
+		9E4FB271AB06FEBD0C94B6B6 /* LabelAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelAI.swift; sourceTree = "<group>"; };
 		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
 		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		AB2A82E8133BB543B537BB96 /* MiniSemicircleRings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniSemicircleRings.swift; sourceTree = "<group>"; };
@@ -133,12 +142,13 @@
 		CE93A14C72AE5C8D0780B8ED /* FlightLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightLayer.swift; sourceTree = "<group>"; };
 		CEE436B02A7A62A63FBF3D3B /* HomeInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeInsights.swift; sourceTree = "<group>"; };
 		D0A1FB552762B5C36F7AF646 /* CatalogDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDownloadManager.swift; sourceTree = "<group>"; };
-		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D271AFCD05F41DDC2B4BF0A9 /* MealCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCards.swift; sourceTree = "<group>"; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
 		D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLabelParserTests.swift; sourceTree = "<group>"; };
 		D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBFoodCatalog.swift; sourceTree = "<group>"; };
 		DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealDetailView.swift; sourceTree = "<group>"; };
+		E141C76C0C495E1D0741EF60 /* NutritionFacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionFacts.swift; sourceTree = "<group>"; };
 		E566169CCC23E10C5B4A55B7 /* RemoteFoodService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFoodService.swift; sourceTree = "<group>"; };
 		E84136E56251F472DCCC4871 /* ExtendedNutrientsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtendedNutrientsTests.swift; sourceTree = "<group>"; };
 		F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
@@ -272,8 +282,11 @@
 				2F875A4359B7528965B5F269 /* CatalogInstaller.swift */,
 				7466A965D2F0733D23670020 /* FoodCatalog.swift */,
 				D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */,
+				9E4FB271AB06FEBD0C94B6B6 /* LabelAI.swift */,
+				35CA58CA9F74B5C2293ED1FC /* LabelExtractor.swift */,
 				538D84F27FD95FE00E9125A1 /* MockStore.swift */,
 				A63FB642B0D3D9F924FEA51F /* Models.swift */,
+				E141C76C0C495E1D0741EF60 /* NutritionFacts.swift */,
 				254B6D0F990B6FD1FDE84324 /* NutritionLabelParser.swift */,
 				2B9F6B20723261BA38380813 /* Persistence.swift */,
 				E566169CCC23E10C5B4A55B7 /* RemoteFoodService.swift */,
@@ -299,7 +312,9 @@
 				CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */,
 				717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */,
 				7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */,
+				3F9A29291E26A45B1FF5A0AF /* LabelExtractorTests.swift */,
 				AD5099C09F7FC588E37734EF /* MeasureTests.swift */,
+				2B889ABBA745666AC99A5694 /* NutritionFactsMappingTests.swift */,
 				D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */,
 				0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */,
 				0594246B143E5AECC1E12C1F /* RemoteFoodTests.swift */,
@@ -360,6 +375,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					9996AB496B3996F707E07B40 = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 					BEB0546AAF2636F892CB2871 = {
@@ -379,8 +395,9 @@
 			mainGroup = 4B5F4F93DB8E0E5544C71FAD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */,
+				FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -425,6 +442,8 @@
 				8A1149E5807D35502AB43347 /* IslandController.swift in Sources */,
 				A69B72378F14DFA8D5AD292E /* IslandHostWindow.swift in Sources */,
 				87A2D3FCB38B7C9CB3EAD321 /* IslandOverlay.swift in Sources */,
+				938BFB331860261DC61AA88A /* LabelAI.swift in Sources */,
+				B272C733E297C1BCD46CB46B /* LabelExtractor.swift in Sources */,
 				5A3F74092479E24587345675 /* LabelScannerView.swift in Sources */,
 				CE7BDE3F57A0C5E5D6242049 /* ManualFoodEntryView.swift in Sources */,
 				B99033C99767A6CB6C3A8BA3 /* MealBuilderView.swift in Sources */,
@@ -438,6 +457,7 @@
 				43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */,
 				5106CC3598CE71A558D78F33 /* NotionTable.swift in Sources */,
 				A104915F623D78B3570AA975 /* NutrientDetailView.swift in Sources */,
+				CA58EDE33D3F045286C302B4 /* NutritionFacts.swift in Sources */,
 				D02DBBC0FBDD414F3A763B2F /* NutritionLabelParser.swift in Sources */,
 				7CF859A51DEE849F32F864E4 /* Persistence.swift in Sources */,
 				AF653DFF152A256E38791299 /* Pills.swift in Sources */,
@@ -467,7 +487,9 @@
 				3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */,
 				CE5B52B222C509AD134BD08D /* GRDBFoodCatalogTests.swift in Sources */,
 				063C7496B8F6AFF58F00B54C /* IngredientSplitTests.swift in Sources */,
+				719889E2108908256967541C /* LabelExtractorTests.swift in Sources */,
 				848545928D4071F5104D9AD0 /* MeasureTests.swift in Sources */,
+				31495DC54A3E4267489FB152 /* NutritionFactsMappingTests.swift in Sources */,
 				488E2714F29084AD44099BF4 /* NutritionLabelParserTests.swift in Sources */,
 				B11BC84E69EBE48BDE7D3D72 /* PersistenceTests.swift in Sources */,
 				DD70CC662CC9CB4F8E02411F /* RemoteFoodTests.swift in Sources */,
@@ -491,7 +513,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AP7RK323K3;
 				INFOPLIST_FILE = Salorie/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -659,7 +680,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = AP7RK323K3;
 				INFOPLIST_FILE = Salorie/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -723,7 +743,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+		FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift";
 			requirement = {
@@ -736,12 +756,12 @@
 /* Begin XCSwiftPackageProductDependency section */
 		85ECA25BAEA5D8583588DBF9 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 		8A0DE5C8B820F77E3CB671E4 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB" */;
+			package = FCC108D11DB0E7BB420333F0 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */

@@ -40,6 +40,11 @@ struct ManualFoodEntryView: View {
     @State private var showLabelScanner = false
     @State private var showMore = false
 
+    /// AI-scan UX state (all cosmetic — the form is fully editable regardless).
+    @State private var isScanning = false                 // OCR + LLM in flight
+    @State private var aiFilled: Set<LabelField> = []      // fields the LLM supplied (highlighted)
+    @State private var scanConfidence: Double?             // 0…1, from the last AI scan
+
     /// One case per text field. A shared `@FocusState Bool` bound to many fields has
     /// undefined focus behaviour (the cause of the "takes 3-4 taps" bug), so each field
     /// gets a distinct identity instead.
@@ -61,6 +66,7 @@ struct ManualFoodEntryView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     identityCard
+                    if isScanning || scanBanner != nil { aiBanner }
                     nutritionCard
                     servingCard
                     moreCard
@@ -89,7 +95,9 @@ struct ManualFoodEntryView: View {
                 }
             }
             .fullScreenCover(isPresented: $showLabelScanner) {
-                LabelScannerView(onResult: apply, onDismiss: { showLabelScanner = false })
+                LabelScannerView(onResult: applyScan,
+                                 onDismiss: { showLabelScanner = false },
+                                 onScanStarted: { isScanning = true })
                     .ignoresSafeArea()
             }
         }
@@ -397,11 +405,87 @@ struct ManualFoodEntryView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Capsule().fill(Theme.surfaceRaised))
+        .overlay(   // highlight the pills the on-device model filled
+            Capsule().stroke(RingColor.calories.tint.opacity(isAIFilled(field) ? 0.6 : 0), lineWidth: 1.5)
+        )
         .contentShape(Capsule())
         .onTapGesture { focus = field }   // tap anywhere in the pill to start typing
     }
 
+    // MARK: AI scan banner + progressive fill
+
+    /// A hint line: either "reading" progress, an availability reason (why the basic
+    /// scan is being used), or a low-confidence caution after an AI fill.
+    private var scanBanner: (icon: String, text: String, tint: Color)? {
+        if isScanning {
+            return ("sparkles", "Reading label…", RingColor.calories.tint)
+        }
+        if let reason = LabelAI.unavailableReason {
+            return ("info.circle", reason, Theme.textTertiary)
+        }
+        if let c = scanConfidence, c < 0.5, !aiFilled.isEmpty {
+            return ("exclamationmark.triangle", "Low confidence — please double-check the values.", fatTint)
+        }
+        return nil
+    }
+
+    private var aiBanner: some View {
+        HStack(spacing: 10) {
+            if isScanning {
+                ProgressView().controlSize(.small).tint(RingColor.calories.tint)
+            } else if let b = scanBanner {
+                Image(systemName: b.icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(b.tint)
+            }
+            Text(scanBanner?.text ?? "")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
+        .transition(.opacity)
+    }
+
+    /// True when the on-device model supplied this field — used to tint its pill so the
+    /// user knows which values to review.
+    private func isAIFilled(_ field: Field) -> Bool {
+        guard let mapped = Self.labelField(for: field) else { return false }
+        return aiFilled.contains(mapped)
+    }
+
+    private static func labelField(for field: Field) -> LabelField? {
+        switch field {
+        case .serving:      return .servingText
+        case .weight:       return .servingGrams
+        case .kcal:         return .calories
+        case .carbs:        return .carbs
+        case .protein:      return .protein
+        case .fat:          return .fat
+        case .fibre:        return .fibre
+        case .sugars:       return .sugars
+        case .satfat:       return .satfat
+        case .sodium:       return .sodium
+        case .cholesterol:  return .cholesterol
+        case .name, .brand: return nil
+        }
+    }
+
     // MARK: OCR prefill
+
+    /// Consume a full scan (Case A nutrition or Case B identity). Applies identity to
+    /// the name/brand cards, routes nutrition through the unchanged `apply(_:)`, and
+    /// records confidence + which fields the AI filled (for highlighting).
+    private func applyScan(_ scan: LabelScan) {
+        withAnimation(.snappy(duration: 0.28)) { isScanning = false }
+        if let b = scan.brand, !b.isEmpty { brand = b }
+        if let n = scan.foodName, !n.isEmpty { name = n }
+        aiFilled = scan.aiFilled
+        scanConfidence = scan.usedAI ? scan.confidence : nil
+        apply(scan.label)
+        // Case B: no nutrition read — nudge the user to the calories field.
+        if scan.label.calories == nil, !name.isEmpty { focus = .kcal }
+    }
 
     private func apply(_ p: ParsedLabel) {
         func s(_ v: Double?) -> String { v.map { $0 == $0.rounded() ? String(Int($0)) : String($0) } ?? "" }
