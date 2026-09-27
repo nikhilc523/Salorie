@@ -54,7 +54,7 @@ struct TodayView: View {
                     selectedFood = store.foods[1]
                 }
                 if ProcessInfo.processInfo.environment["SALORIE_DAY"] == "1" {
-                    dayIndex = store.history.count - 3
+                    dayIndex = max(0, store.history.count - 3)
                     showDayDetail = true
                 }
                 if ProcessInfo.processInfo.environment["SALORIE_EXPAND"] == "meal" {
@@ -95,7 +95,7 @@ struct TodayView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             HapticManager.shared.trigger(.light)
-            dayIndex = store.history.count - 1
+            dayIndex = max(0, store.history.count - 1)
             showDayDetail = true
         }
     }

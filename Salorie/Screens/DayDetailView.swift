@@ -13,7 +13,11 @@ struct DayDetailView: View {
     @State private var selectedMeal: Food?
     init(initialIndex: Int) { _index = State(initialValue: initialIndex) }
 
-    private var day: DayLog { store.history[min(index, store.history.count - 1)] }
+    private var day: DayLog {
+        let h = store.history
+        guard !h.isEmpty else { return store.todayLog }          // never subscript an empty history
+        return h[max(0, min(index, h.count - 1))]                 // clamp into range (no negative index)
+    }
 
     var body: some View {
         NavigationStack {

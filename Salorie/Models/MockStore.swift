@@ -36,7 +36,9 @@ final class MockStore {
     /// Replace the last (today) element of a seeded run with the live `today`,
     /// preserving that element's calendar date and weekday letter.
     private static func overlayingToday(_ days: [DayLog], with todayLog: DayLog) -> [DayLog] {
-        guard let last = days.last else { return days }
+        // No seeded history (a fresh user) → today is still a real day: return it so
+        // `history` is never empty (Day Detail / streak / sharing index into it safely).
+        guard let last = days.last else { return [todayLog] }
         var out = days
         out[out.count - 1] = DayLog(id: todayLog.id, date: last.date,
                                     weekdayLetter: last.weekdayLetter, entries: todayLog.entries)
