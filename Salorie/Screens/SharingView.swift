@@ -27,20 +27,22 @@ struct SharingView: View {
     /// Mock invite link — a CloudKit share URL shape (see SharingService note).
     private var inviteURL: URL { URL(string: "https://www.icloud.com/share/salorie-rings-mock")! }
 
+    /// Screenshot hook: `SALORIE_SHARE_INDEX=1` starts the friend stack on that card.
+    private static var launchIndex: Int {
+        Int(ProcessInfo.processInfo.environment["SALORIE_SHARE_INDEX"] ?? "") ?? 0
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     sectionHeader
-                    ForEach(orderedFriends) { friend in
-                        NavigationLink(value: friend) {
-                            FriendRow(friend: friend)
-                        }
-                        .buttonStyle(.plain)
-                        .simultaneousGesture(TapGesture().onEnded {
-                            HapticManager.shared.trigger(.light)
-                        })
-                    }
+                    FriendStackView(friends: orderedFriends, onOpen: { friend in
+                        HapticManager.shared.trigger(.light)
+                        path.append(friend)
+                    }, initialIndex: Self.launchIndex)
+                    .id(sort)   // reset to the first card when the sort order changes
+                    .padding(.top, 6)
                 }
                 .padding(.horizontal, Metrics.pagePadding)
                 .padding(.bottom, 24)
@@ -110,60 +112,6 @@ struct SharingView: View {
             }
             .foregroundStyle(RingColor.protein.tint)
         }
-    }
-}
-
-// MARK: - Friend row (rounded card)
-
-private struct FriendRow: View {
-    let friend: SharedFriend
-    private var accent: Color { RingColor.calories.tint }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    FriendAvatar(friend: friend, size: 32)
-                    if friend.isMe {
-                        HStack(spacing: 5) {
-                            Circle().fill(accent).frame(width: 7, height: 7)
-                            Text("Me")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(Theme.textPrimary)
-                        }
-                    } else {
-                        Text(friend.name)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Theme.textPrimary)
-                    }
-                }
-                if friend.hasShared, let today = friend.today {
-                    Text("\(today.overallPercentInt)%")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
-                        .foregroundStyle(accent)
-                        .monospacedDigit()
-                    Text("\(today.consumedCal)/\(today.goalCal) CAL")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(accent.opacity(0.85))
-                        .monospacedDigit()
-                } else {
-                    Text("--")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.textTertiary)
-                    Text("--/-- CAL")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.textTertiary)
-                }
-            }
-            Spacer(minLength: 8)
-            ActivityRings(rings: friend.displayRings, lineWidth: 6, spacing: 2.5)
-                .frame(width: 58, height: 58)
-                .opacity(friend.hasShared ? 1 : 0.5)
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.cardRadius, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
     }
 }
 

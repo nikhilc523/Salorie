@@ -242,7 +242,41 @@ enum SampleData {
                                                  consumedCal: 0, goalCal: 1800))
             })
 
-        return [aarav, niharika, srishti]
+        // A fuller roster so the Sharing card stack (piles of up to 4 each side)
+        // and the "N of 8" counter feel real. Varied progress incl. one over goal.
+        let kabir = SharedFriend(
+            name: "Kabir", avatar: "bolt.fill", avatarTint: .yellow, appleID: "kabir.m@icloud.com",
+            hasShared: true,
+            today: RingProgress(caloriesPct: 0.85, proteinPct: 0.90, carbsPct: 0.80,
+                                consumedCal: 2050, goalCal: 2400),
+            last7: last7(goalCal: 2400, goalProtein: 160, goalCarbs: 260,
+                         spread: [0.9, 1.0, 0.82, 0.95, 0.88, 1.05, 0.85]))
+
+        let meera = SharedFriend(
+            name: "Meera", avatar: "leaf.fill", avatarTint: .green, appleID: "meera.j@icloud.com",
+            hasShared: true,
+            today: RingProgress(caloriesPct: 0.71, proteinPct: 0.55, carbsPct: 0.80,
+                                consumedCal: 1200, goalCal: 1700),
+            last7: last7(goalCal: 1700, goalProtein: 110, goalCarbs: 190,
+                         spread: [0.6, 0.78, 0.9, 0.65, 0.82, 0.7, 0.71]))
+
+        let rohan = SharedFriend(
+            name: "Rohan", avatar: "star.fill", avatarTint: .orange, appleID: "rohan.p@icloud.com",
+            hasShared: true,
+            today: RingProgress(caloriesPct: 1.04, proteinPct: 1.10, carbsPct: 0.95,
+                                consumedCal: 2600, goalCal: 2500),
+            last7: last7(goalCal: 2500, goalProtein: 180, goalCarbs: 280,
+                         spread: [0.95, 1.0, 1.08, 0.9, 1.02, 0.98, 1.04]))
+
+        let zoya = SharedFriend(
+            name: "Zoya", avatar: "moon.fill", avatarTint: .blue, appleID: "zoya.a@icloud.com",
+            hasShared: true,
+            today: RingProgress(caloriesPct: 0.40, proteinPct: 0.30, carbsPct: 0.45,
+                                consumedCal: 640, goalCal: 1600),
+            last7: last7(goalCal: 1600, goalProtein: 100, goalCarbs: 180,
+                         spread: [0.5, 0.42, 0.6, 0.38, 0.55, 0.48, 0.40]))
+
+        return [aarav, niharika, srishti, kabir, meera, rohan, zoya]
     }
 
     /// Fixed "today" so previews and screenshots are deterministic (matches ref screens).
