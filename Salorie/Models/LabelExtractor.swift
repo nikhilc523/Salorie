@@ -68,6 +68,9 @@ enum LabelExtractor {
             return LabelScan(label: regex)
         }
         do {
+            // Uses SystemLanguageModel.default (the session's default model) — Apple's
+            // latest on-device foundation model for the running OS (the updated iOS 27
+            // model on iOS 27 devices). On-device only: no network, free, offline.
             let session = LanguageModelSession(instructions: Self.nutritionInstructions)
             let response = try await session.respond(
                 to: ocrLines.joined(separator: "\n"),
