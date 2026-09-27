@@ -27,6 +27,7 @@ struct ScanView: View {
     @FocusState private var manualFieldFocused: Bool
 
     private let scanTint = RingColor.calories.tint  // oatmeal — the calorie-ring colour
+    private let brandGreen = TagColor.green.fg      // sage green (#7DB38A) — the app's green accent
 
     var body: some View {
         ZStack {
@@ -54,7 +55,7 @@ struct ScanView: View {
             if looking { lookingOverlay }
         }
         .background(Color.black)
-        .tint(scanTint)                 // oatmeal accent for the manual-entry / no-match alerts
+        .tint(brandGreen)               // green accent for the no-match alert's Cancel / Add Manually
         .statusBarHidden()
         .onDisappear { setTorch(false) }
         .sheet(item: $selectedFood, onDismiss: finishScanResult) { food in
@@ -187,13 +188,18 @@ struct ScanView: View {
                 .buttonStyle(.plain)
 
                 Button(action: lookUpManualCode) {
+                    let isEmpty = manualCode.trimmingCharacters(in: .whitespaces).isEmpty
                     Text("Look up")
                         .font(.system(size: 16, weight: .bold))
+                        // No solid fill — a glossy liquid-glass capsule with green text,
+                        // matching the Cancel button's glass treatment.
+                        .foregroundStyle(brandGreen)
+                        .opacity(isEmpty ? 0.4 : 1)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 14)
+                        .glassEffect(.regular.interactive(), in: Capsule())
                 }
-                .buttonStyle(.glassProminent)
-                .tint(scanTint)
+                .buttonStyle(.plain)
                 .disabled(manualCode.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
