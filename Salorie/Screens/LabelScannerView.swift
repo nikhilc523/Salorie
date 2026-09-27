@@ -6,8 +6,14 @@ import Vision
 /// modern Vision `RecognizeTextRequest`, and returns the parsed values to prefill
 /// the manual-entry form. Device-only (needs a camera); no-op on the Simulator.
 struct LabelScannerView: UIViewControllerRepresentable {
-    var onResult: (ParsedLabel) -> Void
+    /// Fired once OCR + (optional) on-device AI have produced a scan. The producer is
+    /// swapped (regex → AI) but the terminal type is still a `ParsedLabel` inside
+    /// `LabelScan`; the consumer never branches.
+    var onResult: (LabelScan) -> Void
     var onDismiss: () -> Void
+    /// Called the instant a page is captured (before OCR/AI finish) so the form can
+    /// show a spinner while the model refines.
+    var onScanStarted: () -> Void = {}
 
     static var isSupported: Bool { VNDocumentCameraViewController.isSupported }
 
@@ -17,14 +23,18 @@ struct LabelScannerView: UIViewControllerRepresentable {
         return vc
     }
     func updateUIViewController(_ vc: VNDocumentCameraViewController, context: Context) {}
-    func makeCoordinator() -> Coordinator { Coordinator(onResult: onResult, onDismiss: onDismiss) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onResult: onResult, onDismiss: onDismiss, onScanStarted: onScanStarted)
+    }
 
     @MainActor
     final class Coordinator: NSObject, VNDocumentCameraViewControllerDelegate {
-        let onResult: (ParsedLabel) -> Void
+        let onResult: (LabelScan) -> Void
         let onDismiss: () -> Void
-        init(onResult: @escaping (ParsedLabel) -> Void, onDismiss: @escaping () -> Void) {
-            self.onResult = onResult; self.onDismiss = onDismiss
+        let onScanStarted: () -> Void
+        init(onResult: @escaping (LabelScan) -> Void, onDismiss: @escaping () -> Void,
+             onScanStarted: @escaping () -> Void) {
+            self.onResult = onResult; self.onDismiss = onDismiss; self.onScanStarted = onScanStarted
         }
 
         // Delegate is not main-actor-isolated → keep methods `nonisolated`, hop to
@@ -35,8 +45,11 @@ struct LabelScannerView: UIViewControllerRepresentable {
             Task { @MainActor in
                 onDismiss()
                 guard let data else { return }
+                onScanStarted()
                 let lines = await Coordinator.recognizeText(data)
-                onResult(NutritionLabelParser.parse(lines))
+                // Producer swap: regex → (regex + on-device LLM refinement).
+                let result = await LabelExtractor.scan(ocrLines: lines)
+                onResult(result)
             }
         }
         nonisolated func documentCameraViewControllerDidCancel(_ c: VNDocumentCameraViewController) {
