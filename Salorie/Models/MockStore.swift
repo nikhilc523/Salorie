@@ -50,6 +50,18 @@ final class MockStore {
         return letters[(Calendar.current.component(.weekday, from: date) - 1) % 7]
     }
 
+    /// A fresh user has no logged past days, but Day Detail / the week strips still
+    /// need a 7-day frame to look right. Build the last 7 real dates ending at
+    /// `today` with zero entries — truthful (nothing logged) and gives the weekly
+    /// rings their scaffold; the last day is `today`, replaced live by `overlayingToday`.
+    private static func emptyWeekScaffold(endingAt today: Date, days: Int = 7) -> [DayLog] {
+        let cal = Calendar.current
+        return (0..<days).reversed().map { back in
+            let date = cal.date(byAdding: .day, value: -back, to: today) ?? today
+            return DayLog(id: UUID(), date: date, weekdayLetter: weekdayLetter(for: date), entries: [])
+        }
+    }
+
     /// The read-only catalog behind search + barcode. Swap `SampleFoodCatalog`
     /// for the GRDB/SQLite store in P2 with no other change here.
     private let catalog: FoodCatalog
@@ -87,7 +99,8 @@ final class MockStore {
         let emptyStart = UserDefaults.standard.bool(forKey: Self.emptyStartKey)
         // Read-only demo data — rebuilt from SampleData every launch, never persisted.
         // The last day of each is `today`; `history`/`dailyLog` overlay live entries there.
-        self.seededHistory = emptyStart ? [] : SampleData.history()
+        self.seededHistory = emptyStart ? Self.emptyWeekScaffold(endingAt: SampleData.referenceDate)
+                                        : SampleData.history()
         self.seededDailyLog = emptyStart ? [] : SampleData.extendedHistory()
         // User data — loaded from SwiftData when persistence is present (seeded from
         // SampleData on first launch), else the in-memory demo (previews / tests).
