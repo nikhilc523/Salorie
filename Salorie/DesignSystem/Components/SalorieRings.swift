@@ -14,7 +14,6 @@ struct RingStyle: Hashable, Sendable {
 }
 
 private enum SunTone {
-    static let track   = Color(hex: 0x1B1714) // empty track
     static let horizon = Color(hex: 0x3A2E25) // horizon line
     static let pillDark = Color(hex: 0x17110D) // near-black text on solid pills
 }
@@ -120,8 +119,9 @@ private struct SunRingLayer: View, Animatable {
             let stroke = StrokeStyle(lineWidth: W, lineCap: .round)
             let p = min(max(frac, 0), 3)
 
-            // 1. Track
-            ctx.stroke(arc(c, r, to: 1), with: .color(SunTone.track), style: stroke)
+            // 1. Track — a dark tint of THIS ring's colour (not a neutral groove), so a
+            // no-data day still reads as a faint coloured ring, Apple-Activity style.
+            ctx.stroke(arc(c, r, to: 1), with: .color(mix(style.base, 0x000000, 0.75)), style: stroke)
             // 2. Lap 1
             ctx.stroke(arc(c, r, to: min(p, 1)), with: .color(Color(hex: style.base)), style: stroke)
 
@@ -403,7 +403,9 @@ struct MiniSunRings: View {
 
             let stroke = StrokeStyle(lineWidth: lw, lineCap: .round)
             for i in 0..<3 {
-                ctx.stroke(arc(radii[i], 1), with: .color(Color(hex: 0x1B1714)), style: stroke)
+                // Empty track = a dark tint of the ring's own colour (Apple-Activity look),
+                // so a no-data day still shows faint coloured rings, not a black groove.
+                ctx.stroke(arc(radii[i], 1), with: .color(mix(styles[i].base, 0x000000, 0.75)), style: stroke)
                 if vals[i] > 0 {
                     ctx.stroke(arc(radii[i], min(vals[i], 1)), with: .color(Color(hex: styles[i].base)), style: stroke)
                 }

@@ -50,7 +50,9 @@ private struct MealArc: View {
                              endAngle: .degrees(180 + 180 * max(min(to, 1), 0.001)), clockwise: false)
                     return p
                 }
-                ctx.stroke(arc(1), with: .color(Color(hex: 0x1B1714)),
+                // Empty track = a dark tint of the meal's own colour, so a no-data meal
+                // still shows a faint coloured arc (matches the hero / week rings).
+                ctx.stroke(arc(1), with: .color(color.opacity(0.24)),
                            style: .init(lineWidth: lw, lineCap: .round))
                 if fraction > 0 {
                     ctx.stroke(arc(fraction), with: .color(color),
