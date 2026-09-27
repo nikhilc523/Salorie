@@ -11,9 +11,12 @@ import SwiftData
     /// A store backed by a fresh in-memory SwiftData container + the sample catalog
     /// (so tests never load the 312 MB bundled DB or hit the network).
     private func store(_ p: PersistenceController) -> MockStore {
-        MockStore(catalog: SampleFoodCatalog(foods: SampleData.foods),
-                  cache: BarcodeCache(inMemory: []),
-                  persistence: p)
+        // Isolate from any "empty start" the app may have persisted in this simulator's
+        // shared defaults (Settings → Delete all data), so seeding tests are deterministic.
+        UserDefaults.standard.removeObject(forKey: MockStore.emptyStartKey)
+        return MockStore(catalog: SampleFoodCatalog(foods: SampleData.foods),
+                         cache: BarcodeCache(inMemory: []),
+                         persistence: p)
     }
 
     @Test func firstLaunchSeedsFromSampleData() {
@@ -60,6 +63,41 @@ import SwiftData
         let reloaded = store(p)
         let same = reloaded.foods.first { $0.id == food.id }
         #expect(same?.isFavorite == !wasFavorite)
+    }
+
+    @Test func favoritingUnsavedCatalogFoodInsertsAndPersists() {
+        let p = PersistenceController(inMemory: true)
+        let first = store(p)
+        // A food that isn't in the store yet — mimics a searched/scanned catalog hit.
+        let fresh = Food(symbol: "leaf", tint: .green, name: "Kale Chips",
+                         source: .openFoodFacts, servingDescription: "1 bag",
+                         calories: 120, carbs: 15, protein: 4, fat: 6, fibre: 3)
+        #expect(!first.foods.contains { $0.id == fresh.id })
+        #expect(first.isFavorite(fresh) == false)
+
+        let added = first.toggleFavorite(fresh)
+        #expect(added == true)
+        #expect(first.isFavorite(fresh) == true)
+        #expect(first.favorites.contains { $0.id == fresh.id })
+
+        let reloaded = store(p)     // new instance, same container
+        #expect(reloaded.favorites.contains { $0.id == fresh.id })
+        #expect(reloaded.isFavorite(fresh) == true)
+    }
+
+    @Test func unfavoritingRemovesFromFavoritesAndPersists() {
+        let p = PersistenceController(inMemory: true)
+        let first = store(p)
+        let food = first.foods.first { !$0.isFavorite }!
+
+        #expect(first.toggleFavorite(food) == true)
+        #expect(first.favorites.contains { $0.id == food.id })
+
+        #expect(first.toggleFavorite(food) == false)
+        #expect(!first.favorites.contains { $0.id == food.id })
+
+        let reloaded = store(p)
+        #expect(reloaded.isFavorite(food) == false)
     }
 
     @Test func customMealPersistsAndDeletes() {

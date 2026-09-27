@@ -10,10 +10,43 @@ final class MockStore {
     var foods: [Food]
     var customMeals: [Food]        // user-built composite meals (kind == .custom)
     var todayEntries: [MealEntry]
-    var history: [DayLog]          // curated last 7 days (Today / DayDetail week strips)
-    var dailyLog: [DayLog]         // long run for History trends (Week / Month / Year)
     var targets: MacroTargets
     var friends: [SharedFriend]    // Sharing tab: me + family/friends' rings
+
+    /// Seeded demo history — the past days. The final element is `today`
+    /// (referenceDate); we never read its seeded entries directly. `history` /
+    /// `dailyLog` below overlay the live `todayEntries` onto that last day so the
+    /// week strips, DayDetail, and the trend graphs all show what Home shows.
+    private var seededHistory: [DayLog]      // last 7 days (Today / DayDetail week strips)
+    private var seededDailyLog: [DayLog]     // long run for trends (Week / Month / Year)
+    /// Stable identity for today's live day so SwiftUI list/animation state survives recomputes.
+    private let todayLogID = UUID()
+
+    /// Today, built live from `todayEntries` — the single source that Home already uses.
+    var todayLog: DayLog {
+        DayLog(id: todayLogID, date: today,
+               weekdayLetter: Self.weekdayLetter(for: today), entries: todayEntries)
+    }
+
+    /// Curated last 7 days, with today's slot replaced by the live `todayLog`.
+    var history: [DayLog] { Self.overlayingToday(seededHistory, with: todayLog) }
+    /// Long trend run, with today's slot replaced by the live `todayLog`.
+    var dailyLog: [DayLog] { Self.overlayingToday(seededDailyLog, with: todayLog) }
+
+    /// Replace the last (today) element of a seeded run with the live `today`,
+    /// preserving that element's calendar date and weekday letter.
+    private static func overlayingToday(_ days: [DayLog], with todayLog: DayLog) -> [DayLog] {
+        guard let last = days.last else { return days }
+        var out = days
+        out[out.count - 1] = DayLog(id: todayLog.id, date: last.date,
+                                    weekdayLetter: last.weekdayLetter, entries: todayLog.entries)
+        return out
+    }
+
+    private static func weekdayLetter(for date: Date) -> String {
+        let letters = ["S", "M", "T", "W", "T", "F", "S"]
+        return letters[(Calendar.current.component(.weekday, from: date) - 1) % 7]
+    }
 
     /// The read-only catalog behind search + barcode. Swap `SampleFoodCatalog`
     /// for the GRDB/SQLite store in P2 with no other change here.
@@ -47,9 +80,13 @@ final class MockStore {
         self.remote = remote
         self.cache = cache
         self.persistence = persistence
+        // "Empty start" (set by Settings → Delete all data) keeps the app blank on every
+        // future launch: no demo history/trends and no reseed of foods/meals/entries.
+        let emptyStart = UserDefaults.standard.bool(forKey: Self.emptyStartKey)
         // Read-only demo data — rebuilt from SampleData every launch, never persisted.
-        self.history = SampleData.history()
-        self.dailyLog = SampleData.extendedHistory()
+        // The last day of each is `today`; `history`/`dailyLog` overlay live entries there.
+        self.seededHistory = emptyStart ? [] : SampleData.history()
+        self.seededDailyLog = emptyStart ? [] : SampleData.extendedHistory()
         // User data — loaded from SwiftData when persistence is present (seeded from
         // SampleData on first launch), else the in-memory demo (previews / tests).
         self.foods = []
@@ -60,7 +97,7 @@ final class MockStore {
 
         if let persistence {
             loadOrSeed(persistence.context)
-        } else {
+        } else if !emptyStart {
             self.foods = SampleData.foods
             self.customMeals = SampleData.customMeals()
             self.todayEntries = SampleData.todayEntries()
@@ -77,6 +114,24 @@ final class MockStore {
     var proteinToday: Double { todayEntries.reduce(0) { $0 + $1.protein } }
     var fibreToday: Double { todayEntries.reduce(0) { $0 + $1.fibre } }
     var fatToday: Double { todayEntries.reduce(0) { $0 + $1.fat } }
+
+    /// Today's total for any nutrient — powers the user-selectable home cards.
+    func todayValue(_ kind: StatKind) -> Double {
+        todayEntries.reduce(0) { $0 + kind.entryValue($1) }
+    }
+
+    /// Consecutive most-recent days whose calories landed within ±10% of goal.
+    /// Drives the home "goal streak" module (bounded by the demo history window).
+    var goalStreak: Int {
+        guard targets.calories > 0 else { return 0 }
+        let lo = Double(targets.calories) * 0.9, hi = Double(targets.calories) * 1.1
+        var streak = 0
+        for day in history.reversed() {
+            let c = Double(day.calories)
+            if c >= lo && c <= hi { streak += 1 } else { break }
+        }
+        return streak
+    }
 
     /// 0…∞ progress against target (rings can overshoot past 1).
     func progress(_ ring: RingColor) -> Double {
@@ -190,9 +245,11 @@ final class MockStore {
 
     // MARK: Recent & frequent (for quick re-log — derived from what you've logged)
 
-    /// Every entry logged today + across history, newest first.
+    /// Every entry logged today + across history, newest first. Today comes from the
+    /// live `todayEntries`; the past days come from `history` minus its last (today)
+    /// slot, which now mirrors `todayEntries` and would otherwise double-count.
     private var loggedEntries: [MealEntry] {
-        todayEntries.reversed() + history.reversed().flatMap { $0.entries.reversed() }
+        todayEntries.reversed() + history.dropLast().reversed().flatMap { $0.entries.reversed() }
     }
 
     /// Foods you log most often — the fastest re-log candidates.
@@ -233,20 +290,45 @@ final class MockStore {
 
     // MARK: Mutation (UI-phase only)
 
-    func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String = "Now") {
-        let entry = MealEntry(food: food, slot: slot, servings: servings, time: time)
+    /// Log a food/meal to a slot. `time` defaults to the current clock time (e.g.
+    /// "3:42 PM") so the entry lands at the right spot on the DayDetail timeline and
+    /// hourly charts; pass an explicit string only for seeded/demo data.
+    func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String? = nil) {
+        let stamp = time ?? Date().formatted(date: .omitted, time: .shortened)
+        let entry = MealEntry(food: food, slot: slot, servings: servings, time: stamp)
         todayEntries.append(entry)
         persistInsertEntry(entry)
     }
 
-    func toggleFavorite(_ food: Food) {
+    /// Current favorite state for a food, resolved against the live store. A catalog
+    /// or scanned food that hasn't been saved yet falls back to its own flag (false).
+    func isFavorite(_ food: Food) -> Bool {
+        if let m = customMeals.first(where: { $0.id == food.id }) { return m.isFavorite }
+        if let f = foods.first(where: { $0.id == food.id }) { return f.isFavorite }
+        return food.isFavorite
+    }
+
+    /// Flip favorite for any food and persist. A stored food/meal toggles in place; a
+    /// catalog or scanned food that isn't saved yet is inserted into `foods` (favorited)
+    /// so it shows up under Favorites and survives relaunch. Returns the new state.
+    @discardableResult
+    func toggleFavorite(_ food: Food) -> Bool {
         if let idx = customMeals.firstIndex(where: { $0.id == food.id }) {
             customMeals[idx].isFavorite.toggle()
             persistMeals()
-        } else if let idx = foods.firstIndex(where: { $0.id == food.id }) {
+            return customMeals[idx].isFavorite
+        }
+        if let idx = foods.firstIndex(where: { $0.id == food.id }) {
             foods[idx].isFavorite.toggle()
             persistFoods()
+            return foods[idx].isFavorite
         }
+        // Not saved yet → favoriting it saves a favorited copy so it's reachable & sticky.
+        var copy = food
+        copy.isFavorite = true
+        foods.insert(copy, at: 0)
+        persistFoods()
+        return true
     }
 
     func removeEntry(_ entry: MealEntry) {
@@ -258,9 +340,11 @@ final class MockStore {
 
     /// Add every ingredient of a custom meal to a slot as its own entry —
     /// used when the user wants the components broken out instead of one row.
-    func logMealExpanded(_ meal: Food, slot: MealSlot, time: String = "Now") {
+    func logMealExpanded(_ meal: Food, slot: MealSlot, time: String? = nil) {
+        // Stamp every component with one shared time so they group together on the timeline.
+        let stamp = time ?? Date().formatted(date: .omitted, time: .shortened)
         for component in meal.components {
-            addEntry(component.food, slot: slot, servings: component.servings, time: time)
+            addEntry(component.food, slot: slot, servings: component.servings, time: stamp)
         }
     }
 
@@ -289,8 +373,28 @@ final class MockStore {
     /// Bump this whenever the bundled seed/catalog changes and stale persisted user data
     /// should be flushed on the next launch. A mismatch with the stored version wipes and
     /// reseeds automatically — no env var needed.
-    static let seedVersion = 2
+    static let seedVersion = 3
     private static let seedVersionKey = "salorie.seedVersion"
+
+    /// Set once the user taps "Delete all data": keeps the app permanently empty
+    /// (no demo seed) on every future launch. Cleared only by deleting/reinstalling
+    /// the app, which restores the original demo start.
+    static let emptyStartKey = "salorie.emptyStart"
+
+    /// Wipe every piece of stored data and keep the app blank going forward — a true
+    /// "start from the very beginning, empty" reset. Clears the live in-memory state
+    /// immediately so the UI empties without a relaunch. Demo `otherFriends` remain
+    /// (they're other people's mock rings, not your data); "Me" goes to zero.
+    func resetAllData() {
+        if let ctx = persistence?.context { wipe(ctx) }
+        UserDefaults.standard.set(true, forKey: Self.emptyStartKey)
+        foods = []
+        customMeals = []
+        todayEntries = []
+        seededHistory = []
+        seededDailyLog = []
+        friends = [meFriend] + SampleData.otherFriends()
+    }
 
     /// Load user data from SwiftData, seeding it from `SampleData` on first launch.
     /// Wipes + reseeds when `SALORIE_RESET=1` (screenshots/tests) or when the stored
@@ -306,7 +410,8 @@ final class MockStore {
             && (try? ctx.fetchCount(FetchDescriptor<StoredMeal>())) ?? 0 == 0
             && (try? ctx.fetchCount(FetchDescriptor<StoredEntry>())) ?? 0 == 0
             && (try? ctx.fetchCount(FetchDescriptor<StoredTargets>())) ?? 0 == 0
-        if isEmpty { seed(ctx) }
+        // Never reseed once the user has chosen an empty start (Settings → Delete all data).
+        if isEmpty && !defaults.bool(forKey: Self.emptyStartKey) { seed(ctx) }
         if versionChanged { defaults.set(Self.seedVersion, forKey: Self.seedVersionKey) }
 
         foods = fetchFoods(ctx)

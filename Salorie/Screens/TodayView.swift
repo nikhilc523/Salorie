@@ -7,22 +7,10 @@ struct TodayView: View {
     @State private var selectedMeal: Food?
     @State private var showDayDetail = false
     @State private var dayIndex = 0
-    @State private var expandedSlots: Set<MealSlot> = []
+    @State private var selectedSlot: MealSlot?
     @State private var expandedMeals: Set<UUID> = []
-
-    /// Hero rings — Calories (outer) · Protein (middle) · Carbs (inner). Fibre lives in detail, not the glance.
-    private var macroRings: [Ring] {
-        [
-            Ring(progress: store.progress(.calories), color: .calories,
-                 label: "Calories", valueText: "\(store.caloriesToday)/\(store.targets.calories)", unit: "CAL"),
-            Ring(progress: store.progress(.protein), color: .protein,
-                 label: "Protein", valueText: "\(Int(store.proteinToday.rounded()))/\(Int(store.targets.protein))", unit: "G"),
-            Ring(progress: store.progress(.carb), color: .carb,
-                 label: "Carbs", valueText: "\(Int(store.carbsToday.rounded()))/\(Int(store.targets.carbs))", unit: "G"),
-        ]
-    }
-
-    private var caloriesLeft: Int { max(0, store.targets.calories - store.caloriesToday) }
+    @State private var showSettings = false
+    @AppStorage(NutrientPrefs.key) private var trackedRaw = NutrientPrefs.default
 
     var body: some View {
         NavigationStack {
@@ -32,6 +20,7 @@ struct TodayView: View {
                     dateHeader
                     heroCard
                     mealsSection.id("meals")
+                    insightsSection
                 }
                 .padding(.horizontal, Metrics.pagePadding)
                 .padding(.bottom, 24)
@@ -48,10 +37,10 @@ struct TodayView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        // Calendar button unwired — day detail now opens by tapping the rings.
-                        // TODO: assign new behavior (pending direction).
+                        HapticManager.shared.trigger(.light)
+                        showSettings = true
                     } label: {
-                        Image(systemName: "calendar")
+                        Image(systemName: "slider.horizontal.3")
                             .foregroundStyle(Theme.textSecondary)
                     }
                 }
@@ -59,6 +48,7 @@ struct TodayView: View {
             .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
             .sheet(item: $selectedMeal) { MealDetailView(meal: $0) }
             .sheet(isPresented: $showDayDetail) { DayDetailView(initialIndex: dayIndex) }
+            .sheet(isPresented: $showSettings) { SettingsView() }
             .onAppear {
                 if ProcessInfo.processInfo.environment["SALORIE_DETAIL"] == "1" {
                     selectedFood = store.foods[1]
@@ -70,7 +60,7 @@ struct TodayView: View {
                 if ProcessInfo.processInfo.environment["SALORIE_EXPAND"] == "meal" {
                     for e in store.todayEntries where e.food.isCustomMeal {
                         expandedMeals.insert(e.id)
-                        expandedSlots.insert(e.slot)
+                        selectedSlot = e.slot
                     }
                 }
             }
@@ -96,140 +86,127 @@ struct TodayView: View {
     // MARK: Hero rings
 
     private var heroCard: some View {
-        CalmCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Spacer()
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("\(caloriesLeft)")
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.textPrimary)
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                        Text("kcal left")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Theme.textTertiary)
-                    }
-                }
-                HStack(alignment: .center, spacing: 26) {
-                    ActivityRings(
-                        rings: macroRings,
-                        lineWidth: 11,
-                        spacing: 4
-                    )
-                    .frame(width: 104, height: 104)
-                    .contentShape(Circle())
-                    .onTapGesture {
-                        HapticManager.shared.trigger(.light)
-                        dayIndex = store.history.count - 1
-                        showDayDetail = true
-                    }
-                    .padding(.leading, 28)
-
-                    RingLegend(items: macroRings)
-                        .offset(y: -6)
-                        .padding(.leading, 6)
-                }
-            }
+        SalorieMacroSummary(
+            calories: .init(consumed: Double(store.caloriesToday), goal: Double(store.targets.calories)),
+            protein: .init(consumed: store.proteinToday, goal: store.targets.protein),
+            carbs: .init(consumed: store.carbsToday, goal: store.targets.carbs)
+        )
+        .padding(.top, 8)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            HapticManager.shared.trigger(.light)
+            dayIndex = store.history.count - 1
+            showDayDetail = true
         }
     }
 
     // MARK: Meals
 
-    private var mealsSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("TODAY'S MEALS").overlineStyle()
-                .padding(.bottom, 6)
-            ForEach(MealSlot.allCases) { slot in
-                mealDisclosure(slot: slot, entries: store.entries(for: slot))
+    // MARK: Insights — streak + tracked nutrients
+
+    private var insightsSection: some View {
+        let tracked = NutrientPrefs.list(trackedRaw)
+        return VStack(alignment: .leading, spacing: 12) {
+            if !tracked.isEmpty {
+                HStack {
+                    Text("TRACKING").overlineStyle()
+                    Spacer()
+                    Button {
+                        HapticManager.shared.trigger(.light)
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Theme.textTertiary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 4)
+
+                // Square cards, three-ish across, snapping horizontally. Bleeds to
+                // the screen edges so it reads as a scrollable shelf.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(tracked) { kind in
+                            NutrientCard(kind: kind,
+                                         value: store.todayValue(kind),
+                                         goal: kind.goal(store.targets))
+                        }
+                    }
+                    .scrollTargetLayout()
+                    .padding(.horizontal, Metrics.pagePadding)
+                }
+                .scrollTargetBehavior(.viewAligned)
+                .padding(.horizontal, -Metrics.pagePadding)
             }
         }
     }
 
-    /// One meal as a minimal disclosure row — name + prominent total + a chevron.
-    /// Tapping expands the food list in place; collapsed by default. Rows are
-    /// separated by the thick line so the stack reads as one clean summary.
-    private func mealDisclosure(slot: MealSlot, entries: [MealEntry]) -> some View {
-        let isOpen = expandedSlots.contains(slot)
-        let total = entries.reduce(0) { $0 + $1.calories }
-        return VStack(alignment: .leading, spacing: 0) {
-            Button {
-                HapticManager.shared.trigger(.light)
-                withAnimation(.snappy(duration: 0.28)) {
-                    if isOpen { expandedSlots.remove(slot) } else { expandedSlots.insert(slot) }
-                }
-            } label: {
-                HStack(alignment: .center, spacing: 8) {
-                    Image(systemName: slot.symbol)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(RingColor.protein.tint)   // caramel — warm palette, no wash-out
-                        .frame(width: 20)
-                    Text(slot.rawValue)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Theme.textPrimary)
-                    if !entries.isEmpty {
-                        Text("\(entries.count)")
-                            .font(.system(size: 13, weight: .medium))
-                            .monospacedDigit()
-                            .foregroundStyle(Theme.textTertiary)
-                    }
-                    Spacer()
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text("\(total)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(total > 0 ? Theme.textPrimary : Theme.textTertiary)
-                            .contentTransition(.numericText())
-                        Text("cal")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Theme.textTertiary)
-                    }
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(Theme.textTertiary)
-                        .rotationEffect(.degrees(isOpen ? 180 : 0))
-                        .frame(width: 14)
-                        .padding(.leading, 4)
-                }
-                .padding(.vertical, 14)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+    private var mealsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("TODAY'S MEALS").overlineStyle()
 
-            if isOpen {
-                Group {
-                    if entries.isEmpty {
-                        Text("Nothing logged yet")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Theme.textTertiary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 12)
-                    } else {
-                        VStack(spacing: 0) {
-                            ForEach(entries) { entry in
-                                SwipeToDeleteRow {
-                                    HapticManager.shared.trigger(.warning)
-                                    withAnimation(.snappy(duration: 0.3)) { store.removeEntry(entry) }
-                                } content: {
-                                    mealRow(entry)
-                                }
-                                if entry.id != entries.last?.id {
-                                    Rectangle().fill(Theme.divider).frame(height: 1)
-                                }
-                            }
+            HStack(spacing: 8) {
+                ForEach(MealSlot.allCases) { slot in
+                    let entries = store.entries(for: slot)
+                    MealCard(
+                        slot: slot,
+                        calories: entries.reduce(0) { $0 + $1.calories },
+                        itemCount: entries.count,
+                        goalCalories: store.targets.calories,
+                        isSelected: selectedSlot == slot
+                    ) {
+                        HapticManager.shared.trigger(.light)
+                        withAnimation(.snappy(duration: 0.28)) {
+                            selectedSlot = (selectedSlot == slot) ? nil : slot
                         }
                     }
                 }
-                // Indent so items read as children of their meal, not as
-                // siblings of the next meal header.
-                .padding(.leading, 22)
-                .padding(.bottom, 8)
-                .transition(.opacity)
+            }
+
+            if let slot = selectedSlot {
+                mealPanel(slot: slot, entries: store.entries(for: slot))
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal: .opacity))
             }
         }
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.tableLine).frame(height: 1)
+    }
+
+    /// Foods for the selected meal card, in a raised panel beneath the cards.
+    private func mealPanel(slot: MealSlot, entries: [MealEntry]) -> some View {
+        VStack(spacing: 0) {
+            if entries.isEmpty {
+                HStack(spacing: 8) {
+                    Image(systemName: slot.symbol)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(slot.sunColor.opacity(0.6))
+                    Text("Nothing logged for \(slot.rawValue.lowercased()) yet")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.textTertiary)
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 16)
+            } else {
+                ForEach(entries) { entry in
+                    SwipeToDeleteRow {
+                        HapticManager.shared.trigger(.warning)
+                        withAnimation(.snappy(duration: 0.3)) { store.removeEntry(entry) }
+                    } content: {
+                        mealRow(entry)
+                    }
+                    if entry.id != entries.last?.id {
+                        Rectangle().fill(Theme.divider).frame(height: 1)
+                    }
+                }
+            }
         }
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Theme.surface)
+        )
     }
 
     private func mealRow(_ entry: MealEntry) -> some View {
@@ -365,7 +342,7 @@ private struct SwipeToDeleteRow<Content: View>: View {
             .padding(.vertical, 4)
 
             content()
-                .background(Theme.bg)               // opaque so the row hides the action when closed
+                .background(Theme.surface)          // opaque so the row hides the action when closed
                 .offset(x: offset)
                 .gesture(
                     DragGesture(minimumDistance: 14)

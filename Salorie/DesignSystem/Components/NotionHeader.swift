@@ -128,37 +128,44 @@ struct NotionPageHeader: View {
 // MARK: - SegmentedTabs
 
 /// Notion database-tab strip ("Exercises · Workouts · Splits" / "Search · Scan").
+/// A minimal tab row: no track, no box. The selected tab is a solid accent pill that sits
+/// straight on the black background and slides between tabs; the rest are quiet dim text.
 struct SegmentedTabs: View {
     let items: [String]
     @Binding var selection: Int
-    /// When true, tabs share the width equally (each underline spans its segment).
-    /// Left-hugging otherwise. Use for 2-way strips like Search / Scan.
-    var equalWidths: Bool = false
+    /// Fill colour for the selected pill. Defaults to the warm app accent.
+    var accent: Color = Theme.accent
+
+    @Namespace private var pill
 
     var body: some View {
-        HStack(spacing: equalWidths ? 0 : 20) {
+        HStack(spacing: 6) {
             ForEach(Array(items.enumerated()), id: \.offset) { idx, title in
+                let isOn = selection == idx
                 Button {
                     HapticManager.shared.trigger(.selection)
-                    selection = idx
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) { selection = idx }
                 } label: {
-                    VStack(spacing: 8) {
-                        Text(title)
-                            .font(.system(size: 15, weight: selection == idx ? .semibold : .regular))
-                            .foregroundStyle(selection == idx ? Theme.textPrimary : Theme.textTertiary)
-                        Rectangle()
-                            .fill(selection == idx ? Theme.textPrimary : .clear)
-                            .frame(height: 2)
-                    }
-                    .frame(maxWidth: equalWidths ? .infinity : nil)
-                    .fixedSize(horizontal: !equalWidths, vertical: false)
+                    Text(title)
+                        .font(.system(size: 14, weight: isOn ? .semibold : .medium))
+                        .foregroundStyle(isOn ? Theme.bg : Theme.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .fixedSize()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background {
+                            if isOn {
+                                Capsule()
+                                    .fill(accent)               // solid fill, floats on black
+                                    .matchedGeometryEffect(id: "seg", in: pill)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)             // equal segment; pill hugs its label
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
-            if !equalWidths { Spacer(minLength: 0) }
-        }
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.divider).frame(height: Metrics.hairline)
         }
     }
 }

@@ -9,11 +9,13 @@ import VisionKit
 struct ScanView: View {
     @Environment(MockStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dismiss) private var dismiss
 
     @State private var sweep = false
     @State private var breathe = false
     @State private var cameraAuthorized = false
-    @State private var selectedFood: Food?
+    @State private var selectedFood: Food?      // resolved food shown over the live camera
+    @State private var loggedFromScan = false   // set when the detail actually logs the food
     @State private var flash = false
     @State private var showManualEntry = false
     @State private var manualCode = ""
@@ -22,63 +24,195 @@ struct ScanView: View {
     @State private var showManualFood = false
     @State private var pendingCode = ""   // barcode being added by hand
     @State private var looking = false   // network lookup (OFF/USDA) in flight
+    @FocusState private var manualFieldFocused: Bool
 
-    private let scanTint = RingColor.carb.tint      // warm terracotta (palette, no blue)
+    private let scanTint = RingColor.calories.tint  // oatmeal — the calorie-ring colour
 
     var body: some View {
-        VStack(spacing: 22) {
-            viewfinder
-            guidance
-            actions
-            Spacer(minLength: 0)
+        ZStack {
+            // Full-bleed live camera (or a graceful dark fallback with no camera).
+            cameraLayer
+                .ignoresSafeArea()
+
+            // Framing guide + prompt, centered over the feed (Apple code-scanner style).
+            VStack(spacing: 18) {
+                reticle
+                guidance
+            }
+            .offset(y: -24)
+
+            // Floating glass chrome: close ✕ + flashlight on top, manual entry at the bottom.
+            VStack {
+                topBar
+                Spacer()
+                manualEntryButton
+                    .padding(.bottom, 28)
+            }
+            .padding(.horizontal, Metrics.pagePadding)
+            .padding(.top, 4)
+
+            if looking { lookingOverlay }
         }
-        .padding(.top, 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Theme.bg)
-        .sheet(item: $selectedFood) { FoodDetailView(food: $0) }
+        .background(Color.black)
+        .tint(scanTint)                 // oatmeal accent for the manual-entry / no-match alerts
+        .statusBarHidden()
+        .onDisappear { setTorch(false) }
+        .sheet(item: $selectedFood, onDismiss: finishScanResult) { food in
+            FoodDetailView(food: food, onLogged: { loggedFromScan = true })
+        }
         .sheet(isPresented: $showManualFood) {
             ManualFoodEntryView(prefillBarcode: pendingCode)
         }
+        // Scanned code isn't in any database → offer to add the item by hand.
         .alert("No match for that code", isPresented: .constant(notFoundCode != nil)) {
             Button("Add Manually") { pendingCode = notFoundCode ?? ""; notFoundCode = nil; showManualFood = true }
             Button("Cancel", role: .cancel) { notFoundCode = nil }
         } message: {
             Text("\(notFoundCode ?? "") isn't in the catalog or Open Food Facts. Add it by hand — you can scan its nutrition label.")
         }
-        .alert("Enter barcode", isPresented: $showManualEntry) {
-            TextField("Barcode number", text: $manualCode)
-                .textInputAutocapitalization(.characters)
-            Button("Look up") { let c = manualCode; manualCode = ""; handleScan(c) }
-            Button("Cancel", role: .cancel) { manualCode = "" }
+        // Camera can't read the barcode → type the number in and look it up.
+        // Custom liquid-glass sheet (not a system alert) so it matches the scanner.
+        .sheet(isPresented: $showManualEntry, onDismiss: { manualCode = "" }) {
+            manualCodeSheet
         }
         .onAppear(perform: start)
     }
 
-    // MARK: Viewfinder — live camera + animated reticle
+    // MARK: Camera layer
 
-    private var viewfinder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .fill(Theme.surface)
-                .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
+    @ViewBuilder private var cameraLayer: some View {
+        if cameraAuthorized && BarcodeScannerView.isSupported {
+            // Pause recognition while the food detail is up; it resumes on cancel.
+            BarcodeScannerView(isActive: selectedFood == nil, onScan: handleScan)
+                .overlay(scrim)
+        } else {
+            cameraPlaceholder
+        }
+    }
 
-            if cameraAuthorized && BarcodeScannerView.isSupported {
-                BarcodeScannerView(onScan: handleScan)
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                    .overlay(scrim)
-                    .overlay(alignment: .topTrailing) { torchButton }
-            } else {
-                cameraPlaceholder
+    // MARK: Floating glass chrome
+
+    private var topBar: some View {
+        HStack {
+            glassCircleButton("xmark") {          // close — user changed their mind
+                HapticManager.shared.trigger(.light)
+                dismiss()
+            }
+            Spacer()
+            glassCircleButton(torchOn ? "bolt.fill" : "bolt.slash.fill",
+                              tint: torchOn ? scanTint : .white) {
+                HapticManager.shared.trigger(.light)
+                setTorch(!torchOn)
+            }
+        }
+    }
+
+    /// The scanner's one floating control shape — reused for both the close ✕ and the
+    /// flashlight, so every overlay button reads as the same liquid-glass circle.
+    private func glassCircleButton(_ system: String, tint: Color = .white,
+                                   action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: system)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 48, height: 48)
+                .glassEffect(.regular.interactive(), in: Circle())
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var manualEntryButton: some View {
+        Button {
+            HapticManager.shared.trigger(.light)
+            showManualEntry = true
+        } label: {
+            Label("Enter code manually", systemImage: "keyboard")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(scanTint)     // oatmeal — matches the scanner accent
+                .padding(.horizontal, 18)
+                .padding(.vertical, 12)
+                .glassEffect(.regular.interactive(), in: Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Manual barcode entry — a clean liquid-glass sheet (replaces the system alert)
+
+    private var manualCodeSheet: some View {
+        VStack(spacing: 22) {
+            VStack(spacing: 8) {
+                Image(systemName: "barcode.viewfinder")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(scanTint)
+                Text("Enter barcode")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Type the number printed under the barcode and we'll look it up.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
             }
 
-            reticle
-            if looking { lookingOverlay }
+            TextField("e.g. 883572133501", text: $manualCode)
+                .keyboardType(.numbersAndPunctuation)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .multilineTextAlignment(.center)
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(Theme.textPrimary)
+                .tint(scanTint)
+                .focused($manualFieldFocused)
+                .submitLabel(.search)
+                .onSubmit(lookUpManualCode)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 15)
+                .glassEffect(.regular, in: Capsule())
+                .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+
+            HStack(spacing: 12) {
+                Button {
+                    HapticManager.shared.trigger(.light)
+                    showManualEntry = false
+                } label: {
+                    Text("Cancel")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .glassEffect(.regular.interactive(), in: Capsule())
+                }
+                .buttonStyle(.plain)
+
+                Button(action: lookUpManualCode) {
+                    Text("Look up")
+                        .font(.system(size: 16, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(scanTint)
+                .disabled(manualCode.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
         }
-        .frame(height: 340)
-        .padding(.horizontal, Metrics.pagePadding)
-        .compositingGroup()
-        .shadow(color: .black.opacity(0.4), radius: 10, y: 6)
-        .onDisappear { setTorch(false) }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Theme.bg)
+        .presentationDetents([.height(300)])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(Theme.bg)
+        .onAppear { manualFieldFocused = true }
+    }
+
+    /// Trim, dismiss the sheet, then resolve the typed code through the normal path.
+    private func lookUpManualCode() {
+        let code = manualCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !code.isEmpty else { return }
+        manualCode = ""
+        showManualEntry = false
+        handleScan(code)
     }
 
     /// Shown while resolving a barcode via the live OFF/USDA fallback.
@@ -94,21 +228,6 @@ struct ScanView: View {
         .transition(.opacity)
     }
 
-    private var torchButton: some View {
-        Button {
-            HapticManager.shared.trigger(.light)
-            setTorch(!torchOn)
-        } label: {
-            Image(systemName: torchOn ? "bolt.fill" : "bolt.slash.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(torchOn ? RingColor.protein.tint : Theme.textSecondary)
-                .frame(width: 40, height: 40)
-                .glassEffect(.regular, in: Circle())
-        }
-        .buttonStyle(.plain)
-        .padding(12)
-    }
-
     /// Toggle the capture device torch (no-op on Simulator / devices without one).
     private func setTorch(_ on: Bool) {
         guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
@@ -120,23 +239,31 @@ struct ScanView: View {
         } catch { }
     }
 
-    /// Soft vignette so the reticle reads over a busy camera image.
+    /// Top + bottom darkening so the white glass controls and prompt stay legible
+    /// over any camera image. Non-interactive so taps pass through to the scanner.
     private var scrim: some View {
-        RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .fill(RadialGradient(colors: [.clear, .black.opacity(0.35)], center: .center, startRadius: 90, endRadius: 240))
+        LinearGradient(colors: [.black.opacity(0.45), .clear, .clear, .black.opacity(0.55)],
+                       startPoint: .top, endPoint: .bottom)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
     }
 
+    /// Shown when there's no camera (Simulator / permission denied). The manual-entry
+    /// button below still lets the user type a barcode and look it up.
     private var cameraPlaceholder: some View {
-        VStack(spacing: 10) {
-            Image(systemName: "camera.metering.center.weighted")
-                .font(.system(size: 34, weight: .regular))
-                .foregroundStyle(Theme.textTertiary)
-            Text("Camera unavailable")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(Theme.textTertiary)
-            Text("Use Simulate Scan below")
-                .font(.system(size: 12))
-                .foregroundStyle(Theme.textTertiary.opacity(0.7))
+        ZStack {
+            Color.black
+            VStack(spacing: 12) {
+                Image(systemName: "camera.metering.center.weighted")
+                    .font(.system(size: 40, weight: .regular))
+                    .foregroundStyle(Theme.textTertiary)
+                Text("Camera unavailable")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                Text("Enter the barcode by hand instead.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.textTertiary)
+            }
         }
     }
 
@@ -145,7 +272,7 @@ struct ScanView: View {
         return ZStack {
             CornerBrackets(cornerLength: 26, radius: 16)
                 .stroke(
-                    LinearGradient(colors: [RingColor.protein.tint, scanTint],
+                    LinearGradient(colors: [RingColor.calories.base, scanTint],
                                    startPoint: .topLeading, endPoint: .bottomTrailing),
                     style: StrokeStyle(lineWidth: 4, lineCap: .round)
                 )
@@ -173,45 +300,16 @@ struct ScanView: View {
 
     private var guidance: some View {
         VStack(spacing: 6) {
-            Text("Point at a barcode or nutrition label")
+            Text("Point at a barcode")
                 .font(.sectionTitle)
-                .foregroundStyle(Theme.textPrimary)
-            Text("We'll match it against USDA, Open Food Facts, and your custom items.")
+                .foregroundStyle(.white)
+            Text("We'll match it against USDA, Open Food Facts, and your items.")
                 .font(.system(size: 14))
-                .foregroundStyle(Theme.textSecondary)
+                .foregroundStyle(.white.opacity(0.75))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
-    }
-
-    // MARK: Actions (warm glass — no blue)
-
-    private var actions: some View {
-        HStack(spacing: 12) {
-            Button {
-                handleScan("883572133501")   // real UPC-A → GTIN-14 in the bundled catalog
-            } label: {
-                Label("Simulate Scan", systemImage: "barcode")
-                    .font(.system(size: 15, weight: .semibold))
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glassProminent)
-            .tint(scanTint)
-
-            Button {
-                HapticManager.shared.trigger(.light)
-                showManualEntry = true
-            } label: {
-                Label("Enter Code", systemImage: "keyboard")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(scanTint)
-                    .padding(.vertical, 4)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.glass)
-        }
-        .padding(.horizontal, Metrics.pagePadding)
+        .shadow(color: .black.opacity(0.5), radius: 8, y: 2)
     }
 
     // MARK: Lifecycle & scan handling
@@ -228,6 +326,9 @@ struct ScanView: View {
         // Screenshot/testing hook: auto-fire a scan.
         if ProcessInfo.processInfo.environment["SALORIE_MANUAL"] == "1" {
             pendingCode = "0000000000000"; showManualFood = true
+        }
+        if ProcessInfo.processInfo.environment["SALORIE_ENTERCODE"] == "1" {
+            showManualEntry = true   // open the glass "Enter barcode" sheet
         }
         if ProcessInfo.processInfo.environment["SALORIE_SCAN_HIT"] == "1" {
             // Default resolves in the bundled catalog; SALORIE_SCAN_CODE overrides
@@ -248,11 +349,23 @@ struct ScanView: View {
                 withAnimation(.snappy(duration: 0.18)) { flash = true }
                 try? await Task.sleep(for: .milliseconds(220))
                 withAnimation(.snappy) { flash = false }
+                // Show the detail over the (now paused) camera. On cancel we stay here to
+                // scan again; on a real log we leave the scanner (see `finishScanResult`).
                 selectedFood = food
             } else {
                 HapticManager.shared.trigger(.warning)
                 notFoundCode = code
             }
+        }
+    }
+
+    /// Runs after the food detail closes. If the user actually logged the food, the task
+    /// is done → dismiss the whole scanner back to Add. Otherwise stay on the scanner
+    /// (the camera resumes automatically once `selectedFood` is nil).
+    private func finishScanResult() {
+        if loggedFromScan {
+            loggedFromScan = false
+            dismiss()
         }
     }
 }

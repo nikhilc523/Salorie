@@ -10,9 +10,13 @@ struct MealDetailView: View {
 
     let meal: Food
     @State private var servings: Double = 1
+    @State private var servingsText: String = "1"   // string-backed field (caret never jumps)
     @State private var slot: MealSlot = .breakfast
     @State private var editing = false
     @State private var inspectedComponent: Food?
+    @State private var favToast: ToastMessage?
+    @State private var favToastToken = 0
+    @FocusState private var amountFocused: Bool
 
     /// Live copy from the store so edits/favorite reflect immediately.
     private var current: Food { store.customMeals.first { $0.id == meal.id } ?? meal }
@@ -46,15 +50,13 @@ struct MealDetailView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 26) {
+                VStack(alignment: .leading, spacing: 22) {
                     header
                     macroBreakdown
-                    servingStepper
-                    slotPicker
                     ingredientList
                 }
                 .padding(Metrics.pagePadding)
-                .padding(.bottom, 96)
+                .padding(.bottom, 90)
             }
             .background(Theme.bg)
             .scrollContentBackground(.hidden)
@@ -70,6 +72,7 @@ struct MealDetailView: View {
             .sheet(isPresented: $editing) { MealBuilderView(editing: current) }
             .sheet(item: $inspectedComponent) { FoodDetailView(food: $0) }
         }
+        .salorieToast($favToast)
         .presentationDragIndicator(.visible)
     }
 
@@ -155,67 +158,138 @@ struct MealDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Serving stepper (scales the whole meal)
+    // MARK: Bottom command bar (mirrors FoodDetailView) — meal cycle · servings · add
 
-    private var servingStepper: some View {
-        HStack {
-            Text("Servings").font(.sectionTitle).foregroundStyle(Theme.textPrimary)
-            Spacer()
-            HStack(spacing: 18) {
-                stepButton("minus") { servings = max(0.5, servings - 0.5) }
-                Text(servings.formatted(.number.precision(.fractionLength(0...1))))
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .monospacedDigit().frame(minWidth: 40)
-                    .foregroundStyle(Theme.textPrimary)
-                    .contentTransition(.numericText())
-                stepButton("plus") { servings += 0.5 }
-            }
+    /// Left control: circular button showing the target meal's glyph; tap cycles the slot.
+    private var mealCycleButton: some View {
+        Button {
+            HapticManager.shared.trigger(.selection)
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.72)) { slot = slot.next }
+        } label: {
+            Image(systemName: slot.symbol)
+                .font(.system(size: 21, weight: .semibold))
+                .foregroundStyle(mealSlotColor(slot))
+                .contentTransition(.symbolEffect(.replace.downUp))
+                .frame(width: 54, height: 54)
+                .glassEffect(.regular.tint(mealSlotColor(slot).opacity(0.22)).interactive(), in: Circle())
+                .overlay(Circle().stroke(mealSlotColor(slot).opacity(0.45), lineWidth: 1))
         }
-        .padding(.vertical, 4)
+        .buttonStyle(MealBouncyPress())
+        .accessibilityLabel("Meal: \(slot.rawValue). Tap to change.")
     }
 
-    private func stepButton(_ icon: String, action: @escaping () -> Void) -> some View {
+    /// Centre control: `−  servings  +` with the unit pushed right (no measure dropdown —
+    /// a whole meal is only ever counted in servings).
+    private var amountCapsule: some View {
+        HStack(spacing: 6) {
+            if amountFocused {
+                Spacer(minLength: 0)
+            } else {
+                stepButton("minus", enabled: servings > 0.5 + 0.0001) { stepServings(-0.5) }
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+            }
+            quantityField
+            if amountFocused {
+                Spacer(minLength: 0)
+            } else {
+                stepButton("plus", enabled: true) { stepServings(0.5) }
+                    .transition(.scale(scale: 0.5).combined(with: .opacity))
+                Spacer(minLength: 8)
+            }
+            Text(servings == 1 ? "serving" : "servings")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Theme.textSecondary)
+                .lineLimit(1).minimumScaleFactor(0.7)
+        }
+        .animation(.spring(response: 0.34, dampingFraction: 0.78), value: amountFocused)
+        .padding(.horizontal, 12)
+        .frame(height: 54)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+    }
+
+    private func stepButton(_ system: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
         Button {
             HapticManager.shared.trigger(.light)
-            withAnimation(.snappy) { action() }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { action() }
         } label: {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(RingColor.carb.tint)
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(RingColor.carb.tint.opacity(0.16)))
-                .overlay(Circle().stroke(RingColor.carb.tint.opacity(0.28), lineWidth: 1))
+            Image(systemName: system)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(enabled ? RingColor.carb.tint : Theme.textTertiary.opacity(0.4))
+                .frame(width: 40, height: 40)
+                .symbolEffect(.bounce, value: servings)
+                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(MealBouncyPress())
+        .disabled(!enabled)
     }
 
-    // MARK: Slot picker
-
-    private var slotPicker: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("ADD TO MEAL").overlineStyle()
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(MealSlot.allCases) { s in
-                        let isOn = slot == s
-                        Button {
-                            HapticManager.shared.trigger(.selection)
-                            withAnimation(.snappy) { slot = s }
-                        } label: {
-                            Label(s.rawValue, systemImage: s.symbol)
-                                .font(.system(size: 14, weight: .medium))
-                                .lineLimit(1).fixedSize()
-                                .foregroundStyle(isOn ? Color(hex: 0x000000) : Theme.textSecondary)
-                                .padding(.horizontal, 14).padding(.vertical, 9)
-                                .background(Capsule().fill(isOn ? Theme.textPrimary : Theme.surface))
-                                .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: isOn ? 0 : 1))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 1)
+    /// The servings count, edited in place — bold number with a quiet terracotta underline.
+    private var quantityField: some View {
+        TextField("0", text: $servingsText)
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .font(.system(size: amountFocused ? 30 : 18, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Theme.textPrimary)
+            .tint(RingColor.carb.tint)
+            .focused($amountFocused)
+            .fixedSize()
+            .padding(.horizontal, 4)
+            .overlay(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(RingColor.carb.tint.opacity(amountFocused ? 1 : 0.55))
+                    .frame(height: amountFocused ? 2.5 : 2)
+                    .offset(y: amountFocused ? 7 : 5)
             }
+            .animation(.spring(response: 0.34, dampingFraction: 0.78), value: amountFocused)
+            .onChange(of: servingsText) { _, t in
+                if let v = Double(t) { servings = v } else if t.isEmpty { servings = 0 }
+            }
+            .onChange(of: servings) { _, v in
+                if Double(servingsText) != v { servingsText = formatQuantity(v) }
+            }
+            .onChange(of: amountFocused) { _, focused in
+                if !focused {
+                    if servings <= 0 { servings = 0.5 }
+                    servingsText = formatQuantity(servings)
+                }
+            }
+    }
+
+    private func stepServings(_ dir: Double) {
+        servings = max(0.5, ((servings + dir) * 100).rounded() / 100)
+    }
+
+    private func formatQuantity(_ v: Double) -> String {
+        v == v.rounded() ? String(Int(v)) : String((v * 100).rounded() / 100)
+    }
+
+    /// Right control: solid terracotta button. Editing → checkmark (commits the number);
+    /// otherwise `+` logs the whole meal to the selected slot.
+    private var addCircleButton: some View {
+        Button {
+            if amountFocused {
+                HapticManager.shared.trigger(.light)
+                amountFocused = false
+            } else {
+                HapticManager.shared.trigger(.success)
+                store.addEntry(current, slot: slot, servings: servings)
+                dismiss()
+            }
+        } label: {
+            Image(systemName: amountFocused ? "checkmark" : "plus")
+                .font(.system(size: amountFocused ? 21 : 23, weight: .bold))
+                .foregroundStyle(RingColor.carb.tint)      // terracotta glyph — matches FoodDetailView
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: 54, height: 54)
+                .glassEffect(.regular.interactive(), in: Circle())   // liquid glass, no fill
+                .overlay(Circle().stroke(RingColor.carb.tint.opacity(0.4), lineWidth: 1))
         }
+        .buttonStyle(MealBouncyPress())
+        .accessibilityLabel(amountFocused ? "Done editing amount"
+                                          : "Add \(calories) calories to \(slot.rawValue)")
     }
 
     // MARK: Ingredient list
@@ -274,12 +348,18 @@ struct MealDetailView: View {
     // MARK: Toolbar buttons
 
     private var favoriteButton: some View {
-        Button {
+        let fav = store.isFavorite(current)
+        return Button {
             HapticManager.shared.trigger(.selection)
-            withAnimation(.snappy) { store.toggleFavorite(current) }
+            let added = withAnimation(.snappy) { store.toggleFavorite(current) }
+            favToastToken += 1
+            favToast = ToastMessage(text: added ? "Added to Favorites" : "Removed from Favorites",
+                                    symbol: added ? "star.fill" : "star.slash.fill",
+                                    token: favToastToken)
         } label: {
-            Image(systemName: current.isFavorite ? "star.fill" : "star")
-                .foregroundStyle(current.isFavorite ? RingColor.protein.tint : Theme.textSecondary)
+            Image(systemName: fav ? "star.fill" : "star")
+                .foregroundStyle(fav ? RingColor.protein.tint : Theme.textSecondary)
+                .contentTransition(.symbolEffect(.replace))
         }
     }
 
@@ -313,32 +393,27 @@ struct MealDetailView: View {
     // MARK: Add bar
 
     private var addBar: some View {
-        HStack {
-            Spacer()
-            Button {
-                HapticManager.shared.trigger(.success)
-                store.addEntry(current, slot: slot, servings: servings)
-                dismiss()
-            } label: {
-                HStack(spacing: 7) {
-                    Image(systemName: "plus.circle.fill").font(.system(size: 15, weight: .bold))
-                    Text("Log to \(slot.rawValue)").font(.system(size: 15, weight: .semibold))
-                }
-                // Clear Liquid Glass (matches the "+" add buttons): neutral frosted
-                // material, warm copper content — no color fill.
-                .foregroundStyle(RingColor.carb.tint)
-                .padding(.horizontal, 26).padding(.vertical, 15)
-                .glassEffect(.regular.interactive(), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            Spacer()
+        HStack(spacing: 10) {
+            mealCycleButton
+            amountCapsule
+            addCircleButton
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 22).padding(.bottom, 8)
+        .padding(.horizontal, Metrics.pagePadding)
+        .padding(.top, 22)
+        .padding(.bottom, 8)
         .background(
             LinearGradient(colors: [Theme.bg.opacity(0), Theme.bg, Theme.bg],
                            startPoint: .top, endPoint: .bottom)
         )
+    }
+}
+
+/// Quick spring scale-down while held — matches the food-detail command bar feel.
+private struct MealBouncyPress: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.88 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
 

@@ -79,6 +79,73 @@ struct StatPill: View {
     }
 }
 
+// MARK: - Toast (glass pill)
+
+/// One transient confirmation — e.g. "Added to Favorites". `token` lets an identical
+/// message re-trigger the reveal + auto-dismiss timer when tapped again.
+struct ToastMessage: Equatable, Identifiable {
+    let id = UUID()
+    let text: String
+    let symbol: String
+    var tint: Color = RingColor.protein.tint   // caramel star, matches the favorite glyph
+    var token: Int = 0
+}
+
+/// The floating glass capsule itself — liquid glass + hairline stroke, on the app's
+/// terracotta/caramel palette, so it reads as part of the same surface family.
+struct ToastPill: View {
+    let message: ToastMessage
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: message.symbol)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(message.tint)
+                .symbolEffect(.bounce, value: message.token)
+            Text(message.text)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .glassEffect(.regular.tint(message.tint.opacity(0.12)), in: Capsule())
+        .overlay(Capsule().stroke(Theme.cardStroke, lineWidth: 1))
+        .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message.text)
+    }
+}
+
+extension View {
+    /// Overlay a transient glass toast near the top. Auto-dismisses after `duration`.
+    func salorieToast(_ message: Binding<ToastMessage?>, duration: Double = 1.7) -> some View {
+        modifier(SalorieToastModifier(message: message, duration: duration))
+    }
+}
+
+private struct SalorieToastModifier: ViewModifier {
+    @Binding var message: ToastMessage?
+    let duration: Double
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .top) {
+                if let m = message {
+                    ToastPill(message: m)
+                        .padding(.top, 6)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        // Re-runs (restarting the timer) whenever a new message/token appears.
+                        .task(id: m.token) {
+                            try? await Task.sleep(for: .seconds(duration))
+                            withAnimation(.spring(response: 0.42, dampingFraction: 0.85)) {
+                                message = nil
+                            }
+                        }
+                }
+            }
+            .animation(.spring(response: 0.42, dampingFraction: 0.82), value: message)
+    }
+}
+
 #Preview("Pills") {
     ZStack {
         Theme.bg.ignoresSafeArea()

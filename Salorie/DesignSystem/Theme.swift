@@ -17,8 +17,8 @@ enum Theme {
     static let textTertiary  = Color(hex: 0x6A6A6A) // placeholders, "+ New page", empty
 
     // MARK: Accent
-    static let accent        = Color(hex: 0x2383E2) // New / + button, active tab (Notion blue)
-    static let accentPressed = Color(hex: 0x1B6FC4)
+    static let accent        = Color(hex: 0xB3664C) // interactive tint — warm terracotta (app palette, not Apple blue)
+    static let accentPressed = Color(hex: 0x8F4E38)
 
     // MARK: Calm dashboard
     /// Raised card, subtly elevated above pure black (SiriAI panel tone).

@@ -8,13 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		04444891B7E698C9C927DA16 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 975EE432B600E36E3C95416F /* TodayView.swift */; };
-		0550BF60589630E3BA27E68A /* IngredientPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 098894E12940365049E6D37F /* IngredientPickerView.swift */; };
 		063C7496B8F6AFF58F00B54C /* IngredientSplitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */; };
+		068D82ED8A3499870D7C5395 /* SalorieRings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E01C895DEBB3831A53004F /* SalorieRings.swift */; };
 		087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */; };
 		1FEC21311919848DD9EFE95C /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8A0DE5C8B820F77E3CB671E4 /* GRDB */; };
 		2EF75F316AE5C266B4D322F1 /* CatalogInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F875A4359B7528965B5F269 /* CatalogInstaller.swift */; };
 		39E3123F04390E319188DF58 /* CatalogDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0A1FB552762B5C36F7AF646 /* CatalogDownloadManager.swift */; };
 		3D4163475CCFF97E928D5F8F /* FoodCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */; };
+		41F5660254DB6C0FDF07E99F /* HomeInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEE436B02A7A62A63FBF3D3B /* HomeInsights.swift */; };
 		427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F2FB90FA939BE7D0E52BE1E /* SalorieApp.swift */; };
 		437D4278654764E40E07300A /* AddView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 047C6E4F516485EBBFC753F0 /* AddView.swift */; };
 		43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */; };
@@ -26,14 +27,20 @@
 		56B661456D285D00FB2AD814 /* FoodCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7466A965D2F0733D23670020 /* FoodCatalog.swift */; };
 		5A3F74092479E24587345675 /* LabelScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */; };
 		68DDEAC0CCE7F67B9C2BCD28 /* CatalogInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22439BCB157BA514F558138A /* CatalogInstallerTests.swift */; };
+		7967B146D79631A7D320B6EF /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 48FF287CA3E525C5E86210DA /* README.md */; };
 		7AE749C2C4AB76CC9F881DAD /* GRDBFoodCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */; };
 		7BD988031CCCEE7B7EE3BA45 /* StatDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A477736CF32F2D7705AEFE9 /* StatDetailView.swift */; };
 		7CF859A51DEE849F32F864E4 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B9F6B20723261BA38380813 /* Persistence.swift */; };
 		848545928D4071F5104D9AD0 /* MeasureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5099C09F7FC588E37734EF /* MeasureTests.swift */; };
 		8605A835CD704EC094E381C0 /* Rings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEF1A9763C1A527C2901A50 /* Rings.swift */; };
+		87A2D3FCB38B7C9CB3EAD321 /* IslandOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07334B8A3A0E8824D5AB5E84 /* IslandOverlay.swift */; };
+		87BE3D104F5D340FD98F503C /* FlightLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE93A14C72AE5C8D0780B8ED /* FlightLayer.swift */; };
+		8A1149E5807D35502AB43347 /* IslandController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0139FA6ECE2BAB33187DF86C /* IslandController.swift */; };
 		9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796CC2D90F52CABD600C2327 /* ScanView.swift */; };
 		A104915F623D78B3570AA975 /* NutrientDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */; };
 		A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0EE6F10A58BD4A1C72AAC64 /* SampleData.swift */; };
+		A2A1FECCAAA86FD90AFE7103 /* MiniSemicircleRings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2A82E8133BB543B537BB96 /* MiniSemicircleRings.swift */; };
+		A69B72378F14DFA8D5AD292E /* IslandHostWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68903CC2578CCB086AD7E218 /* IslandHostWindow.swift */; };
 		A6BF42728F8065981F40476B /* Cards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B8EEBF451C46BCC97662740 /* Cards.swift */; };
 		AC7BDAF4DD778FA219AF0C6C /* FriendDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */; };
 		AED2167AA44106B689585392 /* BarcodeCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30E53BAEF02BD8F7F83022C5 /* BarcodeCache.swift */; };
@@ -60,6 +67,7 @@
 		E570E392D438D6388B40010B /* MealDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD5FE4AFF76AD99A0BC801E2 /* MealDetailView.swift */; };
 		E5CC4CF572C6C339B33B83B2 /* RemoteFoodService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E566169CCC23E10C5B4A55B7 /* RemoteFoodService.swift */; };
 		F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */; };
+		F52795B702A6962E773F0F2D /* MealCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D271AFCD05F41DDC2B4BF0A9 /* MealCards.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,9 +81,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0139FA6ECE2BAB33187DF86C /* IslandController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandController.swift; sourceTree = "<group>"; };
 		047C6E4F516485EBBFC753F0 /* AddView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddView.swift; sourceTree = "<group>"; };
 		0594246B143E5AECC1E12C1F /* RemoteFoodTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFoodTests.swift; sourceTree = "<group>"; };
-		098894E12940365049E6D37F /* IngredientPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientPickerView.swift; sourceTree = "<group>"; };
+		07334B8A3A0E8824D5AB5E84 /* IslandOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandOverlay.swift; sourceTree = "<group>"; };
 		099C6743813AEF400BB92808 /* FoodDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodDetailView.swift; sourceTree = "<group>"; };
 		0AC51CB7A2A51AB08B3064C3 /* PersistenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceTests.swift; sourceTree = "<group>"; };
 		1CE6B78A5433627AF71F40AA /* NutrientDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutrientDetailView.swift; sourceTree = "<group>"; };
@@ -90,12 +99,14 @@
 		2F875A4359B7528965B5F269 /* CatalogInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogInstaller.swift; sourceTree = "<group>"; };
 		30E53BAEF02BD8F7F83022C5 /* BarcodeCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeCache.swift; sourceTree = "<group>"; };
 		48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FriendDetailView.swift; sourceTree = "<group>"; };
+		48FF287CA3E525C5E86210DA /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionHeader.swift; sourceTree = "<group>"; };
 		52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealBuilderView.swift; sourceTree = "<group>"; };
 		538D84F27FD95FE00E9125A1 /* MockStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockStore.swift; sourceTree = "<group>"; };
 		5B8EEBF451C46BCC97662740 /* Cards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cards.swift; sourceTree = "<group>"; };
 		603EE755CF3378DFFC8D3931 /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
 		636AFA992B9822700C009B9F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		68903CC2578CCB086AD7E218 /* IslandHostWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IslandHostWindow.swift; sourceTree = "<group>"; };
 		6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualFoodEntryView.swift; sourceTree = "<group>"; };
 		717FBDE2D8A5785A9E3F760E /* GRDBFoodCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBFoodCatalogTests.swift; sourceTree = "<group>"; };
 		7466A965D2F0733D23670020 /* FoodCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalog.swift; sourceTree = "<group>"; };
@@ -104,6 +115,7 @@
 		7AB10BD692D05CBB0054109A /* Salorie.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Salorie.entitlements; sourceTree = "<group>"; };
 		7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackedCardsCarousel.swift; sourceTree = "<group>"; };
 		7D217EA6D3A86F77A36DA108 /* IngredientSplitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientSplitTests.swift; sourceTree = "<group>"; };
+		86E01C895DEBB3831A53004F /* SalorieRings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalorieRings.swift; sourceTree = "<group>"; };
 		8DEF1A9763C1A527C2901A50 /* Rings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rings.swift; sourceTree = "<group>"; };
 		8E8C1901C1A7989D23CAA914 /* MealSlotDropdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealSlotDropdown.swift; sourceTree = "<group>"; };
 		975EE432B600E36E3C95416F /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
@@ -111,14 +123,18 @@
 		9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealHeroCard.swift; sourceTree = "<group>"; };
 		A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionTable.swift; sourceTree = "<group>"; };
 		A63FB642B0D3D9F924FEA51F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		AB2A82E8133BB543B537BB96 /* MiniSemicircleRings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniSemicircleRings.swift; sourceTree = "<group>"; };
 		AD5099C09F7FC588E37734EF /* MeasureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeasureTests.swift; sourceTree = "<group>"; };
 		BE35E489440951BF31FF35D8 /* salorie_foods.sqlite */ = {isa = PBXFileReference; lastKnownFileType = file; path = salorie_foods.sqlite; sourceTree = "<group>"; };
 		BF8256860458ADD5E0F89303 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabelScannerView.swift; sourceTree = "<group>"; };
 		C9BE01E3CBCF7A8598FAA931 /* SharingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingView.swift; sourceTree = "<group>"; };
 		CA8D58EAF0ED4FBFD554BFC7 /* FoodCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogTests.swift; sourceTree = "<group>"; };
+		CE93A14C72AE5C8D0780B8ED /* FlightLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightLayer.swift; sourceTree = "<group>"; };
+		CEE436B02A7A62A63FBF3D3B /* HomeInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeInsights.swift; sourceTree = "<group>"; };
 		D0A1FB552762B5C36F7AF646 /* CatalogDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogDownloadManager.swift; sourceTree = "<group>"; };
 		D168D26A98FC94E8ED0987C6 /* Salorie.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Salorie.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D271AFCD05F41DDC2B4BF0A9 /* MealCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealCards.swift; sourceTree = "<group>"; };
 		D63E0ED90EE41BBE3D238551 /* Pills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Pills.swift; sourceTree = "<group>"; };
 		D7D33CB3AF9B68C7470BB913 /* NutritionLabelParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionLabelParserTests.swift; sourceTree = "<group>"; };
 		D886B118CE33C040164776BB /* GRDBFoodCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GRDBFoodCatalog.swift; sourceTree = "<group>"; };
@@ -154,12 +170,15 @@
 			isa = PBXGroup;
 			children = (
 				5B8EEBF451C46BCC97662740 /* Cards.swift */,
+				CEE436B02A7A62A63FBF3D3B /* HomeInsights.swift */,
+				D271AFCD05F41DDC2B4BF0A9 /* MealCards.swift */,
 				9DC9A9691777B7E46009FA4A /* MealHeroCard.swift */,
 				8E8C1901C1A7989D23CAA914 /* MealSlotDropdown.swift */,
 				4BAEE4FDF0B328A4DE7F8D14 /* NotionHeader.swift */,
 				A5C6CA4B8495BB41DCB4A8D0 /* NotionTable.swift */,
 				D63E0ED90EE41BBE3D238551 /* Pills.swift */,
 				8DEF1A9763C1A527C2901A50 /* Rings.swift */,
+				86E01C895DEBB3831A53004F /* SalorieRings.swift */,
 				7B59C800D0650AE4F494C6B3 /* StackedCardsCarousel.swift */,
 			);
 			path = Components;
@@ -174,6 +193,19 @@
 			);
 			sourceTree = "<group>";
 		};
+		6D5A50DEAB2821A9F1CBBD95 /* Island */ = {
+			isa = PBXGroup;
+			children = (
+				CE93A14C72AE5C8D0780B8ED /* FlightLayer.swift */,
+				0139FA6ECE2BAB33187DF86C /* IslandController.swift */,
+				68903CC2578CCB086AD7E218 /* IslandHostWindow.swift */,
+				07334B8A3A0E8824D5AB5E84 /* IslandOverlay.swift */,
+				AB2A82E8133BB543B537BB96 /* MiniSemicircleRings.swift */,
+				48FF287CA3E525C5E86210DA /* README.md */,
+			);
+			path = Island;
+			sourceTree = "<group>";
+		};
 		724155568F9E5867A9903F3C /* DesignSystem */ = {
 			isa = PBXGroup;
 			children = (
@@ -181,6 +213,7 @@
 				2B012781019B5FE6E6A6921A /* Theme.swift */,
 				FFFE5C4E3BA6EC74CF118C15 /* Typography.swift */,
 				3CD85306E91B914BFE2CD23F /* Components */,
+				6D5A50DEAB2821A9F1CBBD95 /* Island */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -202,7 +235,6 @@
 				F7735B2EBC3A30B40C653B0E /* DayDetailView.swift */,
 				099C6743813AEF400BB92808 /* FoodDetailView.swift */,
 				48DE07193CB77F0CBA5BBD57 /* FriendDetailView.swift */,
-				098894E12940365049E6D37F /* IngredientPickerView.swift */,
 				C215AE1C10F7B29E9CA0685A /* LabelScannerView.swift */,
 				6CF90BA3CC3EA99A256C80AB /* ManualFoodEntryView.swift */,
 				52FED6ACCE0622764A22FB28 /* MealBuilderView.swift */,
@@ -364,6 +396,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D60C78EA95D0DF249F5716E8 /* Assets.xcassets in Resources */,
+				7967B146D79631A7D320B6EF /* README.md in Resources */,
 				B202210D8871E3402C91ED4D /* salorie_foods.sqlite in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -382,18 +415,24 @@
 				39E3123F04390E319188DF58 /* CatalogDownloadManager.swift in Sources */,
 				2EF75F316AE5C266B4D322F1 /* CatalogInstaller.swift in Sources */,
 				F320A95E4F1BCC7F06DF44DF /* DayDetailView.swift in Sources */,
+				87BE3D104F5D340FD98F503C /* FlightLayer.swift in Sources */,
 				56B661456D285D00FB2AD814 /* FoodCatalog.swift in Sources */,
 				D5F6959D1379E8E3B68315B9 /* FoodDetailView.swift in Sources */,
 				AC7BDAF4DD778FA219AF0C6C /* FriendDetailView.swift in Sources */,
 				7AE749C2C4AB76CC9F881DAD /* GRDBFoodCatalog.swift in Sources */,
 				B6C9E674AF62D53AD0A62F5E /* Haptics.swift in Sources */,
-				0550BF60589630E3BA27E68A /* IngredientPickerView.swift in Sources */,
+				41F5660254DB6C0FDF07E99F /* HomeInsights.swift in Sources */,
+				8A1149E5807D35502AB43347 /* IslandController.swift in Sources */,
+				A69B72378F14DFA8D5AD292E /* IslandHostWindow.swift in Sources */,
+				87A2D3FCB38B7C9CB3EAD321 /* IslandOverlay.swift in Sources */,
 				5A3F74092479E24587345675 /* LabelScannerView.swift in Sources */,
 				CE7BDE3F57A0C5E5D6242049 /* ManualFoodEntryView.swift in Sources */,
 				B99033C99767A6CB6C3A8BA3 /* MealBuilderView.swift in Sources */,
+				F52795B702A6962E773F0F2D /* MealCards.swift in Sources */,
 				E570E392D438D6388B40010B /* MealDetailView.swift in Sources */,
 				087C844751375B4971CCAF6D /* MealHeroCard.swift in Sources */,
 				DEB658A2817857CC5A07ED69 /* MealSlotDropdown.swift in Sources */,
+				A2A1FECCAAA86FD90AFE7103 /* MiniSemicircleRings.swift in Sources */,
 				B4FD2719009EBE73CC7D6283 /* MockStore.swift in Sources */,
 				D16EDBC0D631EC3810A91F31 /* Models.swift in Sources */,
 				43AAC3A3E6E147569BE77828 /* NotionHeader.swift in Sources */,
@@ -406,6 +445,7 @@
 				8605A835CD704EC094E381C0 /* Rings.swift in Sources */,
 				D328830EA3E9C0FFBED1BBD8 /* RootView.swift in Sources */,
 				427946A8871008F3D9D4C546 /* SalorieApp.swift in Sources */,
+				068D82ED8A3499870D7C5395 /* SalorieRings.swift in Sources */,
 				A165AB0A40FD57C8DDF08B54 /* SampleData.swift in Sources */,
 				9C501DEA52295CDB9BF1B93D /* ScanView.swift in Sources */,
 				C400483A86E87EE8122880F0 /* Sharing.swift in Sources */,

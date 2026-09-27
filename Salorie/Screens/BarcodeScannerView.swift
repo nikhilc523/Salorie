@@ -4,6 +4,8 @@ import VisionKit
 /// Live barcode scanner (VisionKit `DataScannerViewController`) wrapped for SwiftUI.
 /// Embeds the camera feed; reports the first recognised barcode payload once.
 struct BarcodeScannerView: UIViewControllerRepresentable {
+    /// While false the camera is paused (recognition stopped) — e.g. a result sheet is up.
+    var isActive: Bool = true
     var onScan: (String) -> Void
 
     /// A12+ device with camera access granted.
@@ -26,7 +28,13 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ controller: DataScannerViewController, context: Context) {
-        Task { @MainActor in try? controller.startScanning() }
+        context.coordinator.apply(isActive: isActive, to: controller)
+    }
+
+    /// Release the camera when the scanner leaves the hierarchy (sheet dismissed), so it
+    /// never keeps running in the background behind the food detail or the Add screen.
+    static func dismantleUIViewController(_ controller: DataScannerViewController, coordinator: Coordinator) {
+        controller.stopScanning()
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(onScan: onScan) }
@@ -35,7 +43,23 @@ struct BarcodeScannerView: UIViewControllerRepresentable {
     final class Coordinator: NSObject, DataScannerViewControllerDelegate {
         let onScan: (String) -> Void
         private var handled = false
+        private var scanning = false
         init(onScan: @escaping (String) -> Void) { self.onScan = onScan }
+
+        /// Start/stop the camera to match `isActive`, idempotently. Re-arms the one-shot
+        /// `handled` guard each time scanning resumes, so returning from a result can scan again.
+        func apply(isActive: Bool, to controller: DataScannerViewController) {
+            if isActive {
+                guard !scanning else { return }
+                handled = false
+                try? controller.startScanning()
+                scanning = true
+            } else {
+                guard scanning else { return }
+                controller.stopScanning()
+                scanning = false
+            }
+        }
 
         func dataScanner(_ scanner: DataScannerViewController,
                          didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {

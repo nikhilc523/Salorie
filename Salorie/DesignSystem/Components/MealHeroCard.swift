@@ -146,85 +146,86 @@ struct CreateMealCard: View {
 
 // MARK: - Tall portrait meal card (My Items grid)
 
-/// Portrait "photo-size" meal card: colored icon tile, bold name, ingredient
-/// count, and the big bold-rounded calorie number (the home-screen total style),
-/// on a tinted-glow surface with a soft shadow. Built for a 2-column grid.
+/// Portrait meal card: a colored icon tile for per-meal identity, bold name, ingredient
+/// count, and the big calorie number. The number wears the calorie-ring oatmeal tone
+/// (calories are always oatmeal across the app) on a quiet surface. Built for a 3-column grid.
 struct MealTallCard: View {
     let meal: Food
     var onTap: () -> Void
     var onToggleFavorite: () -> Void = {}
 
-    private var grad: LinearGradient {
-        LinearGradient(colors: [meal.tint.fg, meal.tint.fg.opacity(0.58)],
-                       startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
+    /// Calories are the calorie-ring colour everywhere in the app — oatmeal, not a per-meal
+    /// rainbow. A single-hue gradient keeps depth without fighting the warm-on-black theme.
+    private var calTint: Color { RingColor.calories.tint }
 
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top) {
                     Image(systemName: meal.symbol)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(meal.tint.fg)
-                        .frame(width: 52, height: 52)
-                        .background(meal.tint.bg, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                        .frame(width: 40, height: 40)
+                        .background(meal.tint.bg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     Spacer()
                     Button {
                         HapticManager.shared.trigger(.selection)
                         onToggleFavorite()
                     } label: {
                         Image(systemName: meal.isFavorite ? "star.fill" : "star")
-                            .font(.system(size: 15))
-                            .foregroundStyle(meal.isFavorite ? TagColor.yellow.fg : Theme.textTertiary)
-                            .frame(width: 30, height: 30)
+                            .font(.system(size: 13))
+                            .foregroundStyle(meal.isFavorite ? calTint : Theme.textTertiary)
+                            .frame(width: 26, height: 26)
                     }
                     .buttonStyle(.plain)
                 }
 
-                Spacer(minLength: 12)
+                Spacer(minLength: 10)
 
                 // Bold name
                 Text(meal.name)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("\(meal.components.count) ingredients")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Theme.textTertiary)
-                    .padding(.top, 3)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    .padding(.top, 2)
 
-                Spacer(minLength: 12)
+                Spacer(minLength: 10)
 
-                // Big bold calorie number (home-total style), tinted
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                // Big calorie number — oatmeal (calorie-ring), the app-wide calorie colour
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text("\(meal.calories)")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(grad)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundStyle(calTint)
                         .monospacedDigit()
                         .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text("kcal")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Theme.textTertiary)
                 }
             }
-            .padding(16)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 212)
+            .frame(height: 152)
             .background {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(Theme.surface)
                     .overlay {
-                        RadialGradient(colors: [meal.tint.fg.opacity(0.22), .clear],
-                                       center: .topTrailing, startRadius: 0, endRadius: 220)
+                        RadialGradient(colors: [calTint.opacity(0.10), .clear],
+                                       center: .topTrailing, startRadius: 0, endRadius: 160)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.cardStroke, lineWidth: 1))
             .compositingGroup()
-            .shadow(color: .black.opacity(0.4), radius: 9, y: 6)
-            .shadow(color: meal.tint.fg.opacity(0.10), radius: 14, y: 2)
+            .shadow(color: .black.opacity(0.4), radius: 7, y: 5)
         }
         .buttonStyle(.plain)
     }
@@ -238,22 +239,22 @@ struct CreateMealTallCard: View {
             HapticManager.shared.trigger(.light)
             action()
         } label: {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 20, weight: .bold))
                     .foregroundStyle(Theme.textSecondary)
-                Text("Create meal")
-                    .font(.system(size: 15, weight: .semibold))
+                Text("Create")
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Theme.textSecondary)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 212)
+            .frame(height: 152)
             .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(Theme.surface.opacity(0.45))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
                     .foregroundStyle(Theme.divider)
             )

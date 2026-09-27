@@ -8,6 +8,9 @@ struct FoodDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     let food: Food
+    /// Called after the food is logged (before dismissal). Lets a presenter — e.g. the
+    /// scanner — distinguish "logged it" from "just closed" and react accordingly.
+    var onLogged: () -> Void = {}
     @State private var slot: MealSlot = .breakfast
     @State private var measureMenuOpen = false
     @State private var scrollToTopTick = 0          // bump to scroll the page back to the hero calories
@@ -20,6 +23,20 @@ struct FoodDetailView: View {
     // Screenshot/testing hook: SALORIE_NUTRIENTS=1 pushes the full nutrition screen.
     @State private var showNutrients =
         ProcessInfo.processInfo.environment["SALORIE_NUTRIENTS"] == "1"
+    @State private var favToast: ToastMessage?
+    @State private var favToastToken = 0
+
+    /// Live favorite state from the store — a catalog food only becomes a favorite
+    /// once tapped, so this must reflect the store, not the immutable passed-in value.
+    private var isFavorite: Bool { store.isFavorite(food) }
+
+    private func toggleFavorite() {
+        let added = withAnimation(.snappy) { store.toggleFavorite(food) }
+        favToastToken += 1
+        favToast = ToastMessage(text: added ? "Added to Favorites" : "Removed from Favorites",
+                                symbol: added ? "star.fill" : "star.slash.fill",
+                                token: favToastToken)
+    }
 
     private var selectedMeasure: Measure? { measures.first { $0.id == selectedMeasureID } }
 
@@ -92,10 +109,11 @@ struct FoodDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         HapticManager.shared.trigger(.selection)
-                        withAnimation(.snappy) { store.toggleFavorite(food) }
+                        toggleFavorite()
                     } label: {
-                        Image(systemName: food.isFavorite ? "star.fill" : "star")
-                            .foregroundStyle(food.isFavorite ? RingColor.protein.tint : Theme.textSecondary)
+                        Image(systemName: isFavorite ? "star.fill" : "star")
+                            .foregroundStyle(isFavorite ? RingColor.protein.tint : Theme.textSecondary)
+                            .contentTransition(.symbolEffect(.replace))
                     }
                 }
             }
@@ -114,6 +132,7 @@ struct FoodDetailView: View {
             }
             }
         }
+        .salorieToast($favToast)
         .presentationDragIndicator(.visible)
     }
 
@@ -385,21 +404,17 @@ struct FoodDetailView: View {
             } else {
                 HapticManager.shared.trigger(.success)
                 store.addEntry(food, slot: slot, servings: servings)
+                onLogged()
                 dismiss()
             }
         } label: {
             Image(systemName: amountFocused ? "checkmark" : "plus")
                 .font(.system(size: amountFocused ? 21 : 23, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(RingColor.carb.tint)      // terracotta glyph
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 54, height: 54)
-                .background(
-                    LinearGradient(colors: [RingColor.carb.tint, RingColor.carb.tint.opacity(0.82)],
-                                   startPoint: .top, endPoint: .bottom),
-                    in: Circle()
-                )
-                .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 1))
-                .shadow(color: RingColor.carb.tint.opacity(0.5), radius: 12, y: 5)
+                .glassEffect(.regular.interactive(), in: Circle())   // liquid glass, no fill
+                .overlay(Circle().stroke(RingColor.carb.tint.opacity(0.4), lineWidth: 1))
         }
         .buttonStyle(BouncyPress())
         .accessibilityLabel(amountFocused ? "Done editing amount"

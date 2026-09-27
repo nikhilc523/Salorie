@@ -5,6 +5,7 @@ import SwiftUI
 /// total update live. Saving stores it in `MockStore.customMeals`.
 struct MealBuilderView: View {
     @Environment(MockStore.self) private var store
+    @Environment(IslandController.self) private var island
     @Environment(\.dismiss) private var dismiss
 
     /// Non-nil when editing an existing meal (preserves its id / favorite state).
@@ -15,11 +16,16 @@ struct MealBuilderView: View {
     @State private var tint: TagColor
     @State private var components: [MealComponent]
     @State private var pickingIngredient = false
+    /// Ingredient-row frames (in "screen" space) so removals fly back to their row.
+    @State private var rowFrames: [UUID: CGRect] = [:]
 
     private static let symbolChoices = [
         "takeoutbag.and.cup.and.straw.fill", "fork.knife", "cup.and.saucer.fill",
         "carrot.fill", "birthday.cake.fill", "leaf.fill", "mug.fill"
     ]
+
+    /// Oatmeal — the app's lightest warm tone, used for this screen's primary actions.
+    private static let oatmeal = RingColor.calories.tint
 
     init(editing meal: Food? = nil) {
         self.editingMeal = meal
@@ -61,14 +67,17 @@ struct MealBuilderView: View {
             }
             .safeAreaInset(edge: .bottom) { saveBar }
             .sheet(isPresented: $pickingIngredient) {
-                IngredientPickerView { food in
+                // Reuse the real Add/search screen in ingredient mode — same surface, minus
+                // the meal section (no Meals tab, meals excluded so they never nest).
+                AddView(pickIngredient: { food in
                     withAnimation(.snappy) {
                         components.append(MealComponent(food: food, servings: 1))
                     }
-                }
+                })
             }
         }
         .presentationDragIndicator(.visible)
+        .onDisappear { island.dismissTray() }
     }
 
     // MARK: Identity — icon tile, name, appearance
@@ -219,6 +228,7 @@ struct MealBuilderView: View {
             }
         }
         .padding(.vertical, 10)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("screen")) } action: { rowFrames[c.id] = $0 }
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) { remove(c) } label: { Label("Remove", systemImage: "trash") }
         }
@@ -229,6 +239,8 @@ struct MealBuilderView: View {
 
     private func remove(_ c: MealComponent) {
         HapticManager.shared.trigger(.light)
+        // Spit the chip out of the island tray and fly it back to its row.
+        island.removeFromTray(c.food, to: rowFrames[c.id] ?? island.islandCenter)
         withAnimation(.snappy) { components.removeAll { $0.id == c.id } }
     }
 
@@ -247,18 +259,20 @@ struct MealBuilderView: View {
     }
 
     private var addIngredientButton: some View {
+        // Compact Liquid-Glass pill (hugs its content — not a full-width bar).
         Button {
             HapticManager.shared.trigger(.light)
             pickingIngredient = true
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill").font(.system(size: 16, weight: .semibold))
-                Text("Add ingredient").font(.system(size: 15, weight: .semibold))
+            HStack(spacing: 6) {
+                Image(systemName: "plus").font(.system(size: 13, weight: .bold))
+                Text("Add ingredient").font(.system(size: 14, weight: .semibold))
             }
-            .foregroundStyle(Theme.accent)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(Theme.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .foregroundStyle(Self.oatmeal)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .glassEffect(.regular.interactive(), in: Capsule())
+            .overlay(Capsule().stroke(Self.oatmeal.opacity(0.22), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -273,11 +287,11 @@ struct MealBuilderView: View {
         } label: {
             Text(editingMeal == nil ? "Save Meal" : "Save Changes")
                 .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(canSave ? Theme.bg : Theme.textTertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(
-                    Capsule().fill(canSave ? Theme.accent : Theme.surfaceRaised)
+                    Capsule().fill(canSave ? Self.oatmeal : Theme.surfaceRaised)
                 )
         }
         .buttonStyle(.plain)
@@ -302,17 +316,24 @@ struct MealBuilderView: View {
         } else {
             store.saveMeal(Food.customMeal(name: trimmed, symbol: symbol, tint: tint, components: components))
         }
+        // Morph the island tray into a finished meal card with a success check.
+        island.createMeal(name: trimmed, symbol: symbol, tint: tint,
+                          items: components.map(\.food),
+                          kcal: totalCalories,
+                          protein: Int(totalProtein.rounded()))
     }
 }
 
 #Preview("New") {
     MealBuilderView()
         .environment(MockStore())
+        .environment(IslandController())
         .preferredColorScheme(.dark)
 }
 
 #Preview("Edit") {
     MealBuilderView(editing: SampleData.customMeals()[0])
         .environment(MockStore())
+        .environment(IslandController())
         .preferredColorScheme(.dark)
 }

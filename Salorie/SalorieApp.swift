@@ -9,6 +9,9 @@ struct SalorieApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @State private var store = MockStore(persistence: .shared)
+    /// Drives the custom Dynamic-Island collect animations (a SwiftUI overlay,
+    /// not ActivityKit — iOS hides our own Live Activity while in the foreground).
+    @State private var island = IslandController()
 
     /// Background App Refresh identifier (declared in `BGTaskSchedulerPermittedIdentifiers`).
     static let catalogRefreshTaskID = "com.salorie.app.catalog-refresh"
@@ -17,8 +20,10 @@ struct SalorieApp: App {
         WindowGroup {
             RootView()
                 .environment(store)
+                .environment(island)
                 .preferredColorScheme(.dark)
                 .tint(Theme.accent)
+                .task { island.bind(store: store) }
                 .task {
                     // Opportunistic foreground check on launch. No-op unless a catalog
                     // host is configured; a newer DB installs for the next launch.

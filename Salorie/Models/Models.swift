@@ -309,10 +309,19 @@ struct MacroTargets: Hashable {
 
 /// A single logged day — used by the dashboard and history.
 struct DayLog: Identifiable, Hashable {
-    let id = UUID()
+    let id: UUID
     var date: Date
     var weekdayLetter: String   // "S" "M" ...
     var entries: [MealEntry]
+
+    /// `id` defaults to a fresh UUID, but callers can pass a stable one so that
+    /// a day rebuilt from live data (today) keeps its identity across recomputes.
+    init(id: UUID = UUID(), date: Date, weekdayLetter: String, entries: [MealEntry]) {
+        self.id = id
+        self.date = date
+        self.weekdayLetter = weekdayLetter
+        self.entries = entries
+    }
 
     var calories: Int { entries.reduce(0) { $0 + $1.calories } }
     var carbs: Double { entries.reduce(0) { $0 + $1.carbs } }
