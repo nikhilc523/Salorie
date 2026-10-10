@@ -4,3 +4,6 @@ build/
 xcuserdata/
 .DS_Store
 UI/output/
+
+# Generated food catalog (build via tools/db-build)
+Salorie/Resources/*.sqlite

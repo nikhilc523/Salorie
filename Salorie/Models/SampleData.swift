@@ -9,68 +9,105 @@ enum SampleData {
         Food(symbol: "cup.and.saucer.fill", tint: .blue, name: "Greek Yogurt, Plain", brand: "Fage",
              source: .usdaBranded, isOpen: false,
              tags: [Tag(text: "Homemade", color: .blue, filled: true), Tag(text: "Protein", color: .green)],
-             servingDescription: "170 g (1 container)", calories: 100, carbs: 6, protein: 18, fat: 0, fibre: 0,
+             servingDescription: "170 g (1 container)", calories: 100, carbs: 6, protein: 18, fat: 0, fibre: 0, sugars: 7, saturatedFat: 0, sodium: 65, cholesterol: 10,
+             extended: ExtendedNutrients(potassium: 240, calcium: 200, magnesium: 20, vitaminB12: 1.3, nutriScore: "B", novaGroup: 1),
              ingredients: ["Pasteurized skimmed milk", "Live active yogurt cultures"], isFavorite: true),
 
         Food(symbol: "leaf.fill", tint: .green, name: "Avocado, Raw", brand: nil,
              source: .usdaFoundation, isOpen: true,
              tags: [Tag(text: "Good", color: .brown), Tag(text: "Satisfying", color: .pink)],
-             servingDescription: "1 medium (150 g)", calories: 240, carbs: 13, protein: 3, fat: 22, fibre: 10,
+             servingDescription: "1 medium (150 g)", calories: 240, carbs: 13, protein: 3, fat: 22, fibre: 10, sugars: 1, saturatedFat: 3, sodium: 10, cholesterol: 0,
+             extended: ExtendedNutrients(potassium: 727, calcium: 18, iron: 0.8, vitaminD: 0, magnesium: 44,
+                                         monounsaturatedFat: 14.7, polyunsaturatedFat: 2.7, omega3: 0.2,
+                                         vitaminC: 15, vitaminB12: 0, folate: 122),
              ingredients: ["Avocado"]),
 
         Food(symbol: "fork.knife", tint: .orange, name: "Grilled Chicken Breast", brand: nil,
              source: .srLegacy, isOpen: false,
              tags: [Tag(text: "Protein", color: .green), Tag(text: "Lean", color: .blue)],
-             servingDescription: "100 g", calories: 165, carbs: 0, protein: 31, fat: 4, fibre: 0,
+             servingDescription: "100 g", calories: 165, carbs: 0, protein: 31, fat: 4, fibre: 0, sugars: 0, saturatedFat: 1, sodium: 74, cholesterol: 85,
+             extended: ExtendedNutrients(potassium: 256, iron: 1.0, magnesium: 29, zinc: 1.0, vitaminB12: 0.3),
              ingredients: ["Chicken breast"], isFavorite: true),
 
         Food(symbol: "takeoutbag.and.cup.and.straw.fill", tint: .yellow, name: "Sourdough Bread", brand: "Boudin",
              source: .usdaBranded, isOpen: true,
              tags: [Tag(text: "Processed", color: .gray)],
-             servingDescription: "1 slice (56 g)", calories: 150, carbs: 30, protein: 5, fat: 1, fibre: 2,
+             servingDescription: "1 slice (56 g)", calories: 150, carbs: 30, protein: 5, fat: 1, fibre: 2, sugars: 1, saturatedFat: 0, sodium: 320, cholesterol: 0,
              ingredients: ["Enriched flour", "Water", "Salt", "Sourdough culture"]),
 
         Food(symbol: "circle.hexagongrid.fill", tint: .brown, name: "Almond Butter", brand: "Justin's",
              source: .openFoodFacts, isOpen: false,
              tags: [Tag(text: "Satisfying", color: .pink), Tag(text: "Good", color: .brown)],
-             servingDescription: "2 tbsp (32 g)", calories: 190, carbs: 7, protein: 7, fat: 16, fibre: 3,
+             servingDescription: "2 tbsp (32 g)", calories: 190, carbs: 7, protein: 7, fat: 16, fibre: 3, sugars: 2, saturatedFat: 1.5, sodium: 40, cholesterol: 0,
              ingredients: ["Dry roasted almonds"], isFavorite: true),
 
         Food(symbol: "leaf.fill", tint: .yellow, name: "Banana, Raw", brand: nil,
              source: .usdaFoundation, isOpen: false,
              tags: [Tag(text: "Snacks", color: .green)],
-             servingDescription: "1 medium (118 g)", calories: 105, carbs: 27, protein: 1, fat: 0, fibre: 3),
+             servingDescription: "1 medium (118 g)", calories: 105, carbs: 27, protein: 1, fat: 0, fibre: 3, sugars: 14, saturatedFat: 0, sodium: 1, cholesterol: 0,
+             extended: ExtendedNutrients(potassium: 422, calcium: 6, iron: 0.3, magnesium: 32, vitaminC: 10, folate: 24)),
 
         Food(symbol: "circle.fill", tint: .yellow, name: "Egg, Large", brand: nil,
              source: .srLegacy, isOpen: false,
              tags: [Tag(text: "Protein", color: .green)],
-             servingDescription: "1 large (50 g)", calories: 72, carbs: 0, protein: 6, fat: 5, fibre: 0),
+             servingDescription: "1 large (50 g)", calories: 72, carbs: 0, protein: 6, fat: 5, fibre: 0, sugars: 0, saturatedFat: 1.6, sodium: 71, cholesterol: 186),
 
         Food(symbol: "circle.grid.3x3.fill", tint: .brown, name: "Brown Rice, Cooked", brand: nil,
              source: .srLegacy, isOpen: true,
              tags: [Tag(text: "Learning", color: .purple)],
-             servingDescription: "1 cup (195 g)", calories: 218, carbs: 46, protein: 5, fat: 2, fibre: 4),
+             servingDescription: "1 cup (195 g)", calories: 218, carbs: 46, protein: 5, fat: 2, fibre: 4, sugars: 1, saturatedFat: 0.4, sodium: 10, cholesterol: 0),
 
         Food(symbol: "waterbottle.fill", tint: .blue, name: "Protein Shake, Chocolate", brand: "Fairlife",
              source: .usdaBranded, isOpen: false,
              tags: [Tag(text: "Homemade", color: .blue, filled: true)],
-             servingDescription: "1 bottle (340 mL)", calories: 150, carbs: 5, protein: 30, fat: 3, fibre: 1),
+             servingDescription: "1 bottle (340 mL)", calories: 150, carbs: 5, protein: 30, fat: 3, fibre: 1, sugars: 2, saturatedFat: 1, sodium: 200, cholesterol: 30),
 
         Food(symbol: "leaf.fill", tint: .green, name: "Broccoli, Steamed", brand: nil,
              source: .usdaFoundation, isOpen: false,
              tags: [Tag(text: "Good", color: .brown), Tag(text: "Fibre", color: .green)],
-             servingDescription: "1 cup (156 g)", calories: 55, carbs: 11, protein: 4, fat: 1, fibre: 5),
+             servingDescription: "1 cup (156 g)", calories: 55, carbs: 11, protein: 4, fat: 1, fibre: 5, sugars: 2, saturatedFat: 0, sodium: 64, cholesterol: 0),
 
         Food(symbol: "square.grid.2x2.fill", tint: .brown, name: "Dark Chocolate 85%", brand: "Lindt",
              source: .openFoodFacts, isOpen: false,
              tags: [Tag(text: "Satisfying", color: .pink), Tag(text: "Processed", color: .gray)],
-             servingDescription: "2 squares (20 g)", calories: 120, carbs: 8, protein: 2, fat: 10, fibre: 3),
+             servingDescription: "2 squares (20 g)", calories: 120, carbs: 8, protein: 2, fat: 10, fibre: 3, sugars: 3, saturatedFat: 5, sodium: 4, cholesterol: 2,
+             extended: ExtendedNutrients(potassium: 143, iron: 2.4, caffeine: 16, magnesium: 46, nutriScore: "E", novaGroup: 4)),
 
         Food(symbol: "circle.fill", tint: .purple, name: "Blueberries, Raw", brand: nil,
              source: .usdaFoundation, isOpen: false,
              tags: [Tag(text: "Snacks", color: .green)],
-             servingDescription: "1 cup (148 g)", calories: 84, carbs: 21, protein: 1, fat: 0, fibre: 4),
+             servingDescription: "1 cup (148 g)", calories: 84, carbs: 21, protein: 1, fat: 0, fibre: 4, sugars: 15, saturatedFat: 0, sodium: 1, cholesterol: 0),
+
+        // Demo item you can scan — encode "SALORIE-DEMO-01" (see the generated Code128 PNG).
+        Food(symbol: "takeoutbag.and.cup.and.straw.fill", tint: .orange, name: "Protein Bar (Demo)", brand: "Salorie",
+             source: .openFoodFacts, isOpen: false,
+             tags: [Tag(text: "Scanned", color: .blue, filled: true)],
+             servingDescription: "1 bar (60 g)", calories: 230, carbs: 24, protein: 20, fat: 8, fibre: 5, sugars: 6, saturatedFat: 3, sodium: 140, cholesterol: 5,
+             extended: ExtendedNutrients(potassium: 180, calcium: 120, iron: 3.2, caffeine: 5, nutriScore: "C", novaGroup: 4),
+             ingredients: ["Protein blend", "Almonds", "Dates", "Cocoa"], barcode: "SALORIE-DEMO-01"),
     ]
+
+    // MARK: Custom meals (user-built composites of the foods above)
+
+    static func customMeals() -> [Food] {
+        [
+            Food.customMeal(
+                name: "Protein Oat Bowl", symbol: "cup.and.saucer.fill", tint: .brown, isFavorite: true,
+                components: [
+                    MealComponent(food: foods[0], servings: 1),   // greek yogurt
+                    MealComponent(food: foods[5], servings: 1),   // banana
+                    MealComponent(food: foods[4], servings: 1),   // almond butter
+                    MealComponent(food: foods[11], servings: 1),  // blueberries
+                ]),
+            Food.customMeal(
+                name: "Chicken Rice Bowl", symbol: "takeoutbag.and.cup.and.straw.fill", tint: .green,
+                components: [
+                    MealComponent(food: foods[2], servings: 1.5), // chicken
+                    MealComponent(food: foods[7], servings: 1),   // brown rice
+                    MealComponent(food: foods[9], servings: 1),   // broccoli
+                ]),
+        ]
+    }
 
     // MARK: Targets
 
@@ -80,6 +117,7 @@ enum SampleData {
 
     static func todayEntries() -> [MealEntry] {
         [
+            MealEntry(food: customMeals()[0], slot: .breakfast, servings: 1, time: "8:05 AM"), // Protein Oat Bowl
             MealEntry(food: foods[6], slot: .breakfast, servings: 2, time: "8:12 AM"),   // eggs
             MealEntry(food: foods[3], slot: .breakfast, servings: 1, time: "8:14 AM"),   // sourdough
             MealEntry(food: foods[0], slot: .breakfast, servings: 1, time: "8:20 AM"),   // yogurt
@@ -115,6 +153,41 @@ enum SampleData {
         }
         return days
     }
+
+    // MARK: Extended daily log (for History trends — Week / Month / Year)
+
+    /// A longer, deterministic run of logged days ending at `referenceDate`, so the
+    /// History screen has real data to aggregate across periods. No randomness — values
+    /// come from a smooth wave + weekday effect so previews/screenshots are stable.
+    static func extendedHistory(days: Int = 120) -> [DayLog] {
+        let cal = Calendar.current
+        let base = cal.startOfDay(for: referenceDate)
+        let letters = ["S", "M", "T", "W", "T", "F", "S"]
+        let baseSum = Double(foods[0].calories + foods[2].calories + foods[7].calories + foods[5].calories)
+        var out: [DayLog] = []
+        for back in stride(from: days - 1, through: 0, by: -1) {
+            let date = cal.date(byAdding: .day, value: -back, to: base) ?? base
+            let weekday = cal.component(.weekday, from: date)        // 1 = Sun … 7 = Sat
+            let idx = days - 1 - back
+            let wave = 210.0 * sin(Double(idx) / 4.3)                // slow rise/fall
+            let weekend = (weekday == 1 || weekday == 7) ? 190.0 : -35.0
+            let drift = Double((idx * 7) % 90) - 45.0                // pseudo day-to-day jitter
+            let dayCalories = max(1500.0, 2080.0 + wave + weekend + drift * 0.5)
+            let scale = dayCalories / baseSum
+            let entries = [
+                MealEntry(food: foods[0], slot: .breakfast, servings: scale, time: "8:00 AM"),
+                MealEntry(food: foods[2], slot: .lunch, servings: scale, time: "1:00 PM"),
+                MealEntry(food: foods[7], slot: .lunch, servings: scale, time: "1:05 PM"),
+                MealEntry(food: foods[5], slot: .snacks, servings: scale, time: "4:00 PM"),
+            ]
+            out.append(DayLog(date: date, weekdayLetter: letters[(weekday - 1) % 7], entries: entries))
+        }
+        return out
+    }
+
+    // Sharing friends are no longer seeded — the Sharing tab shows only "Me" until
+    // real friends are added by accepting a CloudKit CKShare link (see
+    // `CloudKitSharingService`). Removed: last7Scaffold / emptyLast7 / otherFriends.
 
     /// Fixed "today" so previews and screenshots are deterministic (matches ref screens).
     static let referenceDate: Date = {

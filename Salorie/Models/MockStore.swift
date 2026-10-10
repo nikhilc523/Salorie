@@ -1,5 +1,7 @@
 import SwiftUI
 import Observation
+import SwiftData
+import CloudKit
 
 /// Single source of truth for the UI phase. `@Observable` so views update automatically.
 /// Later this is replaced by the real (SwiftData/GRDB) store with identical surface.
@@ -7,18 +9,146 @@ import Observation
 @Observable
 final class MockStore {
     var foods: [Food]
+    var customMeals: [Food]        // user-built composite meals (kind == .custom)
     var todayEntries: [MealEntry]
-    var history: [DayLog]
     var targets: MacroTargets
+    var friends: [SharedFriend]    // Sharing tab: me + accepted friends' rings
 
-    /// Fixed display date to match reference screens deterministically.
-    let today: Date = SampleData.referenceDate
+    /// Backs the Sharing tab. CloudKit `CKShare` when a container is configured
+    /// (`RemoteConfig.cloudKitContainerID`), else an offline mock (previews / tests
+    /// / no iCloud). Not `@Observable`-tracked — it holds no view state.
+    @ObservationIgnored let sharingService: SharingService
 
-    init() {
-        self.foods = SampleData.foods
-        self.todayEntries = SampleData.todayEntries()
-        self.history = SampleData.history()
+    /// Seeded demo history — the past days. The final element is `today`
+    /// (referenceDate); we never read its seeded entries directly. `history` /
+    /// `dailyLog` below overlay the live `todayEntries` onto that last day so the
+    /// week strips, DayDetail, and the trend graphs all show what Home shows.
+    private var seededHistory: [DayLog]      // last 7 days (Today / DayDetail week strips)
+    private var seededDailyLog: [DayLog]     // long run for trends (Week / Month / Year)
+    /// Stable identity for today's live day so SwiftUI list/animation state survives recomputes.
+    private let todayLogID = UUID()
+
+    /// Today, built live from `todayEntries` — the single source that Home already uses.
+    var todayLog: DayLog {
+        DayLog(id: todayLogID, date: today,
+               weekdayLetter: Self.weekdayLetter(for: today), entries: todayEntries)
+    }
+
+    /// Curated last 7 days, with today's slot replaced by the live `todayLog`.
+    var history: [DayLog] { Self.overlayingToday(seededHistory, with: todayLog) }
+    /// Long trend run, with today's slot replaced by the live `todayLog`.
+    var dailyLog: [DayLog] { Self.overlayingToday(seededDailyLog, with: todayLog) }
+
+    /// Replace the last (today) element of a seeded run with the live `today`,
+    /// preserving that element's calendar date and weekday letter.
+    private static func overlayingToday(_ days: [DayLog], with todayLog: DayLog) -> [DayLog] {
+        // No seeded history (a fresh user) → today is still a real day: return it so
+        // `history` is never empty (Day Detail / streak / sharing index into it safely).
+        guard let last = days.last else { return [todayLog] }
+        var out = days
+        out[out.count - 1] = DayLog(id: todayLog.id, date: last.date,
+                                    weekdayLetter: last.weekdayLetter, entries: todayLog.entries)
+        return out
+    }
+
+    private static func weekdayLetter(for date: Date) -> String {
+        let letters = ["S", "M", "T", "W", "T", "F", "S"]
+        return letters[(Calendar.current.component(.weekday, from: date) - 1) % 7]
+    }
+
+    /// A fresh user has no logged past days, but Day Detail / the week strips still
+    /// need a 7-day frame to look right. Build the last 7 real dates ending at
+    /// `today` with zero entries — truthful (nothing logged) and gives the weekly
+    /// rings their scaffold; the last day is `today`, replaced live by `overlayingToday`.
+    private static func emptyWeekScaffold(endingAt today: Date, days: Int = 7) -> [DayLog] {
+        let cal = Calendar.current
+        return (0..<days).reversed().map { back in
+            let date = cal.date(byAdding: .day, value: -back, to: today) ?? today
+            return DayLog(id: UUID(), date: date, weekdayLetter: weekdayLetter(for: date), entries: [])
+        }
+    }
+
+    /// The read-only catalog behind search + barcode. Swap `SampleFoodCatalog`
+    /// for the GRDB/SQLite store in P2 with no other change here.
+    private let catalog: FoodCatalog
+    /// Live lookup (OFF → USDA) for barcodes not in the bundled catalog.
+    private let remote: RemoteFoodLookup
+    /// Persistent cache of remotely-resolved foods, so a miss resolves once.
+    private let cache: BarcodeCache
+    /// SwiftData store for user data (entries / meals / saved foods / targets).
+    /// `nil` in previews & tests → pure in-memory demo (the original behavior).
+    private let persistence: PersistenceController?
+
+    /// The real current day (start of today). The app tracks the actual date/time;
+    /// `SampleData.referenceDate` is only used to lay out the demo data (previews/tests).
+    let today: Date = Calendar.current.startOfDay(for: Date())
+
+    /// The best available real catalog — a downloaded build (plan §10) if one is
+    /// installed, else the bundled seed (466k+ foods), else the in-memory sample
+    /// (previews / missing DB). A corrupt download falls through to the next candidate.
+    static var defaultCatalog: FoodCatalog {
+        for url in CatalogInstaller.shared.candidateDatabaseURLs() {
+            if let catalog = GRDBFoodCatalog(fileURL: url) { return catalog }
+        }
+        return SampleFoodCatalog(foods: SampleData.foods)
+    }
+
+    init(catalog: FoodCatalog = MockStore.defaultCatalog,
+         remote: RemoteFoodLookup = RemoteFoodService(),
+         cache: BarcodeCache = BarcodeCache(),
+         persistence: PersistenceController? = nil) {
+        self.catalog = catalog
+        self.remote = remote
+        self.cache = cache
+        self.persistence = persistence
+        // Real CloudKit sharing when a container is configured — except under Xcode
+        // previews and unit tests, which must stay offline (no network, no iCloud).
+        let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+        let isTesting = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        if let ckContainer = RemoteConfig.cloudKitContainerID, !isPreview, !isTesting {
+            self.sharingService = CloudKitSharingService(containerID: ckContainer)
+        } else {
+            self.sharingService = MockSharingService()
+        }
+        let defaults = UserDefaults.standard
+        // One-time migration to a clean, demo-free start: no placeholder history/trends/
+        // logged foods, real current date. Runs once per install (then persists via
+        // `freshStartKey`). Skipped under tests so the seeding tests keep exercising
+        // SampleData. The actual persistent wipe happens below (it needs the context).
+        let underTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        let doFreshStart = !underTests && !defaults.bool(forKey: Self.freshStartKey)
+        if doFreshStart {
+            defaults.set(true, forKey: Self.emptyStartKey)   // never seed demo data again
+            defaults.set(true, forKey: Self.freshStartKey)
+        }
+        // "Empty start" (set here on first launch, or by Settings → Delete all data) keeps
+        // the app blank: no demo history/trends and no reseed of foods/meals/entries.
+        let emptyStart = defaults.bool(forKey: Self.emptyStartKey)
+        // The week strips / Day Detail want a 7-day frame ending on the REAL today.
+        self.seededHistory = emptyStart ? Self.emptyWeekScaffold(endingAt: today)
+                                        : SampleData.history()
+        self.seededDailyLog = emptyStart ? [] : SampleData.extendedHistory()
+        // User data — loaded from SwiftData when persistence is present (seeded from
+        // SampleData on first launch), else the in-memory demo (previews / tests).
+        self.foods = []
+        self.customMeals = []
+        self.todayEntries = []
         self.targets = SampleData.targets
+        self.friends = []
+
+        if let persistence {
+            // Clear any previously-seeded demo + test data once, so the store is truly empty.
+            if doFreshStart { wipe(persistence.context) }
+            loadOrSeed(persistence.context)
+        } else if !emptyStart {
+            self.foods = SampleData.foods
+            self.customMeals = SampleData.customMeals()
+            self.todayEntries = SampleData.todayEntries()
+        }
+
+        // Me is built from this store's own day/history. Real friends load from the
+        // Sharing service (CloudKit) on demand via `refreshFriends()`.
+        self.friends = [meFriend]
     }
 
     // MARK: Derived — today's totals
@@ -28,6 +158,24 @@ final class MockStore {
     var proteinToday: Double { todayEntries.reduce(0) { $0 + $1.protein } }
     var fibreToday: Double { todayEntries.reduce(0) { $0 + $1.fibre } }
     var fatToday: Double { todayEntries.reduce(0) { $0 + $1.fat } }
+
+    /// Today's total for any nutrient — powers the user-selectable home cards.
+    func todayValue(_ kind: StatKind) -> Double {
+        todayEntries.reduce(0) { $0 + kind.entryValue($1) }
+    }
+
+    /// Consecutive most-recent days whose calories landed within ±10% of goal.
+    /// Drives the home "goal streak" module (bounded by the demo history window).
+    var goalStreak: Int {
+        guard targets.calories > 0 else { return 0 }
+        let lo = Double(targets.calories) * 0.9, hi = Double(targets.calories) * 1.1
+        var streak = 0
+        for day in history.reversed() {
+            let c = Double(day.calories)
+            if c >= lo && c <= hi { streak += 1 } else { break }
+        }
+        return streak
+    }
 
     /// 0…∞ progress against target (rings can overshoot past 1).
     func progress(_ ring: RingColor) -> Double {
@@ -61,26 +209,409 @@ final class MockStore {
         targets.calories > 0 ? Double(caloriesToday) / Double(targets.calories) : 0
     }
 
+    // MARK: Sharing — my own rings, exposed as a SharedFriend
+
+    /// Build a `RingProgress` (fractions of my targets) from raw day totals.
+    func ringProgress(calories: Int, protein: Double, carbs: Double) -> RingProgress {
+        RingProgress(
+            caloriesPct: targets.calories > 0 ? Double(calories) / Double(targets.calories) : 0,
+            proteinPct:  targets.protein  > 0 ? protein / targets.protein : 0,
+            carbsPct:    targets.carbs    > 0 ? carbs   / targets.carbs   : 0,
+            consumedCal: calories, goalCal: targets.calories
+        )
+    }
+
+    /// The current user as a `SharedFriend` — today from live totals, last 7 from history.
+    var meFriend: SharedFriend {
+        let last7 = history.map { day in
+            FriendDay(date: day.date, weekdayLetter: day.weekdayLetter,
+                      progress: ringProgress(calories: day.calories, protein: day.protein, carbs: day.carbs))
+        }
+        return SharedFriend(
+            name: "Me", avatar: "person.fill", avatarTint: .blue, appleID: "you@icloud.com", isMe: true, hasShared: true,
+            today: ringProgress(calories: caloriesToday, protein: proteinToday, carbs: carbsToday),
+            last7: last7
+        )
+    }
+
+    /// True while a `refreshFriends()` is in flight (drives the Sharing spinner).
+    var isLoadingFriends = false
+    /// Set when the last friend fetch failed (e.g. not signed into iCloud); drives
+    /// an inline banner in the Sharing tab.
+    var friendsError: String?
+
+    /// Pull accepted friends from CloudKit and rebuild `friends` = me + them. Always
+    /// rebuilds the "me" row from live totals so my own card is current. Failures are
+    /// surfaced (not thrown) so the tab still shows my own rings.
+    func refreshFriends() async {
+        isLoadingFriends = true
+        defer { isLoadingFriends = false }
+        do {
+            let others = try await sharingService.fetchFriends()
+            friends = [meFriend] + others
+            friendsError = nil
+        } catch {
+            // Keep whatever we had (at least "me").
+            if friends.isEmpty { friends = [meFriend] }
+            // Sharing is opt-in: not being signed into iCloud isn't an error worth
+            // nagging about on a passive load (the invite button surfaces it instead).
+            if (error as? CKError)?.code == .notAuthenticated {
+                friendsError = nil
+            } else {
+                friendsError = Self.friendlyMessage(for: error)
+            }
+        }
+    }
+
+    /// Publish my current rings so already-accepted friends see today's progress.
+    /// Best-effort — silently no-ops on failure (e.g. offline).
+    func publishMyRings() async {
+        try? await sharingService.publish(meFriend)
+    }
+
+    /// Human-readable text for the common CloudKit failure modes.
+    private static func friendlyMessage(for error: Error) -> String {
+        let ck = error as? CKError
+        switch ck?.code {
+        case .notAuthenticated: return "Sign in to iCloud to see friends' rings."
+        case .networkUnavailable, .networkFailure: return "You're offline — pull to retry."
+        case .quotaExceeded: return "iCloud storage is full."
+        default: return "Couldn't load friends. Pull to retry."
+        }
+    }
+
     // MARK: Grouping
 
     func entries(for slot: MealSlot) -> [MealEntry] {
         todayEntries.filter { $0.slot == slot }
     }
 
-    var favorites: [Food] { foods.filter(\.isFavorite) }
+    /// Single foods + custom meals, the full set favorites/My Items draw from.
+    var searchableFoods: [Food] { customMeals + foods }
+
+    /// Text search: your custom meals (shown first) merged with catalog hits.
+    /// Async because the real catalog is a database query.
+    func search(_ query: String) async -> [Food] {
+        let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        let meals = customMeals.filter { $0.name.localizedCaseInsensitiveContains(q) }
+        let catalogHits = await catalog.search(q)
+        return meals + catalogHits
+    }
+
+    /// Resolve a scanned barcode: bundled catalog → local cache → live OFF/USDA
+    /// (cached on success). Returns nil only if nothing anywhere has it.
+    func food(forBarcode code: String) async -> Food? {
+        if let local = await catalog.food(forBarcode: code) { return local }
+        let gtin = GRDBFoodCatalog.normalizeGTIN14(code) ?? code
+        if let cached = cache.food(for: gtin) { return cached }
+        if let fetched = await remote.lookup(barcode: code) {
+            cache.insert(fetched)
+            return fetched
+        }
+        return nil
+    }
+
+    /// Household measures (cup, slice, …) for a food's serving picker.
+    func portions(for food: Food) async -> [FoodPortion] {
+        guard let id = food.catalogID else { return [] }
+        return await catalog.portions(forID: id)
+    }
+
+    /// Persist a hand-entered custom food. It joins "My Items" (Custom tab) and, if
+    /// it has a barcode, is cached so a future scan of the same product resolves
+    /// instantly. Idempotent by id (re-saving replaces the existing row).
+    func saveCustomFood(_ food: Food) {
+        if food.barcode != nil { cache.insert(food) }
+        if let idx = foods.firstIndex(where: { $0.id == food.id }) {
+            foods[idx] = food
+        } else {
+            foods.insert(food, at: 0)   // newest custom food on top of the Custom tab
+        }
+        persistFoods()
+    }
+
+    var favorites: [Food] { searchableFoods.filter(\.isFavorite) }
+
+    // MARK: Recent & frequent (for quick re-log — derived from what you've logged)
+
+    /// Every entry logged today + across history, newest first. Today comes from the
+    /// live `todayEntries`; the past days come from `history` minus its last (today)
+    /// slot, which now mirrors `todayEntries` and would otherwise double-count.
+    private var loggedEntries: [MealEntry] {
+        todayEntries.reversed() + history.dropLast().reversed().flatMap { $0.entries.reversed() }
+    }
+
+    /// Foods you log most often — the fastest re-log candidates.
+    var frequentFoods: [Food] {
+        var counts: [Food: Int] = [:]
+        for entry in loggedEntries { counts[entry.food, default: 0] += 1 }
+        return counts
+            .sorted { $0.value != $1.value ? $0.value > $1.value : $0.key.name < $1.key.name }
+            .map(\.key)
+    }
+
+    /// Foods you logged recently, newest first, de-duplicated.
+    var recentFoods: [Food] {
+        var seen = Set<Food>()
+        return loggedEntries.compactMap { seen.insert($0.food).inserted ? $0.food : nil }
+    }
+
+    /// Recently-logged items paired with the **exact portion** they were logged at, so
+    /// a one-tap re-log reproduces that portion (no guessing grams/servings). Deduped
+    /// by food (name + brand), newest first — the fastest, unambiguous "+".
+    struct RecentLog: Identifiable, Hashable {
+        let id: UUID
+        let food: Food
+        let servings: Double
+    }
+
+    var recentLogItems: [RecentLog] {
+        var seen = Set<String>()
+        var out: [RecentLog] = []
+        for entry in loggedEntries {
+            let key = (entry.food.name + "|" + (entry.food.brand ?? "")).lowercased()
+            if seen.insert(key).inserted {
+                out.append(RecentLog(id: entry.id, food: entry.food, servings: entry.servings))
+            }
+        }
+        return out
+    }
 
     // MARK: Mutation (UI-phase only)
 
-    func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String = "Now") {
-        todayEntries.append(MealEntry(food: food, slot: slot, servings: servings, time: time))
+    /// Log a food/meal to a slot. `time` defaults to the current clock time (e.g.
+    /// "3:42 PM") so the entry lands at the right spot on the DayDetail timeline and
+    /// hourly charts; pass an explicit string only for seeded/demo data.
+    func addEntry(_ food: Food, slot: MealSlot, servings: Double = 1, time: String? = nil) {
+        let stamp = time ?? Date().formatted(date: .omitted, time: .shortened)
+        let entry = MealEntry(food: food, slot: slot, servings: servings, time: stamp)
+        todayEntries.append(entry)
+        persistInsertEntry(entry)
     }
 
-    func toggleFavorite(_ food: Food) {
-        guard let idx = foods.firstIndex(of: food) else { return }
-        foods[idx].isFavorite.toggle()
+    /// Current favorite state for a food, resolved against the live store. A catalog
+    /// or scanned food that hasn't been saved yet falls back to its own flag (false).
+    func isFavorite(_ food: Food) -> Bool {
+        if let m = customMeals.first(where: { $0.id == food.id }) { return m.isFavorite }
+        if let f = foods.first(where: { $0.id == food.id }) { return f.isFavorite }
+        return food.isFavorite
+    }
+
+    /// Flip favorite for any food and persist. A stored food/meal toggles in place; a
+    /// catalog or scanned food that isn't saved yet is inserted into `foods` (favorited)
+    /// so it shows up under Favorites and survives relaunch. Returns the new state.
+    @discardableResult
+    func toggleFavorite(_ food: Food) -> Bool {
+        if let idx = customMeals.firstIndex(where: { $0.id == food.id }) {
+            customMeals[idx].isFavorite.toggle()
+            persistMeals()
+            return customMeals[idx].isFavorite
+        }
+        if let idx = foods.firstIndex(where: { $0.id == food.id }) {
+            foods[idx].isFavorite.toggle()
+            persistFoods()
+            return foods[idx].isFavorite
+        }
+        // Not saved yet → favoriting it saves a favorited copy so it's reachable & sticky.
+        var copy = food
+        copy.isFavorite = true
+        foods.insert(copy, at: 0)
+        persistFoods()
+        return true
     }
 
     func removeEntry(_ entry: MealEntry) {
         todayEntries.removeAll { $0.id == entry.id }
+        persistDeleteEntry(entry.id)
+    }
+
+    // MARK: Custom meals
+
+    /// Add every ingredient of a custom meal to a slot as its own entry —
+    /// used when the user wants the components broken out instead of one row.
+    func logMealExpanded(_ meal: Food, slot: MealSlot, time: String? = nil) {
+        // Stamp every component with one shared time so they group together on the timeline.
+        let stamp = time ?? Date().formatted(date: .omitted, time: .shortened)
+        for component in meal.components {
+            addEntry(component.food, slot: slot, servings: component.servings, time: stamp)
+        }
+    }
+
+    /// Insert a new custom meal (newest first) or replace an existing one by id.
+    func saveMeal(_ meal: Food) {
+        guard meal.kind == .custom else { return }
+        if let idx = customMeals.firstIndex(where: { $0.id == meal.id }) {
+            customMeals[idx] = meal
+        } else {
+            customMeals.insert(meal, at: 0)
+        }
+        persistMeals()
+    }
+
+    func deleteMeal(_ meal: Food) {
+        customMeals.removeAll { $0.id == meal.id }
+        persistMeals()
+    }
+
+    // MARK: - SwiftData persistence (no-ops when persistence == nil)
+
+    /// JSON coders reused across every read/write of a value snapshot.
+    private static let encoder = JSONEncoder()
+    private static let decoder = JSONDecoder()
+
+    /// Bump this whenever the bundled seed/catalog changes and stale persisted user data
+    /// should be flushed on the next launch. A mismatch with the stored version wipes and
+    /// reseeds automatically — no env var needed.
+    static let seedVersion = 3
+    private static let seedVersionKey = "salorie.seedVersion"
+
+    /// Set once the user taps "Delete all data": keeps the app permanently empty
+    /// (no demo seed) on every future launch. Cleared only by deleting/reinstalling
+    /// the app, which restores the original demo start.
+    static let emptyStartKey = "salorie.emptyStart"
+
+    /// Set once, on the first launch after the "clean start" change: wipes any
+    /// previously-seeded demo/test data and switches the app to a real, empty start.
+    static let freshStartKey = "salorie.freshStartV1"
+
+    /// Wipe every piece of stored data and keep the app blank going forward — a true
+    /// "start from the very beginning, empty" reset. Clears the live in-memory state
+    /// immediately so the UI empties without a relaunch. The Sharing tab drops back to
+    /// just "Me" (at zero); real friends reappear on the next CloudKit refresh.
+    func resetAllData() {
+        if let ctx = persistence?.context { wipe(ctx) }
+        UserDefaults.standard.set(true, forKey: Self.emptyStartKey)
+        foods = []
+        customMeals = []
+        todayEntries = []
+        seededHistory = Self.emptyWeekScaffold(endingAt: today)   // keep the week strip's frame
+        seededDailyLog = []
+        friends = [meFriend]
+    }
+
+    /// Load user data from SwiftData, seeding it from `SampleData` on first launch.
+    /// Wipes + reseeds when `SALORIE_RESET=1` (screenshots/tests) or when the stored
+    /// `seedVersion` is out of date (flushes stale data so new seed data is picked up).
+    private func loadOrSeed(_ ctx: ModelContext) {
+        let defaults = UserDefaults.standard
+        let storedVersion = defaults.object(forKey: Self.seedVersionKey) as? Int
+        let versionChanged = storedVersion != Self.seedVersion
+        let reset = ProcessInfo.processInfo.environment["SALORIE_RESET"] == "1" || versionChanged
+        if reset { wipe(ctx) }
+
+        let isEmpty = (try? ctx.fetchCount(FetchDescriptor<StoredFood>())) ?? 0 == 0
+            && (try? ctx.fetchCount(FetchDescriptor<StoredMeal>())) ?? 0 == 0
+            && (try? ctx.fetchCount(FetchDescriptor<StoredEntry>())) ?? 0 == 0
+            && (try? ctx.fetchCount(FetchDescriptor<StoredTargets>())) ?? 0 == 0
+        // Never reseed once the user has chosen an empty start (Settings → Delete all data).
+        if isEmpty && !defaults.bool(forKey: Self.emptyStartKey) { seed(ctx) }
+        if versionChanged { defaults.set(Self.seedVersion, forKey: Self.seedVersionKey) }
+
+        foods = fetchFoods(ctx)
+        customMeals = fetchMeals(ctx)
+        todayEntries = fetchEntries(ctx)
+        if let t = fetchTargets(ctx) { targets = t }
+    }
+
+    /// Write the whole seed set once. Entry order is preserved via monotonic `loggedAt`.
+    private func seed(_ ctx: ModelContext) {
+        for (i, food) in SampleData.foods.enumerated() {
+            if let json = try? Self.encoder.encode(food) {
+                ctx.insert(StoredFood(foodID: food.id, json: json, sortIndex: i))
+            }
+        }
+        for (i, meal) in SampleData.customMeals().enumerated() {
+            if let json = try? Self.encoder.encode(meal) {
+                ctx.insert(StoredMeal(mealID: meal.id, json: json, sortIndex: i))
+            }
+        }
+        let base = SampleData.referenceDate
+        for (i, entry) in SampleData.todayEntries().enumerated() {
+            if let json = try? Self.encoder.encode(entry.food) {
+                ctx.insert(StoredEntry(entryID: entry.id, foodJSON: json,
+                                       slotRaw: entry.slot.rawValue, servings: entry.servings,
+                                       time: entry.time, loggedAt: base.addingTimeInterval(Double(i))))
+            }
+        }
+        let t = SampleData.targets
+        ctx.insert(StoredTargets(calories: t.calories, carbs: t.carbs, protein: t.protein,
+                                 fibre: t.fibre, fat: t.fat))
+        try? ctx.save()
+    }
+
+    private func wipe(_ ctx: ModelContext) {
+        try? ctx.delete(model: StoredFood.self)
+        try? ctx.delete(model: StoredMeal.self)
+        try? ctx.delete(model: StoredEntry.self)
+        try? ctx.delete(model: StoredTargets.self)
+        try? ctx.save()
+    }
+
+    // MARK: Fetch
+
+    private func fetchFoods(_ ctx: ModelContext) -> [Food] {
+        let rows = (try? ctx.fetch(FetchDescriptor<StoredFood>(sortBy: [SortDescriptor(\.sortIndex)]))) ?? []
+        return rows.compactMap { try? Self.decoder.decode(Food.self, from: $0.json) }
+    }
+
+    private func fetchMeals(_ ctx: ModelContext) -> [Food] {
+        let rows = (try? ctx.fetch(FetchDescriptor<StoredMeal>(sortBy: [SortDescriptor(\.sortIndex)]))) ?? []
+        return rows.compactMap { try? Self.decoder.decode(Food.self, from: $0.json) }
+    }
+
+    private func fetchEntries(_ ctx: ModelContext) -> [MealEntry] {
+        let rows = (try? ctx.fetch(FetchDescriptor<StoredEntry>(sortBy: [SortDescriptor(\.loggedAt)]))) ?? []
+        return rows.compactMap { row in
+            guard let food = try? Self.decoder.decode(Food.self, from: row.foodJSON),
+                  let slot = MealSlot(rawValue: row.slotRaw) else { return nil }
+            return MealEntry(id: row.entryID, food: food, slot: slot,
+                             servings: row.servings, time: row.time)
+        }
+    }
+
+    private func fetchTargets(_ ctx: ModelContext) -> MacroTargets? {
+        guard let row = (try? ctx.fetch(FetchDescriptor<StoredTargets>()))?.first else { return nil }
+        return MacroTargets(calories: row.calories, carbs: row.carbs, protein: row.protein,
+                            fibre: row.fibre, fat: row.fat)
+    }
+
+    // MARK: Write-through
+    //
+    // `foods` and `customMeals` are small and bounded, so each mutation rewrites the
+    // whole collection — the load order (`sortIndex`) then always matches the array,
+    // with no min/max bookkeeping. Entries can grow unboundedly, so they're written
+    // incrementally (insert on log, delete on remove).
+
+    private func persistFoods() {
+        guard let ctx = persistence?.context else { return }
+        try? ctx.delete(model: StoredFood.self)
+        for (i, food) in foods.enumerated() where (try? Self.encoder.encode(food)) != nil {
+            ctx.insert(StoredFood(foodID: food.id, json: try! Self.encoder.encode(food), sortIndex: i))
+        }
+        try? ctx.save()
+    }
+
+    private func persistMeals() {
+        guard let ctx = persistence?.context else { return }
+        try? ctx.delete(model: StoredMeal.self)
+        for (i, meal) in customMeals.enumerated() where (try? Self.encoder.encode(meal)) != nil {
+            ctx.insert(StoredMeal(mealID: meal.id, json: try! Self.encoder.encode(meal), sortIndex: i))
+        }
+        try? ctx.save()
+    }
+
+    private func persistInsertEntry(_ entry: MealEntry) {
+        guard let ctx = persistence?.context,
+              let json = try? Self.encoder.encode(entry.food) else { return }
+        ctx.insert(StoredEntry(entryID: entry.id, foodJSON: json, slotRaw: entry.slot.rawValue,
+                               servings: entry.servings, time: entry.time, loggedAt: Date()))
+        try? ctx.save()
+    }
+
+    private func persistDeleteEntry(_ id: UUID) {
+        guard let ctx = persistence?.context else { return }
+        try? ctx.delete(model: StoredEntry.self, where: #Predicate { $0.entryID == id })
+        try? ctx.save()
     }
 }

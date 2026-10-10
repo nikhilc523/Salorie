@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CloudKit sync template (plan §10). INERT by default — not referenced by the build.
+  To enable cross-device sync of user data (logs / meals / favorites / targets):
+    1. In project.yml, under target Salorie settings.base, add:
+         CODE_SIGN_ENTITLEMENTS: Salorie/Salorie.entitlements
+       and set a real DEVELOPMENT_TEAM.
+    2. Set RemoteConfig.cloudKitContainerID = "iCloud.com.salorie.app"
+       (or export SALORIE_CLOUDKIT_CONTAINER=iCloud.com.salorie.app).
+    3. Create the CloudKit container in the CloudKit Dashboard and run once to
+       initialize the schema (PersistenceController mirrors the SwiftData store up).
+  PersistenceController already falls back to local-only if the entitlement or an
+  iCloud account is missing, so this is safe to turn on incrementally.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.developer.icloud-container-identifiers</key>
+    <array>
+        <string>iCloud.com.salorie.app</string>
+    </array>
+    <key>com.apple.developer.icloud-services</key>
+    <array>
+        <string>CloudKit</string>
+    </array>
+    <key>aps-environment</key>
+    <string>development</string>
+</dict>
+</plist>

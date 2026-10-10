@@ -8,6 +8,7 @@ struct Ring: Identifiable, Hashable {
     var color: RingColor
     var label: String
     var valueText: String  // e.g. "120 g"
+    var unit: String = ""  // small trailing unit for the legend, e.g. "CAL" / "G"
 }
 
 // MARK: - Single ring arc
@@ -106,26 +107,29 @@ struct ActivityRings: View {
 
 // MARK: - RingLegend
 
-/// Colored-dot legend beside/under the rings.
+/// Apple Fitness–style stacked legend: each metric is a vertical block —
+/// small label on top, big colored value/target with a small trailing unit.
 struct RingLegend: View {
     let items: [Ring]
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             ForEach(items) { ring in
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(ring.color.gradient)
-                        .frame(width: 9, height: 9)
+                VStack(alignment: .leading, spacing: 0) {
                     Text(ring.label)
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Theme.textPrimary)
-                    Spacer(minLength: 6)
-                    Text(ring.valueText)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Theme.textSecondary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text(ring.valueText)
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .monospacedDigit()
+                        if !ring.unit.isEmpty {
+                            Text(ring.unit)
+                                .font(.system(size: 12, weight: .heavy))
+                        }
+                    }
+                    .foregroundStyle(ring.color.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 }
             }
         }
@@ -189,18 +193,22 @@ struct MiniDayRing: View {
     let rings: [Ring]      // outer first
     var size: CGFloat = 34
     var lineWidth: CGFloat = 4
+    var gap: CGFloat = 2
 
     var body: some View {
         ZStack {
             ForEach(Array(rings.enumerated()), id: \.element.id) { index, ring in
-                Circle()
-                    .stroke(ring.color.base.opacity(0.16), lineWidth: lineWidth)
-                    .padding(CGFloat(index) * (lineWidth + 1.5))
-                Circle()
-                    .trim(from: 0, to: min(ring.progress, 1))
-                    .stroke(ring.color.gradient, style: .init(lineWidth: lineWidth, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .padding(CGFloat(index) * (lineWidth + 1.5))
+                // Explicit per-ring diameter → guaranteed concentric (no stroke overflow drift).
+                let diameter = size - CGFloat(index) * 2 * (lineWidth + gap)
+                ZStack {
+                    Circle()
+                        .stroke(ring.color.base.opacity(0.16), lineWidth: lineWidth)
+                    Circle()
+                        .trim(from: 0, to: min(ring.progress, 1))
+                        .stroke(ring.color.gradient, style: .init(lineWidth: lineWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+                .frame(width: max(lineWidth, diameter), height: max(lineWidth, diameter))
             }
         }
         .frame(width: size, height: size)

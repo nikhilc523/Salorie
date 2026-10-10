@@ -9,6 +9,7 @@ enum Theme {
     static let surface       = Color(hex: 0x1E1E1E) // cards, board columns, metric cards
     static let surfaceRaised = Color(hex: 0x262626) // selected/hover row, popovers
     static let divider       = Color(hex: 0x2C2C2C) // table lines, column separators
+    static let tableLine     = Color(hex: 0x3A3A3D) // thick, clearly-visible table row lines
 
     // MARK: Text — neutral off-white
     static let textPrimary   = Color(hex: 0xEDEDED) // names, big numbers, titles
@@ -16,8 +17,8 @@ enum Theme {
     static let textTertiary  = Color(hex: 0x6A6A6A) // placeholders, "+ New page", empty
 
     // MARK: Accent
-    static let accent        = Color(hex: 0x2383E2) // New / + button, active tab (Notion blue)
-    static let accentPressed = Color(hex: 0x1B6FC4)
+    static let accent        = Color(hex: 0xB3664C) // interactive tint — warm terracotta (app palette, not Apple blue)
+    static let accentPressed = Color(hex: 0x8F4E38)
 
     // MARK: Calm dashboard
     /// Raised card, subtly elevated above pure black (SiriAI panel tone).
@@ -30,7 +31,7 @@ enum Theme {
 
 // MARK: - Tag pill palette (Notion's 9 muted dark colors)
 
-enum TagColor: String, CaseIterable, Hashable {
+enum TagColor: String, CaseIterable, Hashable, Codable {
     case gray, brown, orange, yellow, green, blue, purple, pink, red
 
     /// Soft background used by the default pill style.
